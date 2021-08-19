@@ -7,6 +7,8 @@
 3) Use Clang to analyze C AST for macro usage
 4) Design/implement simple constant object macro conversion
 
+Rough data collection -> Fine data collection -> Rough classification
+-> AST analysis -> Fine classification -> Conversion
 
 ## Mennie's Steps
 1) Extract the code and macro facts
@@ -27,6 +29,13 @@
 - If a macro is used in a case label, need to convert it to an enum
   instead of a const.
     - Should group macros used in the same switch statement in the same enum.
+
+- What about macros that use const variables or other simple constant macros
+  in their bodies? Should these be converted as well?
+  - For now no; eventually yes.
+
+- Even for simple int types, need to figure the appropriate qualifiers,
+  e.g., unsigned, long, short, etc.
 
 ## Other Notes
 - Since macro definitions are all global in scope, don't have to worry about
