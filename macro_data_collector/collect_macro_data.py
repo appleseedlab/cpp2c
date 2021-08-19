@@ -10,8 +10,8 @@ import os
 import re
 from typing import List
 
-from constants import RegexGroupName, SuperCOutputString
-from directives import (DefineDirective, FunctionDefine, MacroDataList,
+from macro_data_collector.constants import RegexGroupName, SuperCOutputString
+from macro_data_collector.directives import (DefineDirective, FunctionDefine, MacroDataList,
                         ObjectDefine)
 
 
