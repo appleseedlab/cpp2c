@@ -2,3 +2,4 @@
 .vscode
 __pycache__
 c-tests
+tests/c_files_and_stat_files/*.txt
