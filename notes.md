@@ -40,3 +40,5 @@ Rough data collection -> Fine data collection -> Rough classification
 ## Other Notes
 - Since macro definitions are all global in scope, don't have to worry about
   scoping rules.
+- How to best handle type conversion? Should the AST be analyzed to determine
+  which type the user would prefer the macro be converted to?
