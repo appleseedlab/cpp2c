@@ -1,1 +1,1 @@
-python3 main.py ./test/deflate.txt ./test/deflate.c ./test-result.json
+python3 main.py ./test/deflate.txt ./test/deflate.c ./test/test-result.json
