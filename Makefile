@@ -1,7 +1,8 @@
 TEST_DIR	:=	./tests/c_files_and_stat_files
 
-C_FILES		:=	$(TEST_DIR)/simple_constants.c \
-				$(TEST_DIR)/positive_int_macros.c
+C_FILES		:=	$(TEST_DIR)/positive_int_macros.c \
+				$(TEST_DIR)/negative_int_macros.c \
+				$(TEST_DIR)/simple_constant_macros.c
 				
 
 STAT_FILES :=	$(C_FILES:%.c=%.txt)
