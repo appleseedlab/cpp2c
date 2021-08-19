@@ -346,6 +346,6 @@ define __INT_LEAST64_WIDTH__ var <command-line>:345:1 1
 define __UINT_FAST8_TYPE__ var <command-line>:346:1 1
 define __ATOMIC_ACQ_REL var <command-line>:347:1 1
 define __ATOMIC_RELEASE var <command-line>:348:1 1
-define A var tests/simple_constants.c:2:1 1
-define B var tests/simple_constants.c:3:1 1
-error: parse error on "/" at tests/simple_constants.c:13:1
+define A var tests/c_files_and_stat_files/positive_int_macros.c:1:1 1
+define B var tests/c_files_and_stat_files/positive_int_macros.c:2:1 1
+define C var tests/c_files_and_stat_files/positive_int_macros.c:3:1 1
