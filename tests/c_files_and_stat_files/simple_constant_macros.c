@@ -1,6 +1,12 @@
 // Macro    |   Expected Type
-#define A 1  //  int
-#define B -1 //  int
+#define A 1
+#define B +1
+#define C -1
+#define D 1.0
+#define E +1.0
+#define F -1.0
+#define G 'G'
+#define H "Hello, World!"
 
 /*
 TODO: Add more types, and handle negative values
@@ -19,4 +25,16 @@ Floating-Point Types
 float	        4 byte      1.2E-38 to 3.4E+38	    6 decimal places
 double	        8 byte      2.3E-308 to 1.7E+308	15 decimal places
 long double	    10 byte     3.4E-4932 to 1.1E+4932	19 decimal places
+*/
+
+/*
+Storage size for float : 4 
+FLT_MAX      :   3.40282e+38
+FLT_MIN      :   1.17549e-38
+-FLT_MAX     :   -3.40282e+38
+-FLT_MIN     :   -1.17549e-38
+DBL_MAX      :   1.79769e+308
+DBL_MIN      :   2.22507e-308
+-DBL_MAX     :  -1.79769e+308
+Precision value: 6
 */
