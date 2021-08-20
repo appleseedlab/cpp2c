@@ -17,10 +17,10 @@ def test_file_paths(fn: str) -> Tuple[str, str]:
 
 
 class CollectMacroDataTests(TestCase):
-    # Note: Definition counts do not currently seem to be working...
+    # Note: SuperC does not seem to return the correct definition counts...
 
     def setUp(self) -> None:
-        self.maxDiff = 10000
+        self.maxDiff = 10_000
         return super().setUp()
 
     def test_collect_positive_ints(self):
@@ -49,15 +49,41 @@ class CollectMacroDataTests(TestCase):
             ]
         )
 
-    def test_collect_simple_constants(self):
-        stat_file, c_file = test_file_paths("simple_constant_macros")
+    def test_collect_positive_floats(self):
+        stat_file, c_file = test_file_paths("positive_float_macros")
         result = collect_macro_data(stat_file, c_file)
         self.assertEqual(
             result,
             [
+                ObjectDefine(file=c_file, line=1, column=1,
+                             definition_count=1, identifier='A', body='1.0'),
                 ObjectDefine(file=c_file, line=2, column=1,
-                             definition_count=1, identifier='A', body='1  //  int'),
-                ObjectDefine(file=c_file, line=3, column=1,
-                             definition_count=1, identifier='B', body='-1 //  int')
+                             definition_count=1, identifier='B', body='2.0'),
             ]
         )
+
+    def test_collect_negative_floats(self):
+        stat_file, c_file = test_file_paths("negative_float_macros")
+        result = collect_macro_data(stat_file, c_file)
+        self.assertEqual(
+            result,
+            [
+                ObjectDefine(file=c_file, line=1, column=1,
+                             definition_count=1, identifier='A', body='-1.0'),
+                ObjectDefine(file=c_file, line=2, column=1,
+                             definition_count=1, identifier='B', body='-2.0'),
+            ]
+        )
+
+    # def test_collect_simple_constants(self):
+    #     stat_file, c_file = test_file_paths("simple_constant_macros")
+    #     result = collect_macro_data(stat_file, c_file)
+    #     self.assertEqual(
+    #         result,
+    #         [
+    #             ObjectDefine(file=c_file, line=2, column=1,
+    #                          definition_count=1, identifier='A', body='1  //  int'),
+    #             ObjectDefine(file=c_file, line=3, column=1,
+    #                          definition_count=1, identifier='B', body='-1 //  int')
+    #         ]
+    #     )
