@@ -46,7 +46,7 @@ class ClassifiedMacro():
 @dataclass
 class SimpleConstantObject(ClassifiedMacro):
     '''Class for simple constant object macros'''
-    # Note: This string should be a value frmo the CType enum
+    # Note: This string should be a value from the CType enum
     # The datatype is not CType enum due to the fact that dataclasses
     # containing enums cannot be easily converted to dicts with the asdict
     # function
