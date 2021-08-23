@@ -6,7 +6,6 @@ Classes for classifying macros
 
 from dataclasses import dataclass
 from enum import Enum
-from os import ctermid
 from typing import NewType, Union
 
 from macro_data_collector import directives
