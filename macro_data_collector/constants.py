@@ -4,18 +4,16 @@ constants.py
 Contains constant values used throughout the program
 '''
 
-from enum import Enum
-
-class SuperCOutputString(Enum):
-    '''Enum for strings outputted by SuperC'''
+class SuperCOutputStrings():
+    '''Strings outputted by SuperC'''
     DEFINE = "define"
     COMMAND_LINE = "command-line"
     VAR = "var"
     FUN = "fun"
 
 
-class RegexGroupName(Enum):
-    '''Enum for regular expression group names'''
+class RegexGroupNames():
+    '''Regular expression group names'''
     DEFINE = "define"
     IDENTIFIER = "identifier"
     TYPE = "type"
