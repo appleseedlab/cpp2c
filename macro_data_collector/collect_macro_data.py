@@ -98,11 +98,23 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
                                         for parameter in parameters]
 
                     current_line = current_line[current_line.find(")")+1:]
-                body += current_line.lstrip().rstrip("\\\n")
+                # Fill in body with definition
+
+                # NOTE: Maybe comments in macro definitions should be preserved
+                # somehow?
+                # FIXME: This will not work for a macro whose definition
+                # contains a string literal with '//' inside it
+
+                # Strip comments any comments
+                if (comment_start := current_line.find(r"//")) != -1:
+                    current_line = current_line[:comment_start]
+                body += current_line.lstrip().rstrip("\\\n").rstrip()
                 while current_line.endswith("\\\n") and line < len(c_file_lines):
                     line += 1
                     current_line = c_file_lines[line-1]
-                    body += current_line.lstrip().rstrip("\\\n")
+                    if (comment_start := current_line.find(r"//")) != -1:
+                        current_line = current_line[:comment_start]
+                    body += current_line.lstrip().rstrip("\\\n").rstrip()
 
                 usage.body = body
                 results.append(usage)

@@ -29,10 +29,8 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(file=c_file, line=1, column=1,
-                             definition_count=1, identifier='A', body='1'),
-                ObjectDefine(file=c_file, line=2, column=1,
-                             definition_count=1, identifier='B', body='2'),
+                ObjectDefine(c_file, 1, 1, 1, 'A', '1'),
+                ObjectDefine(c_file, 2, 1, 1, 'B', '2'),
             ]
         )
 
@@ -42,10 +40,8 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(file=c_file, line=1, column=1,
-                             definition_count=1, identifier='A', body='-1'),
-                ObjectDefine(file=c_file, line=2, column=1,
-                             definition_count=1, identifier='B', body='-2'),
+                ObjectDefine(c_file, 1, 1, 1, 'A', '-1'),
+                ObjectDefine(c_file, 2, 1, 1, 'B', '-2'),
             ]
         )
 
@@ -55,10 +51,8 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(file=c_file, line=1, column=1,
-                             definition_count=1, identifier='A', body='1.0'),
-                ObjectDefine(file=c_file, line=2, column=1,
-                             definition_count=1, identifier='B', body='2.0'),
+                ObjectDefine(c_file, 1, 1, 1, 'A', '1.0'),
+                ObjectDefine(c_file, 2, 1, 1, 'B', '2.0'),
             ]
         )
 
@@ -68,10 +62,22 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(file=c_file, line=1, column=1,
-                             definition_count=1, identifier='A', body='-1.0'),
-                ObjectDefine(file=c_file, line=2, column=1,
-                             definition_count=1, identifier='B', body='-2.0'),
+                ObjectDefine(c_file, 1, 1, 1, 'A', '-1.0'),
+                ObjectDefine(c_file, 2, 1, 1, 'B', '-2.0'),
+            ]
+        )
+
+    def test_collect_macros_with_comments(self):
+        stat_file, c_file = test_file_paths("macros_with_comments")
+        result = collect_macro_data(stat_file, c_file)
+        self.assertEqual(
+            result,
+            [
+                ObjectDefine(c_file, 1, 1, 1, 'A', '1'),
+                ObjectDefine(c_file, 2, 1, 1, 'B', "'C'"),
+                ObjectDefine(c_file, 3, 1, 1, 'C', '"String literal"'),
+                ObjectDefine(c_file, 4, 1, 1, 'D', '2.0'),
+                ObjectDefine(c_file, 5, 1, 1, 'E', '"A B C ""D E F"'),
             ]
         )
 
