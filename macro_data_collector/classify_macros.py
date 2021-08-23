@@ -8,7 +8,11 @@ from typing import Union
 from macro_data_collector import directives
 from macro_data_collector.classifications import (CharMacro, ClassifiedMacro, CType, NumberMacro, StringMacro,
                                                   UnclassifiableMacro)
+from macro_data_collector.constants import CLimits
 import re
+
+# TODO: Figure out how to use pycparser to parse C code using Python.
+#       Can possibly use this to infer types from macro bodies.
 
 # Notice the [^0]. This is to prevent recognizing octals as ints
 INT_PATTERN = re.compile(r"^[+-]?[^0]\d*$")
@@ -18,7 +22,7 @@ OCTAL_PATTERN = re.compile(r"^[+-]?0[0-7]+$")
 HEX_PATTERN = re.compile(r"^[+-]?0(x|X)[0-9A-Fa-f]+$")
 
 
-def get_ctype_from_number(val: Union[int, float], is_int: bool) -> CType:
+def get_ctype_from_number(val: Union[int, float]) -> CType:
     '''
     Returns a number's corresponding C data type
 
@@ -32,39 +36,37 @@ def get_ctype_from_number(val: Union[int, float], is_int: bool) -> CType:
     Raises:
         ValueError: If a macro is defined to an invalid number
     '''
-    # TODO: Refactor for a better way of identifying ints vs floats.
-    # Passing the type as a boolean argument seems error-prone.
-    if is_int:
-        if 0 <= val <= 255:
+    if isinstance(val, int):
+        if 0 <= val <= CLimits.UCHAR_MAX:
             return CType.UNSIGNED_CHAR
-        elif -128 <= val <= 127:
+        elif CLimits.SCHAR_MIN <= val <= CLimits.SCHAR_MAX:
             return CType.SIGNED_CHAR
-        elif -32_768 <= val <= 32_767:
+        elif CLimits.SHRT_MIN <= val <= CLimits.SHRT_MAX:
             return CType.SHORT
-        elif 0 <= val <= 65_535:
+        elif 0 <= val <= CLimits.USHRT_MAX:
             return CType.UNSIGNED_SHORT
-        elif -2_147_483_648 <= val <= 2_147_484_647:
+        elif CLimits.INT_MIN <= val <= CLimits.INT_MAX:
             return CType.INT
-        elif 0 <= val <= 4_294_967_295:
+        elif 0 <= val <= CLimits.UINT_MAX:
             return CType.UNSIGNED_INT
-        elif -9223372036854775808 <= val <= 9223372036854775807:
+        elif CLimits.LONG_MIN <= val <= CLimits.LONG_MAX:
             return CType.LONG
-        elif 0 <= val <= 18446744073709551615:
+        elif 0 <= val <= CLimits.ULONG_MAX:
             return CType.UNSIGNED_LONG
-        elif -3.40282e+38 <= val <= 3.40282e+38:
+        elif -CLimits.FLT_MAX <= val <= CLimits.FLT_MAX:
             return CType.FLOAT
-        elif -1.79769e+308 <= val <= 1.79769e+308:
+        elif -CLimits.DBL_MAX <= val <= CLimits.DBL_MAX:
             return CType.DOUBLE
-        elif -1.1E+4932 <= val <= 1.1E+4932:
+        elif -CLimits.LDBL_MAX <= val <= CLimits.LDBL_MAX:
             return CType.LONG_DOUBLE
         else:
             raise ValueError(f"Invalid C number: {val}")
     # Floats
-    if -3.40282e+38 <= val <= 3.40282e+38:
+    if -CLimits.FLT_MAX <= val <= CLimits.FLT_MAX:
         return CType.FLOAT
-    elif -1.79769e+308 <= val <= 1.79769e+308:
+    elif -CLimits.DBL_MAX <= val <= CLimits.DBL_MAX:
         return CType.DOUBLE
-    elif -1.1E+4932 <= val <= 1.1E+4932:
+    elif -CLimits.LDBL_MAX <= val <= CLimits.LDBL_MAX:
         return CType.LONG_DOUBLE
     else:
         raise ValueError(f"Invalid C number: {val}")
@@ -87,23 +89,23 @@ def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
         # Classifying an object-like macro
         if re.match(INT_PATTERN, macro.body):
             val = int(macro.body)
-            ctype = get_ctype_from_number(val, True)
+            ctype = get_ctype_from_number(val)
             return NumberMacro(macro, ctype.value, val)
         elif re.match(FLOAT_PATTERN, macro.body):
             val = float(macro.body)
-            ctype = get_ctype_from_number(val, False)
+            ctype = get_ctype_from_number(val)
             return NumberMacro(macro, ctype.value, val)
         elif re.match(BINARY_PATTERN, macro.body):
             val = int(macro.body, base=2)
-            ctype = get_ctype_from_number(val, True)
+            ctype = get_ctype_from_number(val)
             return NumberMacro(macro, ctype.value, base=2)
         elif re.match(OCTAL_PATTERN, macro.body):
             val = int(macro.body, base=8)
-            ctype = get_ctype_from_number(val, True)
+            ctype = get_ctype_from_number(val)
             return NumberMacro(macro, ctype.value, base=8)
         elif re.match(HEX_PATTERN, macro.body):
             val = int(macro.body, base=16)
-            ctype = get_ctype_from_number(val, True)
+            ctype = get_ctype_from_number(val)
             return NumberMacro(macro, ctype.value, base=16)
 
         # Single character char
@@ -113,7 +115,7 @@ def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
               and macro.body[0] == "'"
               and macro.body[1] in [chr(i) for i in range(32, 127)]
               and macro.body[2] == "'"):
-            return CharMacro(macro, CType.CHAR.value, macro.body)
+            return CharMacro(macro, CType.CHAR.value, macro.body[1])
 
         # TODO: Determine if a macro body is actually a valid string.
         # Currently just checking if the body begins and ends
