@@ -42,3 +42,14 @@ Rough data collection -> Fine data collection -> Rough classification
   scoping rules.
 - How to best handle type conversion? Should the AST be analyzed to determine
   which type the user would prefer the macro be converted to?
+- NOTE: pycparser can parse the following line as a binary op:
+  ```
+  a + b;
+  ```
+  It won't compile of course since the variables are undeclared,
+  but maybe this can still be useful? Maybe infer the types of
+  the operands from the AST, and then extract the variables
+  into function parameters? Would be tricky but could conceivably work,
+  so long as the macro doesn't rely on dynamic scoping. Then again,
+  that case could be checked for by comparing all variable names found
+  in the macro body to the parameter names in the macro definition.
