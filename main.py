@@ -34,7 +34,9 @@ def main():
         c_file_lines = fp.readlines()
     for cm in classified_macros:
         if isinstance(cm, SimpleConstantMacro):
-            c_file_lines[cm.macro.line - 1] = cm.emit()
+            c_file_lines[cm.macro.start_line - 1] = cm.emit()
+            for i in range(cm.macro.start_line, cm.macro.end_line):
+                c_file_lines[i] = ""
     
     print('\n'.join(c_file_lines))
 
