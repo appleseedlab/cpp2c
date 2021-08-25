@@ -7,6 +7,8 @@ Identifier = NewType("Identifier", str)
 @dataclass
 class CPPDirective():
     '''Base class for CPP directives'''
+    # TODO: Keep track of start and end line for macros
+    # which span multiple lines
     file: str
     line: int
     column: int
