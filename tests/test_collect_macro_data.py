@@ -29,8 +29,8 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(c_file, 1, 1, 1, 'A', '1'),
-                ObjectDefine(c_file, 2, 1, 1, 'B', '2'),
+                ObjectDefine(c_file, 1, 1, 1, 1, 'A', '1'),
+                ObjectDefine(c_file, 2, 2, 1, 1, 'B', '2'),
             ]
         )
 
@@ -40,8 +40,8 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(c_file, 1, 1, 1, 'A', '-1'),
-                ObjectDefine(c_file, 2, 1, 1, 'B', '-2'),
+                ObjectDefine(c_file, 1, 1, 1, 1, 'A', '-1'),
+                ObjectDefine(c_file, 2, 2, 1, 1, 'B', '-2'),
             ]
         )
 
@@ -51,8 +51,8 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(c_file, 1, 1, 1, 'A', '1.0'),
-                ObjectDefine(c_file, 2, 1, 1, 'B', '2.0'),
+                ObjectDefine(c_file, 1, 1, 1, 1, 'A', '1.0'),
+                ObjectDefine(c_file, 2, 2, 1, 1, 'B', '2.0'),
             ]
         )
 
@@ -62,8 +62,8 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(c_file, 1, 1, 1, 'A', '-1.0'),
-                ObjectDefine(c_file, 2, 1, 1, 'B', '-2.0'),
+                ObjectDefine(c_file, 1, 1, 1, 1, 'A', '-1.0'),
+                ObjectDefine(c_file, 2, 2, 1, 1, 'B', '-2.0'),
             ]
         )
 
@@ -73,11 +73,11 @@ class CollectMacroDataTests(TestCase):
         self.assertEqual(
             result,
             [
-                ObjectDefine(c_file, 1, 1, 1, 'A', '1'),
-                ObjectDefine(c_file, 2, 1, 1, 'B', "'C'"),
-                ObjectDefine(c_file, 3, 1, 1, 'C', '"String literal"'),
-                ObjectDefine(c_file, 4, 1, 1, 'D', '2.0'),
-                ObjectDefine(c_file, 5, 1, 1, 'E', '"A B C ""D E F"'),
+                ObjectDefine(c_file, 1, 1, 1, 1, 'A', '1'),
+                ObjectDefine(c_file, 2, 2, 1, 1, 'B', "'C'"),
+                ObjectDefine(c_file, 3, 3, 1, 1, 'C', '"String literal"'),
+                ObjectDefine(c_file, 4, 4, 1, 1, 'D', '2.0'),
+                ObjectDefine(c_file, 5, 6, 1, 1, 'E', '"A B C ""D E F"'),
             ]
         )
 
