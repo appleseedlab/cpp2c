@@ -5,6 +5,8 @@ Driver program for macro data collector
 '''
 
 import json
+from typing import List
+from macro_data_collector.classifications import SimpleConstantMacro
 from macro_data_collector.classify_macros import classify_macro
 import sys
 from dataclasses import asdict
@@ -26,6 +28,15 @@ def main():
 
     with open(output_file, "w") as fp:
         json.dump(classified_macros, fp, default=asdict, indent=4)
+
+    c_file_lines: List[str]
+    with open(c_file) as fp:
+        c_file_lines = fp.readlines()
+    for cm in classified_macros:
+        if isinstance(cm, SimpleConstantMacro):
+            c_file_lines[cm.macro.line - 1] = cm.emit()
+    
+    print('\n'.join(c_file_lines))
 
 
 if __name__ == '__main__':
