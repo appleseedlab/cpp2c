@@ -8,10 +8,14 @@
 #define G 'G'             // char
 #define H "Hello, World!" // string
 #define I '\n'            // char
-#define J "This" \
-          "is"   \
-          "a"    \
-          "joke"
+#define J "This"   \
+          " is"    \
+          " a"     \
+          " multi" \
+          " line"  \
+          " string"
+#define K   1\
+            2
 
 /*
 TODO: Add more types, and handle negative values
