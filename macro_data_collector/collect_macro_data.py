@@ -105,7 +105,7 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
                 # FIXME: This will not work for a macro whose definition
                 # contains a string literal with '//' inside it
 
-                # Strip comments any comments
+                # Strip any comments
                 if (comment_start := current_line.find(r"//")) != -1:
                     current_line = current_line[:comment_start]
                 body += current_line.lstrip().rstrip("\\\n").rstrip()
