@@ -69,22 +69,23 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
                 # Only concerned with macros defined in the specified C file
                 if src == SuperCOutputStrings.COMMAND_LINE or os.path.basename(src) != os.path.basename(c_file):
                     continue
-                line = int(match_.group(RegexGroupNames.LINE))
+                start_line = int(match_.group(RegexGroupNames.LINE))
                 column = int(match_.group(RegexGroupNames.COLUMN))
                 identifier = match_.group(RegexGroupNames.IDENTIFIER)
                 type_ = match_.group(RegexGroupNames.TYPE)
                 definition_count = int(match_.group(
                     RegexGroupNames.DEFINITION_COUNT))
+                end_line = start_line
                 body = ""
                 usage: DefineDirective
                 if type_ == SuperCOutputStrings.VAR:
                     usage = ObjectDefine(
-                        c_file, line, column, definition_count, identifier, body)
+                        c_file, start_line, end_line, column, definition_count, identifier, body)
                 else:
                     usage = FunctionDefine(
-                        c_file, line, column, definition_count, identifier, body, [])
+                        c_file, start_line, end_line, column, definition_count, identifier, body, [])
                 # Fill in definition
-                current_line = c_file_lines[line-1]
+                current_line = c_file_lines[start_line-1]
                 # Skip to definition
                 current_line = current_line[current_line.find(
                     identifier)+len(identifier):]
@@ -109,13 +110,14 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
                 if (comment_start := current_line.find(r"//")) != -1:
                     current_line = current_line[:comment_start]
                 body += current_line.lstrip().rstrip("\\\n").rstrip()
-                while current_line.endswith("\\\n") and line < len(c_file_lines):
-                    line += 1
-                    current_line = c_file_lines[line-1]
+                while current_line.endswith("\\\n") and end_line < len(c_file_lines):
+                    end_line += 1
+                    current_line = c_file_lines[end_line-1]
                     if (comment_start := current_line.find(r"//")) != -1:
                         current_line = current_line[:comment_start]
                     body += current_line.lstrip().rstrip("\\\n").rstrip()
 
                 usage.body = body
+                usage.end_line = end_line
                 results.append(usage)
     return results
