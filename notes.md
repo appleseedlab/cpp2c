@@ -37,6 +37,9 @@ Rough data collection -> Fine data collection -> Rough classification
 - Even for simple int types, need to figure the appropriate qualifiers,
   e.g., unsigned, long, short, etc.
 
+## Suggested Types from https://dl.acm.org/doi/10.1145/1095430.1081712
+- See Table 1 from the PDF
+
 ## Other Notes
 - Since macro definitions are all global in scope, don't have to worry about
   scoping rules.
