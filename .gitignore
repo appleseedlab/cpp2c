@@ -5,3 +5,4 @@ c-tests
 tests/c_files/*.txt
 *.pdf
 *.sh
+.pytest_cache
