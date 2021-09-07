@@ -5,7 +5,7 @@ from unittest import TestCase
 from macro_data_collector.collect_macro_data import collect_macro_data
 from macro_data_collector.directives import MacroDataList, ObjectDefine
 
-TEST_INPUT_DIRNAME = "c_files_and_stat_files"
+TEST_INPUT_DIRNAME = "c_files"
 
 TEST_INPUT_DIRPATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), TEST_INPUT_DIRNAME))

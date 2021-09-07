@@ -2,6 +2,6 @@
 .vscode
 __pycache__
 c-tests
-tests/c_files_and_stat_files/*.txt
+tests/c_files/*.txt
 *.pdf
 *.sh

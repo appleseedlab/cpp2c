@@ -1,4 +1,4 @@
-TEST_DIR	:=	./tests/c_files_and_stat_files
+TEST_DIR	:=	./tests/c_files
 
 C_FILES		:=	$(TEST_DIR)/positive_int_macros.c \
 				$(TEST_DIR)/negative_int_macros.c \
