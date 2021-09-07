@@ -9,7 +9,7 @@ from typing import Union
 from pycparser.c_ast import Constant, UnaryOp
 from pycparser.c_parser import CParser
 from macro_data_collector import directives
-from macro_data_collector.classifications import ClassifiedMacro, SimpleConstantMacro, UnclassifiableMacro
+from macro_classifier.classifications import ClassifiedMacro, SimpleConstantMacro, UnclassifiableMacro
 
 
 def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
