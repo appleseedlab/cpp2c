@@ -16,6 +16,8 @@
           " string"
 #define K   1\
             2
+#define L "This // has // comment // starters // in // it"
+#define M "This // has // comment // starters // in // it" // and a comment
 
 /*
 TODO: Add more types, and handle negative values
