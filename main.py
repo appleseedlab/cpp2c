@@ -6,8 +6,8 @@ Driver program for macro data collector
 
 import json
 from typing import List
-from macro_data_collector.classifications import SimpleConstantMacro
-from macro_data_collector.classify_macros import classify_macro
+from macro_classifier.classifications import SimpleConstantMacro
+from macro_classifier.classify_macros import classify_macro
 import sys
 from dataclasses import asdict
 from macro_data_collector.collect_macro_data import collect_macro_data
