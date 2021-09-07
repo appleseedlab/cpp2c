@@ -103,12 +103,28 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
 
                 # NOTE: Maybe comments in macro definitions should be preserved
                 # somehow?
-                # FIXME: This will not work for a macro whose definition
-                # contains a string literal with '//' inside it
 
-                # Strip any comments
-                if (comment_start := current_line.find(r"//")) != -1:
-                    current_line = current_line[:comment_start]
+                # TODO: Fix this to work with multi-line comments /*...*/
+
+                # Strip any comments, being sure to retain // in strings
+                in_string = False
+                comment_start = len(current_line) + 1
+                for i, char in enumerate(current_line):
+                    if (
+                            # We have not already started a comment
+                            comment_start == len(current_line) + 1
+                            # We are starting a comment
+                            and char == r'/'
+                            and i + 1 < len(current_line)
+                            and current_line[i+1] == r'/'):
+                        comment_start = i
+                    if char == r'"':
+                        in_string = not in_string
+                    # Ignore //s in strings
+                    if in_string:
+                        comment_start = len(current_line) + 1
+                current_line = current_line[:comment_start]
+
                 body += current_line.lstrip().rstrip("\\\n").rstrip()
                 while current_line.endswith("\\\n") and end_line < len(c_file_lines):
                     end_line += 1
