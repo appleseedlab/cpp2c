@@ -1,3 +1,5 @@
+.PHONY: test clean_stat_files
+
 TEST_DIR	:=	./tests/c_files
 
 C_FILES		:=	$(TEST_DIR)/positive_int_macros.c \
@@ -14,7 +16,7 @@ STAT_FILES :=	$(C_FILES:%.c=%.txt)
 	java superc.SuperC -preprocessorStatistics $< 2> $@
 
 test: $(C_FILES) $(STAT_FILES)
-	python3 -m unittest discover -s=./tests
+	pytest
 
 clean_stat_files:
 	rm -fr $(STAT_FILES)
