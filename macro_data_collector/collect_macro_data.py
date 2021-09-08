@@ -104,68 +104,10 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
                 # NOTE: Maybe comments in macro definitions should be preserved
                 # somehow?
 
-                # First strip single line comments, being sure to retain // in strings
-                # TODO: Refactor this to avoid code duplication before and during loop
-                in_string = False
-                comment_start = len(current_line) + 1
-                for i, char in enumerate(current_line):
-                    if (
-                            # We have not already started a comment
-                            comment_start == len(current_line) + 1
-                            # We are starting a comment
-                            and char == r'/'
-                            and i + 1 < len(current_line)
-                            and current_line[i+1] == r'/'):
-                        comment_start = i
-                    if char == r'"':
-                        in_string = not in_string
-                    # Ignore //s in strings
-                    if in_string:
-                        comment_start = len(current_line) + 1
-                current_line = current_line[:comment_start]
-
-                # Next remove multi-line comments /*...*/
-                # Assumes that these comments don't actually span
-                # multiple lines; more for comments that have a specified
-                # start and end point
-                line_no_comments = ['\0' for _ in current_line]
-                i = 0
-                k = 0
-                in_comment = False
-                while i < len(current_line):
-                    if (
-                            not in_comment
-                            and current_line[i] == r'/'
-                            and i + 1 < len(current_line)
-                            and current_line[i+1] == r'*'):
-                        in_comment = True
-                        i += 2
-                        continue
-
-                    if (
-                            in_comment
-                            and current_line[i] == r'*'
-                            and i + 1 < len(current_line)
-                            and current_line[i+1] == r'/'):
-                        in_comment = False
-                        i += 2
-                        continue
-
-                    if in_comment:
-                        i += 1
-                        continue
-
-                    line_no_comments[k] = current_line[i]
-                    i += 1
-                    k += 1
-
-                current_line = ''.join(line_no_comments).rstrip('\0')
-
-                body += current_line.lstrip().rstrip("\\\n").rstrip()
-                while current_line.endswith("\\\n") and end_line < len(c_file_lines):
-                    end_line += 1
-                    current_line = c_file_lines[end_line-1]
-
+                # Emulate a do-while loop.
+                # See bottom of while loop for comment on why this is done
+                while True:
+                    # First strip single line comments, being sure to retain // in strings
                     in_string = False
                     comment_start = len(current_line) + 1
                     for i, char in enumerate(current_line):
@@ -184,6 +126,10 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
                             comment_start = len(current_line) + 1
                     current_line = current_line[:comment_start]
 
+                    # Next remove multi-line comments /*...*/
+                    # Assumes that these comments don't actually span
+                    # multiple lines; more for comments that have a specified
+                    # start and end point
                     line_no_comments = ['\0' for _ in current_line]
                     i = 0
                     k = 0
@@ -218,6 +164,16 @@ def collect_macro_data(stats_file: str, c_file: str) -> MacroDataList:
                     current_line = ''.join(line_no_comments).rstrip('\0')
 
                     body += current_line.lstrip().rstrip("\\\n").rstrip()
+
+                    # Check if this macro spans multiple lines, and remove
+                    # comments from the next line if so.
+                    # We use the do-while loop form so that the first line
+                    # always gets its comments removed
+                    if current_line.endswith("\\\n") and end_line < len(c_file_lines):
+                        end_line += 1
+                        current_line = c_file_lines[end_line-1]
+                    else:
+                        break
 
                 usage.body = body
                 usage.end_line = end_line
