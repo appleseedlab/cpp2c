@@ -18,6 +18,11 @@
             2
 #define L "This // has // comment // starters // in // it"
 #define M "This // has // comment // starters // in // it" // and a comment
+#define N "This // has // comment //" \
+          "starters // in // it,// across // multiple // lines" // and a comment
+#define O "Multiple strings" /*comment*/ " with comments" /*comment*/ " between them"
+#define P "Multiple strings" /*comment*/ " " \
+          "with comments and lines" /*comment*/ "between them"
 
 /*
 TODO: Add more types, and handle negative values
