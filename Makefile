@@ -15,6 +15,8 @@ STAT_FILES :=	$(C_FILES:%.c=%.txt)
 %.txt: %.c
 	java superc.SuperC -preprocessorStatistics $< 2> $@
 
+stat_files: $(STAT_FILES)
+
 test: $(C_FILES) $(STAT_FILES)
 	pytest
 
