@@ -56,3 +56,10 @@ Rough data collection -> Fine data collection -> Rough classification
   so long as the macro doesn't rely on dynamic scoping. Then again,
   that case could be checked for by comparing all variable names found
   in the macro body to the parameter names in the macro definition.
+
+## Remember to Keep it Practical for Now
+- We should do research to see how often potentially difficult-to-implement
+  features such as dynamic scoping and referencing global variables are used
+- It could be that such features are not often used by developers,
+  so we can just focus on converting simple constant object macros
+  and functions that don't reference variables from outer scopes for now
