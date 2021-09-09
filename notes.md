@@ -56,6 +56,8 @@ Rough data collection -> Fine data collection -> Rough classification
   so long as the macro doesn't rely on dynamic scoping. Then again,
   that case could be checked for by comparing all variable names found
   in the macro body to the parameter names in the macro definition.
+- Other idea: for function-like macros, can just make return type and types
+  of parameters void* for now until you can examine AST
 
 ## Remember to Keep it Practical for Now
 - We should do research to see how often potentially difficult-to-implement
