@@ -45,5 +45,9 @@ def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
             return SimpleConstantMacro(macro, constant.type, value)
         except:
             return UnclassifiableMacro(macro)
+    elif isinstance(macro, directives.FunctionDefine):
+        # TODO: Figure out how to classify
+        # simple pass-by-value function-like macros
+        ...
 
     return UnclassifiableMacro(macro)

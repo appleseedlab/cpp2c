@@ -11,13 +11,29 @@ from macro_data_collector import directives
 
 @dataclass
 class ClassifiedMacro():
-    '''Class for macros that have been classified'''
+    '''
+    Class for macros that have been classified
+
+    TODO: Explain
+    '''
     macro: directives.DefineDirective
 
 
 @dataclass
 class SimpleConstantMacro(ClassifiedMacro):
-    '''Class for simple constant object macros'''
+    '''
+    Class for simple constant object macros
+
+    TODO: Explain
+
+    Examples from https://github.com/kokke/tiny-AES-c/blob/12e7744b4919e9d55de75b7ab566326a1c8e7a67/test.c#L7:
+    ```c
+    #define CBC 1
+    #define CTR 1
+    #define ECB 1
+    ```
+
+    '''
     ctype: str
     value: str
     # TODO: Read AST to determine if an object macro is used as a case label
@@ -27,7 +43,10 @@ class SimpleConstantMacro(ClassifiedMacro):
     enum_group_name: str = ""
 
     def emit(self) -> str:
-        '''Emit the C declaration and initialization for the macro'''
+        '''
+        Emit the C declaration and initialization for the converted macro.
+        The result will either be a C constant or an enum.
+        '''
         ctype = self.ctype
         if ctype == "string":
             ctype = "char *"
@@ -37,6 +56,31 @@ class SimpleConstantMacro(ClassifiedMacro):
             pass
 
         return f"const {ctype} {self.macro.identifier} = {self.value};"
+
+
+# TOOD: Complete class for simple pass-by-value function-like macros
+@dataclass
+class SimplePassByValueFunctionMacro(ClassifiedMacro):
+    '''
+    Class for simple pass-by-value function-like macros
+
+    TODO: Explain
+
+    Example from `ext/async/sqlite3async.c` from SQLite source code:
+    ```c
+    /* Useful macros used in several places */
+    #define MIN(x,y) ((x)<(y)?(x):(y))
+    #define MAX(x,y) ((x)>(y)?(x):(y))
+    ```
+    '''
+    return_type: str
+
+    def emit(self) -> str:
+        '''
+        Emit the C declaration and definition of the converted macro.
+        The result will be a C function.
+        '''
+        ...
 
 
 @dataclass
