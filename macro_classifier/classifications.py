@@ -5,6 +5,7 @@ Classes for classifying macros
 '''
 
 from dataclasses import dataclass
+from typing import List
 
 from macro_data_collector import directives
 
@@ -34,13 +35,13 @@ class SimpleConstantMacro(ClassifiedMacro):
     This type of macro will either be converted to C a constant or enum
     (if the macro is used as a case label in a switch statement).
 
-    ## Examples
-    
+    # Examples
+
     From https://github.com/kokke/tiny-AES-c/blob/12e7744b4919e9d55de75b7ab566326a1c8e7a67/test.c#L7
     ```c
-    #define CBC 1
-    #define CTR 1
-    #define ECB 1
+    # define CBC 1
+    # define CTR 1
+    # define ECB 1
     ```
 
     '''
@@ -78,31 +79,46 @@ class SimplePassByValueFunctionMacro(ClassifiedMacro):
 
     These are function-like macros whose bodies only reference
     the values of the arguments passed to them, and don't reference
-    variables from outer scopes.
+    variables from outer scopes (i.e., no side-effects).
 
     This type of macro will be converted to a C function whose return
     type will be inferrred from its usage in the AST.
 
-    ## Example
-    
+    # Example
+
     From `ext/async/sqlite3async.c` from SQLite source code
     ```c
     /* Useful macros used in several places */
-    #define MIN(x,y) ((x)<(y)?(x):(y))
-    #define MAX(x,y) ((x)>(y)?(x):(y))
+    # define MIN(x,y) ((x)<(y)?(x):(y))
+    # define MAX(x,y) ((x)>(y)?(x):(y))
     ```
     '''
+    macro: directives.FunctionDefine
     return_type: str
+    parameter_types: List[str]
 
     def emit(self) -> str:
         '''
         Emit the C declaration and definition of the converted macro.
         The result will be a C function.
         '''
-        ...
+        # TODO: Infer correct return type and parameter types from AST
+        # Currently, the classifier assigns 'void *' to all types
+        result = f"{self.return_type} {self.macro.identifier}("
+        for i, (c_type, parameter) in enumerate(zip(self.parameter_types, self.macro.parameters)):
+            if i > 0:
+                result += ", "
+            result += f"{c_type} {parameter}"
+        result += (
+            ") {"
+            f"return {self.macro.body};"
+            "}"
+        )
+
+        return result
 
 
-@dataclass
+@ dataclass
 class UnclassifiableMacro(ClassifiedMacro):
     '''Class for macros that don't fit other classifications'''
     pass
