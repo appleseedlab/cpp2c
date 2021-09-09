@@ -7,6 +7,7 @@ C_FILES		:=	$(TEST_DIR)/positive_int_macros.c \
 				$(TEST_DIR)/positive_float_macros.c \
 				$(TEST_DIR)/negative_float_macros.c \
 				$(TEST_DIR)/simple_constant_macros.c \
+				$(TEST_DIR)/simple_function_macros.c \
 				$(TEST_DIR)/macros_with_comments.c
 				
 
