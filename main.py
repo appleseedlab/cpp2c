@@ -6,7 +6,7 @@ Driver program for macro data collector
 
 import json
 from typing import List
-from macro_classifier.classifications import SimpleConstantMacro
+from macro_classifier.classifications import SimpleConstantMacro, SimplePassByValueFunctionMacro
 from macro_classifier.classify_macros import classify_macro
 import sys
 from dataclasses import asdict
@@ -33,11 +33,11 @@ def main():
     with open(c_file) as fp:
         c_file_lines = fp.readlines()
     for cm in classified_macros:
-        if isinstance(cm, SimpleConstantMacro):
+        if isinstance(cm, SimpleConstantMacro) or isinstance(cm, SimplePassByValueFunctionMacro):
             c_file_lines[cm.macro.start_line - 1] = cm.emit()
             for i in range(cm.macro.start_line, cm.macro.end_line):
                 c_file_lines[i] = ""
-    
+
     print('\n'.join(c_file_lines))
 
 
