@@ -12,9 +12,13 @@ from macro_data_collector import directives
 @dataclass
 class ClassifiedMacro():
     '''
-    Class for macros that have been classified
+    Class for macros that have been classified.
 
-    TODO: Explain
+    A classified macro is one for which its corresponding C construct has been
+    determined. Each classified macro class has an `emit` method that returns
+    a string representing the converted macro. `emit` should not be called
+    until the AST has been examined, as this may alter how a macro should
+    be converted.
     '''
     macro: directives.DefineDirective
 
@@ -22,11 +26,17 @@ class ClassifiedMacro():
 @dataclass
 class SimpleConstantMacro(ClassifiedMacro):
     '''
-    Class for simple constant object macros
+    Class for simple constant object macros.
 
-    TODO: Explain
+    These are object-like macros whose bodies contain a
+    single C literal value, e.g., 42, 'c', or "Hello, World!".
 
-    Examples from https://github.com/kokke/tiny-AES-c/blob/12e7744b4919e9d55de75b7ab566326a1c8e7a67/test.c#L7:
+    This type of macro will either be converted to C a constant or enum
+    (if the macro is used as a case label in a switch statement).
+
+    ## Examples
+    
+    From https://github.com/kokke/tiny-AES-c/blob/12e7744b4919e9d55de75b7ab566326a1c8e7a67/test.c#L7
     ```c
     #define CBC 1
     #define CTR 1
@@ -64,11 +74,18 @@ class SimpleConstantMacro(ClassifiedMacro):
 @dataclass
 class SimplePassByValueFunctionMacro(ClassifiedMacro):
     '''
-    Class for simple pass-by-value function-like macros
+    Class for simple pass-by-value function-like macros.
 
-    TODO: Explain
+    These are function-like macros whose bodies only reference
+    the values of the arguments passed to them, and don't reference
+    variables from outer scopes.
 
-    Example from `ext/async/sqlite3async.c` from SQLite source code:
+    This type of macro will be converted to a C function whose return
+    type will be inferrred from its usage in the AST.
+
+    ## Example
+    
+    From `ext/async/sqlite3async.c` from SQLite source code
     ```c
     /* Useful macros used in several places */
     #define MIN(x,y) ((x)<(y)?(x):(y))
