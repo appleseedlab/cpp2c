@@ -34,7 +34,7 @@ class SimpleConstantMacro(ClassifiedMacro):
     ```
 
     '''
-    ctype: str
+    c_type: str
     value: str
     # TODO: Read AST to determine if an object macro is used as a case label
     used_as_case_label: bool = False
@@ -47,15 +47,17 @@ class SimpleConstantMacro(ClassifiedMacro):
         Emit the C declaration and initialization for the converted macro.
         The result will either be a C constant or an enum.
         '''
-        ctype = self.ctype
-        if ctype == "string":
-            ctype = "char *"
+        c_type = self.c_type
+        if c_type == "string":
+            c_type = "char *"
         if self.used_as_case_label:
             # TODO: Emit all object defines used as case labels in the
             # same switch statement to values in the same enum
+            # TODO: Raise an error if a macro was used as a case label
+            # but its C type isn't numeric (can this even be done?)
             pass
 
-        return f"const {ctype} {self.macro.identifier} = {self.value};"
+        return f"const {c_type} {self.macro.identifier} = {self.value};"
 
 
 # TOOD: Complete class for simple pass-by-value function-like macros
