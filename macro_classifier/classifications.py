@@ -20,6 +20,12 @@ class ClassifiedMacro():
     a string representing the converted macro. `emit` should not be called
     until the AST has been examined, as this may alter how a macro should
     be converted.
+
+    # Qualifications
+
+    - All convertible macro types must be defined within the same file that
+      they are used
+    - The definition of any convertible macro must not end in a semicolon
     '''
     macro: directives.DefineDirective
 
@@ -39,9 +45,9 @@ class SimpleConstantMacro(ClassifiedMacro):
 
     From https://github.com/kokke/tiny-AES-c/blob/12e7744b4919e9d55de75b7ab566326a1c8e7a67/test.c#L7
     ```c
-    # define CBC 1
-    # define CTR 1
-    # define ECB 1
+    #define CBC 1
+    #define CTR 1
+    #define ECB 1
     ```
 
     '''
@@ -70,8 +76,11 @@ class SimpleConstantMacro(ClassifiedMacro):
 
         return f"const {c_type} {self.macro.identifier} = {self.value};"
 
+# TODO: Add support for expression constant macros
+#       (maybe merge with simple ones?)
 
-# TOOD: Complete class for simple pass-by-value function-like macros
+
+# TODO: Complete class for simple pass-by-value function-like macros
 @dataclass
 class SimplePassByValueFunctionMacro(ClassifiedMacro):
     '''
@@ -116,6 +125,8 @@ class SimplePassByValueFunctionMacro(ClassifiedMacro):
         )
 
         return result
+
+# TODO: Add support for type aliasing macros
 
 
 @ dataclass
