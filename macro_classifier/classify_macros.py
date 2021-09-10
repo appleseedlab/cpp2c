@@ -6,10 +6,61 @@ Roughly classifies macros based on their types and definitions.
 
 from typing import Union
 
-from pycparser.c_ast import Constant, UnaryOp
-from pycparser.c_parser import CParser
 from macro_data_collector import directives
-from macro_classifier.classifications import ClassifiedMacro, SimpleConstantMacro, SimplePassByValueFunctionMacro, UnclassifiableMacro
+from pycparser.c_ast import BinaryOp, Constant, TernaryOp, UnaryOp
+from pycparser.c_parser import CParser
+
+from macro_classifier.classifications import (ClassifiedMacro, CType,
+                                              SimpleConstantMacro,
+                                              SimplePassByValueFunctionMacro,
+                                              UnclassifiableMacro)
+
+# TODO: Support more types of expressions
+Expression = Union[Constant, UnaryOp, BinaryOp, TernaryOp]
+
+
+def parse_expression_type(expression: Expression) -> Union[CType, None]:
+    if isinstance(expression, Constant):
+        return parse_constant_type(expression)
+    elif isinstance(expression, UnaryOp):
+        return parse_unary_op_type(expression)
+    elif isinstance(expression, BinaryOp):
+        return parse_binary_op_type(expression)
+    elif isinstance(expression, TernaryOp):
+        return parse_ternary_op_type(expression)
+    return None
+
+
+def parse_constant_type(constant: Constant) -> CType:
+    return constant.type
+
+
+def parse_unary_op_type(unary_op: UnaryOp) -> CType:
+    return parse_expression_type(unary_op.expr)
+
+
+def parse_binary_op_type(binary_op: BinaryOp) -> CType:
+    # TODO: Support type qualifiers, e.g., long, unsigned, etc.
+    if binary_op.op in ['||', '&&']:
+        return 'int'
+    left_type = parse_expression_type(binary_op.left)
+    right_type = parse_expression_type(binary_op.right)
+    if left_type == 'double' or right_type == 'double':
+        return 'double'
+    if left_type == 'float' or right_type == 'float':
+        return 'float'
+    if left_type == 'int' or right_type == 'int':
+        return 'int'
+    if left_type == 'short' or right_type == 'short':
+        return 'short'
+    if left_type == 'char' or right_type == 'char':
+        return 'char'
+    return None
+
+
+def parse_ternary_op_type(ternary_op: TernaryOp) -> CType:
+    # TODO: Figure out a better way of determining the return type...
+    return parse_expression_type(ternary_op.iftrue)
 
 
 def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
@@ -30,19 +81,12 @@ def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
             c_function = "void f() {" + macro.body + ";}"
             block_item: Union[Constant, UnaryOp] = CParser().parse(
                 c_function).ext[0].body.block_items[0]
-            constant: Constant
-            value: str
-            if isinstance(block_item, UnaryOp):
-                constant = block_item.expr
-                value = block_item.op + constant.value
-            elif isinstance(block_item, Constant):
-                constant = block_item
-                value = constant.value
-            else:
+            type_: CType = parse_expression_type(block_item)
+            if type_ is None:
                 raise ValueError(
                     "Object define macro body is not a constant"
-                    " or unary operation:", macro)
-            return SimpleConstantMacro(macro, constant.type, value)
+                    " expression:", macro)
+            return SimpleConstantMacro(macro, type_, macro.body)
         except:
             return UnclassifiableMacro(macro)
     elif isinstance(macro, directives.FunctionDefine):

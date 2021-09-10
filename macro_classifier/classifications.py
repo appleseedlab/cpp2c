@@ -5,9 +5,11 @@ Classes for classifying macros
 '''
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, NewType
 
 from macro_data_collector import directives
+
+CType = NewType('CType', str)
 
 
 @dataclass
@@ -51,7 +53,7 @@ class SimpleConstantMacro(ClassifiedMacro):
     ```
 
     '''
-    c_type: str
+    c_type: CType
     value: str
     # TODO: Read AST to determine if an object macro is used as a case label
     used_as_case_label: bool = False
@@ -103,8 +105,8 @@ class SimplePassByValueFunctionMacro(ClassifiedMacro):
     ```
     '''
     macro: directives.FunctionDefine
-    return_type: str
-    parameter_types: List[str]
+    return_type: CType
+    parameter_types: List[CType]
 
     def emit(self) -> str:
         '''
