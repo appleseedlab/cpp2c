@@ -28,7 +28,8 @@ A program for converting C preprocessor usage to normal C constructs
 Instructions will be posted once version 1.0 is ready
 
 ## Testing
-1. Open a terminal in the cloned repo's directory and run `make test`
+2. Open a terminal in the cloned repo's directory and run `pipenv install --dev`
+2. Run `make test`
 
 ## License
 BSD 2-Clause License
