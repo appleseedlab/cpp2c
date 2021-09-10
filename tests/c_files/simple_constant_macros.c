@@ -1,10 +1,10 @@
 // Macro    |   Expected Type
 #define A 1               // int
-#define B +1              // int
-#define C -1              // int
+#define B 1               // int
+#define C 1               // int
 #define D 1.0             // double
-#define E +1.0            // double
-#define F -1.0            // double
+#define E 1.0             // double
+#define F 1.0             // double
 #define G 'G'             // char
 #define H "Hello, World!" // string
 #define I '\n'            // char
