@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 pycparser = "*"
+libclang = "*"
 
 [dev-packages]
 autopep8 = "*"
