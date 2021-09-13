@@ -1,0 +1,10 @@
+#define A -1
+#define B +1
+#define C -1L
+#define D +1L
+#define E -1LL
+#define F +1LL
+#define G -1.0
+#define H +1.0
+#define I -1.0L
+#define J +1.0L
