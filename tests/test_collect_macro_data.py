@@ -1,18 +1,12 @@
-import os
-from typing import Tuple
+'''
+test_collect_macro_data.py
 
+Test cases for collecting data on macro definitions.
+'''
+
+from tests import get_test_file_paths
 from macro_data_collector.collect_macro_data import collect_macro_data
 from macro_data_collector.directives import ObjectDefine
-
-TEST_INPUT_DIRNAME = "c_files"
-
-TEST_INPUT_DIRPATH = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), TEST_INPUT_DIRNAME))
-
-
-def get_test_file_paths(fn: str) -> Tuple[str, str]:
-    return (os.path.join(TEST_INPUT_DIRPATH, fn + ".txt"),
-            os.path.join(TEST_INPUT_DIRPATH, fn + ".c"))
 
 
 def test_collect_macros_with_comments():
