@@ -40,21 +40,30 @@ def parse_unary_op_type(unary_op: UnaryOp) -> CType:
 
 
 def parse_binary_op_type(binary_op: BinaryOp) -> CType:
-    # TODO: Support type qualifiers, e.g., long, unsigned, etc.
+    # Reference for implicit type casting hierarchy:
+    # https://www.guru99.com/c-type-casting.html
     if binary_op.op in ['||', '&&']:
         return 'int'
     left_type = parse_expression_type(binary_op.left)
     right_type = parse_expression_type(binary_op.right)
-    if left_type == 'double' or right_type == 'double':
-        return 'double'
-    if left_type == 'float' or right_type == 'float':
-        return 'float'
-    if left_type == 'int' or right_type == 'int':
-        return 'int'
-    if left_type == 'short' or right_type == 'short':
-        return 'short'
-    if left_type == 'char' or right_type == 'char':
-        return 'char'
+    hierarchy = [
+        'long double',
+        'double',
+        'float',
+        'unsigned long long int',
+        'long long int',
+        'unsigned long int',
+        'long int',
+        'unsigned int',
+        'int',
+        'unsigned short',
+        'short',
+        'unsigned char',
+        'char',
+    ]
+    for type_ in hierarchy:
+        if left_type == type_ or right_type == type_:
+            return type_
     return None
 
 
