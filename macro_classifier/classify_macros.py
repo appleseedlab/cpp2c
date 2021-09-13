@@ -18,6 +18,8 @@ from macro_classifier.classifications import (ClassifiedMacro, CType,
 # TODO: Support more types of expressions
 Expression = Union[Constant, UnaryOp, BinaryOp, TernaryOp]
 
+# NOTE: pycparser offers a way to make your own visitor class by subclassing
+# a provided template. This could be useful See c_ast.py:109
 
 def parse_expression_type(expression: Expression) -> Union[CType, None]:
     if isinstance(expression, Constant):
