@@ -67,6 +67,8 @@ class SimpleConstantMacro(ClassifiedMacro):
         The result will either be a C constant or an enum.
         '''
         c_type = self.c_type
+        # NOTE: The mapping of 'string' to 'char *' is done here,
+        # but should it be done in the __init__ method?
         if c_type == "string":
             c_type = "char *"
         if self.used_as_case_label:
@@ -78,8 +80,11 @@ class SimpleConstantMacro(ClassifiedMacro):
 
         return f"const {c_type} {self.macro.identifier} = {self.value};"
 
-# TODO: Add support for expression constant macros
-#       (maybe merge with simple ones?)
+
+# Simple expression macros are macros whose bodies contain expressions
+# whose terms are only constants. Since they are functionally the same
+# as simple constant macros, we use a type alias
+SimpleExpressionMacro = SimpleConstantMacro
 
 
 # TODO: Complete class for simple pass-by-value function-like macros
