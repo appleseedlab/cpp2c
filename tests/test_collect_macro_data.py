@@ -24,6 +24,18 @@ def test_collect_macros_with_comments():
         ObjectDefine(c_file, 3, 3, 1, 1, 'C', '"String literal"'),
         ObjectDefine(c_file, 4, 4, 1, 1, 'D', '2.0'),
         ObjectDefine(c_file, 5, 6, 1, 1, 'E', '"A B C ""D E F"'),
+        ObjectDefine(c_file, 7, 12, 1, 1, 'F', '"This"" is"" a"" multi""-line"" string"'),
+        ObjectDefine(c_file, 13, 14, 1, 1, 'G', '12'),
+        ObjectDefine(c_file, 15, 15, 1, 1, 'H',
+                     '"This // has // comment // starters // in // it"'),
+        ObjectDefine(c_file, 16, 16, 1, 1, 'I',
+                     '"This // has // comment // starters // in // it"'),
+        ObjectDefine(c_file, 17, 18, 1, 1, 'J',
+                     '"This // has // comment // ""starters // in // it // across // multiple // lines"'),
+        ObjectDefine(c_file, 19, 19, 1, 1, 'K',
+                     '"Multiple strings"  " with comments"  " between them"'),
+        ObjectDefine(c_file, 20, 21, 1, 1, 'L',
+                     '"Multiple strings"  " ""with comments and lines"  " between them"'),
     ]
 
 
