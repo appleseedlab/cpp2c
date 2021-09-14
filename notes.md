@@ -2,10 +2,11 @@
 
 ## Steps
 
-1) Collect basic macro data using SuperC
+1) Collect basic macro data using Clang
 2) Collect more detailed data using Python script
 3) Use Clang to analyze C AST for macro usage
 4) Design/implement simple constant object macro conversion
+5) Design/implement simple pass-by-value function-like macro conversion
 
 Rough data collection -> Fine data collection -> Rough classification
 -> AST analysis -> Fine classification -> Conversion
