@@ -8,10 +8,11 @@ defined and used in the file that SuperC originally analyzed
 
 import os
 from collections import deque
-import re
+from queue import Queue
 from typing import Deque, List
 
-from clang.cindex import Cursor, Index, SourceLocation, TranslationUnit, CursorKind
+from clang.cindex import (Cursor, CursorKind, Index, SourceLocation,
+                          TranslationUnit)
 
 from macro_data_collector.directives import (DefineDirective, FunctionDefine,
                                              MacroDataList, ObjectDefine)
@@ -34,14 +35,14 @@ def collect_macro_data(c_file: str) -> MacroDataList:
     root_cursor: Cursor = translation_unit.cursor
 
     # Breadth-first search for macro definitions
-    to_visit: Deque[Cursor] = deque()
-    to_visit.append(root_cursor)
+    to_visit: Queue[Cursor] = Queue()
+    to_visit.put(root_cursor)
     macro_names_locations: Deque[(str, SourceLocation)] = deque()
 
     results: MacroDataList = []
 
-    while to_visit:
-        cur: Cursor = to_visit.pop()
+    while not to_visit.empty():
+        cur: Cursor = to_visit.get()
         location: SourceLocation = cur.location
 
         if cur.kind != CursorKind.MACRO_INSTANTIATION:
@@ -50,7 +51,7 @@ def collect_macro_data(c_file: str) -> MacroDataList:
 
         child: Cursor
         for child in cur.get_children():
-            to_visit.appendleft(child)
+            to_visit.put(child)
 
     c_file_lines: List[str]
     with open(c_file, "r") as fp:
