@@ -44,6 +44,9 @@ def collect_macro_data(c_file: str) -> MacroDataList:
     while not to_visit.empty():
         cur: Cursor = to_visit.get()
 
+        # Adding children at start of loop instead of bottom
+        # so that we can early exit if cursor location is
+        # not the file we want
         child: Cursor
         for child in cur.get_children():
             to_visit.put(child)
