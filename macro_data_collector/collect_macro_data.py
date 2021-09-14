@@ -43,15 +43,19 @@ def collect_macro_data(c_file: str) -> MacroDataList:
 
     while not to_visit.empty():
         cur: Cursor = to_visit.get()
-        location: SourceLocation = cur.location
-
-        if cur.kind != CursorKind.MACRO_INSTANTIATION:
-            if location.file is not None and os.path.basename(location.file.name) == os.path.basename(c_file):
-                macro_names_locations.append((cur.displayname, location))
 
         child: Cursor
         for child in cur.get_children():
             to_visit.put(child)
+
+        location: SourceLocation = cur.location
+        if location.file is None:
+            continue
+        if os.path.basename(location.file.name) != os.path.basename(c_file):
+            continue
+
+        if cur.kind == CursorKind.MACRO_DEFINITION:
+            macro_names_locations.append((cur.displayname, location))
 
     c_file_lines: List[str]
     with open(c_file, "r") as fp:
