@@ -60,6 +60,7 @@ class SimpleConstantMacro(ClassifiedMacro):
     # TODO: Group object macros used as case labels in the same switch
     # statement in the same enum
     enum_group_name: str = ""
+    emitted = False
 
     def emit(self) -> str:
         '''
@@ -72,12 +73,14 @@ class SimpleConstantMacro(ClassifiedMacro):
         if c_type == "string":
             c_type = "char *"
         if self.used_as_case_label:
-            # TODO: Emit all object defines used as case labels in the
-            # same switch statement to values in the same enum
             # TODO: Raise an error if a macro was used as a case label
             # but its C type isn't numeric (can this even be done?)
-            pass
-
+            # NOTE: This only emits the enum *value*, not the whole enum.
+            # This assumes that the caller to the emit method will emit
+            # the enum declaration (e.g., `enum MacroEnums{<emits>};`)
+            self.emitted = True
+            return f"{self.macro.identifier} = {self.value}"
+        self.emitted = True
         return f"const {c_type} {self.macro.identifier} = {self.value};"
 
 
@@ -112,6 +115,7 @@ class SimplePassByValueFunctionMacro(ClassifiedMacro):
     macro: directives.FunctionDefine
     return_type: CType
     parameter_types: List[CType]
+    emitted: bool = False
 
     def emit(self) -> str:
         '''
@@ -130,7 +134,7 @@ class SimplePassByValueFunctionMacro(ClassifiedMacro):
             f"return {self.macro.body};"
             "}"
         )
-
+        self.emitted = True
         return result
 
 # TODO: Add support for type aliasing macros

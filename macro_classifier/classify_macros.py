@@ -4,22 +4,31 @@ classify_macros.py
 Roughly classifies macros based on their types and definitions.
 '''
 
-from typing import Union
+from os.path import basename
+from typing import Dict, List, Set, Union
 
+from clang.cindex import (Cursor, CursorKind, Index, SourceLocation,
+                          TranslationUnit)
 from macro_data_collector import directives
 from pycparser.c_ast import BinaryOp, Constant, TernaryOp, UnaryOp
 from pycparser.c_parser import CParser
 
+from macro_classifier.clang_utils import (FileLineCol,
+                                          count_nested_case_statements,
+                                          get_file_line_col)
 from macro_classifier.classifications import (ClassifiedMacro, CType,
                                               SimpleConstantMacro,
+                                              SimpleExpressionMacro,
                                               SimplePassByValueFunctionMacro,
                                               UnclassifiableMacro)
 
-# TODO: Support more types of expressions
+# TODO: Support more types of expressions.
+# Maybe just use Clang instead of pycparser?
 Expression = Union[Constant, UnaryOp, BinaryOp, TernaryOp]
 
-# NOTE: pycparser offers a way to make your own visitor class by subclassing
-# a provided template. This could be useful See c_ast.py:109
+# NOTE: pycparser offers a way to make your own visitor class by
+# subclassing a provided template. This could be useful See c_ast.py:109
+
 
 def parse_expression_type(expression: Expression) -> Union[CType, None]:
     if isinstance(expression, Constant):
@@ -102,6 +111,135 @@ def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
             return UnclassifiableMacro(macro)
     elif isinstance(macro, directives.FunctionDefine):
         # TODO: Correctly classify simple pass-by-value function-like macros
-        return SimplePassByValueFunctionMacro(macro, 'void *', ['void *' for _ in macro.parameters])
+        return SimplePassByValueFunctionMacro(
+            macro, 'void *',
+            ['void *' for _ in macro.parameters])
 
     return UnclassifiableMacro(macro)
+
+
+def check_case_label_for_macro_instantiations(
+        root: Cursor,
+        location_instantiation_mapping: Dict[FileLineCol, Cursor]
+) -> Set[str]:
+    '''
+    Checks for a given case statement's label for macro instantations.
+
+    Args:
+        root:           The case statement whose label to check.
+        switch_number:  The number of the switch statement this
+                        case statement is nested under.
+        case_number:    The number of the case statement in the
+                        parent switch statement.
+
+    Returns:
+        found_instantiations:   A set of the names of
+                                macro instantiations found.
+
+    Raises:
+        ValueError:     If the passed cursor is None or not
+                        a case statement.
+    '''
+    if not root:
+        raise ValueError("Cursor is None")
+    if root.kind != CursorKind.CASE_STMT:
+        raise ValueError("Cursor is not a case statement")
+
+    # Case label will be the first child of the case statement
+    label: Cursor = next(root.get_children())
+
+    found_instantiations: Set[Cursor] = set()
+    cursor: Cursor
+    for cursor in label.walk_preorder():
+        file_line_col = get_file_line_col(cursor)
+        # Check if location of child corresponds to a macro instantiation
+        instantiation = location_instantiation_mapping.get(file_line_col)
+        if instantiation is not None:
+            found_instantiations.add(instantiation.displayname)
+
+    return found_instantiations
+
+
+def visit(root: Cursor,
+          c_file: str,
+          name_to_macro: Dict[str, ClassifiedMacro],
+          location_to_instantation: Dict[FileLineCol, Cursor],
+          switch_number=0, case_number=0) -> None:
+
+    if root is None:
+        return
+
+    location: SourceLocation = root.location
+    if location.file is not None:
+        if basename(location.file.name) == basename(c_file):
+            if root.kind == CursorKind.SWITCH_STMT:
+                switch_number += 1
+                case_number = 0
+            if root.kind == CursorKind.CASE_STMT:
+                case_number += 1
+                macro_names = check_case_label_for_macro_instantiations(
+                    root, location_to_instantation)
+                for name in macro_names:
+                    # Use key operator instead of get method to raise error
+                    # if name not found
+                    classified_macro = name_to_macro[name]
+                    # Update the enum grouping for this classified macro
+                    if isinstance(classified_macro, SimpleExpressionMacro):
+                        classified_macro.used_as_case_label = True
+                        # NOTE: Currently, macro names are grouped
+                        # into an enum with the last set of switch statement
+                        # case labels in which they were found.
+                        # This will still work even if a macro is used in
+                        # multiple switch statements, but perhaps the enum
+                        # group names of macros used like this should indicate
+                        # that they are used in multiple switch statements?
+                        enum_group_name = f'Switch{switch_number}CaseLabels'
+                        classified_macro.enum_group_name = enum_group_name
+
+    child: Cursor
+    for child in root.get_children():
+        visit(child,
+              c_file,
+              name_to_macro,
+              location_to_instantation,
+              switch_number, case_number)
+        case_number += count_nested_case_statements(child)
+
+
+def check_macro_usage(classified_macros: List[ClassifiedMacro],
+                      c_file: str) -> None:
+    '''
+    Checks how each macro in a list of classified macros is used in the C
+    file in which they are defined, and updates each classified macro
+    accordingly.
+
+    Current requirements:
+        - Each macro is only defined once.
+        - Each macro is defined in the same file in which it is used.
+
+    Args:
+        classified_macros:  The list of classified macros defined and used in
+                            the given C file.
+
+    '''
+
+    # Map each macro macro's name to itself for quick lookup
+    name_to_macro: Dict[str, ClassifiedMacro] = {
+        cm.macro.identifier: cm
+        for cm in classified_macros
+    }
+    index: Index = Index.create()
+    tu = index.parse(
+        c_file, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+    root_cursor: Cursor = tu.cursor
+
+    # Map each macro instation's location to itself for quick lookup
+    # These should all be found directly under the root node
+    location_to_instantation: Dict[FileLineCol, Cursor] = {
+        get_file_line_col(child): child
+        for child in root_cursor.get_children()
+        if child.location.file is not None and
+        basename(child.location.file.name) == basename(c_file)
+        and child.kind == CursorKind.MACRO_INSTANTIATION
+    }
+    visit(root_cursor, c_file, name_to_macro, location_to_instantation)
