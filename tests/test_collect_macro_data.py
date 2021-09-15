@@ -101,3 +101,16 @@ def test_collect_binary_op_macros():
         ObjectDefine(c_file, 44, 44, 9, 1, 'IDENT44', "1 + 'a'"),
         ObjectDefine(c_file, 45, 45, 9, 1, 'IDENT45', "'a' + 'a'"),
     ]
+
+
+def test_collect_case_label_macros():
+    c_file = get_test_file_path("case_labels")
+    result = collect_macro_data(c_file)
+    assert result == [
+        ObjectDefine(c_file, 1, 1, 9, 1, 'RED', '1'),
+        ObjectDefine(c_file, 2, 2, 9, 1, 'GREEN', '2'),
+        ObjectDefine(c_file, 3, 3, 9, 1, 'BLUE', '3'),
+        ObjectDefine(c_file, 4, 4, 9, 1, 'MAGENTA', '4'),
+        ObjectDefine(c_file, 5, 5, 9, 1, 'CYAN', '5'),
+        ObjectDefine(c_file, 6, 6, 9, 1, 'YELLOW', '6'),
+    ]
