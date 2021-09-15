@@ -10,11 +10,11 @@ int main(void)
 
     int color = 0;
 
-    switch (color)
+    switch (color) // S1
     {
     case RED:
     case GREEN:
-        switch (color)
+        switch (color) // S2
         {
         case RED:
         case MAGENTA:
@@ -25,10 +25,10 @@ int main(void)
         }
         break;
     case BLUE:
-        switch (color)
+        switch (color) // S3
         {
         case MAGENTA:
-            switch (color)
+            switch (color) // S4
             {
             case YELLOW:
                 break;
@@ -38,7 +38,6 @@ int main(void)
                 break;
             }
             break;
-
         default:
             break;
         }
