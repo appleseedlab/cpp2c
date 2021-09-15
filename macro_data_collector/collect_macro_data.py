@@ -8,7 +8,6 @@ defined and used in the file that SuperC originally analyzed
 
 import os
 from collections import deque
-from queue import Queue
 from typing import Deque, List
 
 from clang.cindex import (Cursor, CursorKind, Index, SourceLocation,
@@ -34,29 +33,16 @@ def collect_macro_data(c_file: str) -> MacroDataList:
         c_file, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
     root_cursor: Cursor = translation_unit.cursor
 
-    # Breadth-first search for macro definitions
-    to_visit: Queue[Cursor] = Queue()
-    to_visit.put(root_cursor)
     macro_names_locations: Deque[(str, SourceLocation)] = deque()
 
     results: MacroDataList = []
 
-    while not to_visit.empty():
-        cur: Cursor = to_visit.get()
-
-        # Adding children at start of loop instead of bottom
-        # so that we can early exit if cursor location is
-        # not the file we want
-        child: Cursor
-        for child in cur.get_children():
-            to_visit.put(child)
-
+    for cur in root_cursor.walk_preorder():
         location: SourceLocation = cur.location
         if location.file is None:
             continue
         if os.path.basename(location.file.name) != os.path.basename(c_file):
             continue
-
         if cur.kind == CursorKind.MACRO_DEFINITION:
             macro_names_locations.append((cur.displayname, location))
 

@@ -35,18 +35,11 @@ def test_get_file_line_col():
     index = Index.create()
     tu = index.parse('tmp.c', None, [('tmp.c', c_code)])
     cursor = tu.cursor
-    to_visit = []
-    to_visit.append(cursor)
-    # BFS for main function
-    while len(to_visit) > 0:
-        cur: Cursor = to_visit.pop()
+    cur: Cursor
+    for cur in cursor.walk_preorder():
         if cur.displayname == 'main()':
             assert get_file_line_col(cur) == ('tmp.c', 1, 5)
             return
-
-        child: Cursor
-        for child in cur.get_children():
-            to_visit.append(child)
 
 
 def test_count_nested_case_statements():
@@ -85,15 +78,8 @@ def test_count_nested_case_statements():
     index = Index.create()
     tu = index.parse('tmp.c', None, [('tmp.c', c_code)])
     cursor = tu.cursor
-    to_visit = []
-    to_visit.append(cursor)
-    # BFS for case statements
-    while len(to_visit) > 0:
-        cur: Cursor = to_visit.pop()
+    cur: Cursor
+    for cur in cursor.walk_preorder():
         if cur.kind == CursorKind.CASE_STMT:
             flc = get_file_line_col(cur)
             assert expected_results[flc] == count_nested_case_statements(cur)
-
-        child: Cursor
-        for child in cur.get_children():
-            to_visit.append(child)
