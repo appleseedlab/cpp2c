@@ -54,6 +54,8 @@ class SimpleConstantMacro(ClassifiedMacro):
 
     '''
     c_type: CType
+    # TODO: Remove this field since it is currently identical to the original
+    # macro's value
     value: str
     # TODO: Read AST to determine if an object macro is used as a case label
     used_as_case_label: bool = False
