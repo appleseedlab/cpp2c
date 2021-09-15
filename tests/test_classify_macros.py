@@ -5,9 +5,13 @@ Test cases for classifying macros so that they may be converted to
 a C language construct.
 '''
 
-from macro_classifier.classifications import SimpleConstantMacro, SimpleExpressionMacro
+from macro_classifier.classifications import (SimpleConstantMacro,
+                                              SimpleExpressionMacro)
+from macro_classifier.classify_macros import check_macro_usage, classify_macro
+from macro_data_collector.collect_macro_data import collect_macro_data
 from macro_data_collector.directives import ObjectDefine
-from macro_classifier.classify_macros import classify_macro
+
+from tests import get_test_file_path
 
 
 def test_classify_simple_object_macros():
@@ -208,4 +212,26 @@ def test_classify_simple_expression_macros_binary_ops():
             '', 44, 44, 1, 1, 'IDENT44', "1 + 'a'"), 'int', "1 + 'a'"),
         SimpleExpressionMacro(ObjectDefine(
             '', 45, 45, 1, 1, 'IDENT45', "'a' + 'a'"), 'char', "'a' + 'a'")
+    ]
+
+
+def test_fully_classify_case_label_expression_macros():
+    c_file = get_test_file_path('case_labels')
+    macro_data = collect_macro_data(c_file)
+    classified_macros = [classify_macro(macro) for macro in macro_data]
+    check_macro_usage(classified_macros, c_file)
+
+    assert classified_macros == [
+        SimpleConstantMacro(
+            ObjectDefine(c_file, 1, 1, 9, 1, 'RED', '1'), 'int', '1', True, 'Switch2CaseLabels'),
+        SimpleConstantMacro(
+            ObjectDefine(c_file, 2, 2, 9, 1, 'GREEN', '2'), 'int', '2', True, 'Switch1CaseLabels'),
+        SimpleConstantMacro(
+            ObjectDefine(c_file, 3, 3, 9, 1, 'BLUE', '3'), 'int', '3', True, 'Switch1CaseLabels'),
+        SimpleConstantMacro(
+            ObjectDefine(c_file, 4, 4, 9, 1, 'MAGENTA', '4'), 'int', '4', True, 'Switch3CaseLabels'),
+        SimpleConstantMacro(
+            ObjectDefine(c_file, 5, 5, 9, 1, 'CYAN', '5'), 'int', '5', True, 'Switch4CaseLabels'),
+        SimpleConstantMacro(
+            ObjectDefine(c_file, 6, 6, 9, 1, 'YELLOW', '6'), 'int', '6', True, 'Switch4CaseLabels'),
     ]
