@@ -104,7 +104,7 @@ def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:
                 raise ValueError(
                     "Object define macro body is not a constant"
                     " expression:", macro)
-            return SimpleConstantMacro(macro, type_, macro.body)
+            return SimpleConstantMacro(macro, type_)
         except:
             return UnclassifiableMacro(macro)
     elif isinstance(macro, directives.FunctionDefine):

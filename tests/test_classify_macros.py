@@ -30,25 +30,25 @@ def test_classify_simple_object_macros():
     result = [classify_macro(macro) for macro in macros]
     assert result == [
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1'), 'int', '1'),
+            '', 1, 1, 1, 1, 'A', '1'), 'int'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1U'), 'unsigned int', '1U'),
+            '', 1, 1, 1, 1, 'A', '1U'), 'unsigned int'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1L'), 'long int', '1L'),
+            '', 1, 1, 1, 1, 'A', '1L'), 'long int'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1UL'), 'unsigned long int', '1UL'),
+            '', 1, 1, 1, 1, 'A', '1UL'), 'unsigned long int'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1LL'), 'long long int', '1LL'),
+            '', 1, 1, 1, 1, 'A', '1LL'), 'long long int'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1ULL'), 'unsigned long long int', '1ULL'),
+            '', 1, 1, 1, 1, 'A', '1ULL'), 'unsigned long long int'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1.0'), 'double', '1.0'),
+            '', 1, 1, 1, 1, 'A', '1.0'), 'double'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '1.0L'), 'long double', '1.0L'),
+            '', 1, 1, 1, 1, 'A', '1.0L'), 'long double'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', "'C'"), 'char', "'C'"),
+            '', 1, 1, 1, 1, 'A', "'C'"), 'char'),
         SimpleConstantMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '"String"'), 'string', '"String"'),
+            '', 1, 1, 1, 1, 'A', '"String"'), 'string'),
     ]
 
 
@@ -62,13 +62,13 @@ def test_classify_simple_expression_macros_unary_ops():
     result = [classify_macro(macro) for macro in macros]
     assert result == [
         SimpleExpressionMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '-1'), 'int', '-1'),
+            '', 1, 1, 1, 1, 'A', '-1'), 'int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '+1'), 'int', '+1'),
+            '', 1, 1, 1, 1, 'A', '+1'), 'int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '-1.0'), 'double', '-1.0'),
+            '', 1, 1, 1, 1, 'A', '-1.0'), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'A', '+1.0'), 'double', '+1.0'),
+            '', 1, 1, 1, 1, 'A', '+1.0'), 'double'),
     ]
 
 
@@ -123,95 +123,95 @@ def test_classify_simple_expression_macros_binary_ops():
     result = [classify_macro(macro) for macro in macros]
     assert result == [
         SimpleExpressionMacro(ObjectDefine(
-            '', 1, 1, 1, 1, 'IDENT1', "1.0L + 1.0L"), 'long double', "1.0L + 1.0L"),
+            '', 1, 1, 1, 1, 'IDENT1', "1.0L + 1.0L"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 2, 2, 1, 1, 'IDENT2', "1.0L + 1.0"), 'long double', "1.0L + 1.0"),
+            '', 2, 2, 1, 1, 'IDENT2', "1.0L + 1.0"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 3, 3, 1, 1, 'IDENT3', "1.0L + 1ULL"), 'long double', "1.0L + 1ULL"),
+            '', 3, 3, 1, 1, 'IDENT3', "1.0L + 1ULL"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 4, 4, 1, 1, 'IDENT4', "1.0L + 1LL"), 'long double', "1.0L + 1LL"),
+            '', 4, 4, 1, 1, 'IDENT4', "1.0L + 1LL"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 5, 5, 1, 1, 'IDENT5', "1.0L + 1UL"), 'long double', "1.0L + 1UL"),
+            '', 5, 5, 1, 1, 'IDENT5', "1.0L + 1UL"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 6, 6, 1, 1, 'IDENT6', "1.0L + 1L"), 'long double', "1.0L + 1L"),
+            '', 6, 6, 1, 1, 'IDENT6', "1.0L + 1L"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 7, 7, 1, 1, 'IDENT7', "1.0L + 1U"), 'long double', "1.0L + 1U"),
+            '', 7, 7, 1, 1, 'IDENT7', "1.0L + 1U"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 8, 8, 1, 1, 'IDENT8', "1.0L + 1"), 'long double', "1.0L + 1"),
+            '', 8, 8, 1, 1, 'IDENT8', "1.0L + 1"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 9, 9, 1, 1, 'IDENT9', "1.0L + 'a'"), 'long double', "1.0L + 'a'"),
+            '', 9, 9, 1, 1, 'IDENT9', "1.0L + 'a'"), 'long double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 10, 10, 1, 1, 'IDENT10', "1.0 + 1.0"), 'double', "1.0 + 1.0"),
+            '', 10, 10, 1, 1, 'IDENT10', "1.0 + 1.0"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 11, 11, 1, 1, 'IDENT11', "1.0 + 1ULL"), 'double', "1.0 + 1ULL"),
+            '', 11, 11, 1, 1, 'IDENT11', "1.0 + 1ULL"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 12, 12, 1, 1, 'IDENT12', "1.0 + 1LL"), 'double', "1.0 + 1LL"),
+            '', 12, 12, 1, 1, 'IDENT12', "1.0 + 1LL"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 13, 13, 1, 1, 'IDENT13', "1.0 + 1UL"), 'double', "1.0 + 1UL"),
+            '', 13, 13, 1, 1, 'IDENT13', "1.0 + 1UL"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 14, 14, 1, 1, 'IDENT14', "1.0 + 1L"), 'double', "1.0 + 1L"),
+            '', 14, 14, 1, 1, 'IDENT14', "1.0 + 1L"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 15, 15, 1, 1, 'IDENT15', "1.0 + 1U"), 'double', "1.0 + 1U"),
+            '', 15, 15, 1, 1, 'IDENT15', "1.0 + 1U"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 16, 16, 1, 1, 'IDENT16', "1.0 + 1"), 'double', "1.0 + 1"),
+            '', 16, 16, 1, 1, 'IDENT16', "1.0 + 1"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 17, 17, 1, 1, 'IDENT17', "1.0 + 'a'"), 'double', "1.0 + 'a'"),
+            '', 17, 17, 1, 1, 'IDENT17', "1.0 + 'a'"), 'double'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 18, 18, 1, 1, 'IDENT18', "1ULL + 1ULL"), 'unsigned long long int', "1ULL + 1ULL"),
+            '', 18, 18, 1, 1, 'IDENT18', "1ULL + 1ULL"), 'unsigned long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 19, 19, 1, 1, 'IDENT19', "1ULL + 1LL"), 'unsigned long long int', "1ULL + 1LL"),
+            '', 19, 19, 1, 1, 'IDENT19', "1ULL + 1LL"), 'unsigned long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 20, 20, 1, 1, 'IDENT20', "1ULL + 1UL"), 'unsigned long long int', "1ULL + 1UL"),
+            '', 20, 20, 1, 1, 'IDENT20', "1ULL + 1UL"), 'unsigned long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 21, 21, 1, 1, 'IDENT21', "1ULL + 1L"), 'unsigned long long int', "1ULL + 1L"),
+            '', 21, 21, 1, 1, 'IDENT21', "1ULL + 1L"), 'unsigned long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 22, 22, 1, 1, 'IDENT22', "1ULL + 1U"), 'unsigned long long int', "1ULL + 1U"),
+            '', 22, 22, 1, 1, 'IDENT22', "1ULL + 1U"), 'unsigned long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 23, 23, 1, 1, 'IDENT23', "1ULL + 1"), 'unsigned long long int', "1ULL + 1"),
+            '', 23, 23, 1, 1, 'IDENT23', "1ULL + 1"), 'unsigned long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 24, 24, 1, 1, 'IDENT24', "1ULL + 'a'"), 'unsigned long long int', "1ULL + 'a'"),
+            '', 24, 24, 1, 1, 'IDENT24', "1ULL + 'a'"), 'unsigned long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 25, 25, 1, 1, 'IDENT25', "1LL + 1LL"), 'long long int', "1LL + 1LL"),
+            '', 25, 25, 1, 1, 'IDENT25', "1LL + 1LL"), 'long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 26, 26, 1, 1, 'IDENT26', "1LL + 1UL"), 'long long int', "1LL + 1UL"),
+            '', 26, 26, 1, 1, 'IDENT26', "1LL + 1UL"), 'long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 27, 27, 1, 1, 'IDENT27', "1LL + 1L"), 'long long int', "1LL + 1L"),
+            '', 27, 27, 1, 1, 'IDENT27', "1LL + 1L"), 'long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 28, 28, 1, 1, 'IDENT28', "1LL + 1U"), 'long long int', "1LL + 1U"),
+            '', 28, 28, 1, 1, 'IDENT28', "1LL + 1U"), 'long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 29, 29, 1, 1, 'IDENT29', "1LL + 1"), 'long long int', "1LL + 1"),
+            '', 29, 29, 1, 1, 'IDENT29', "1LL + 1"), 'long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 30, 30, 1, 1, 'IDENT30', "1LL + 'a'"), 'long long int', "1LL + 'a'"),
+            '', 30, 30, 1, 1, 'IDENT30', "1LL + 'a'"), 'long long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 31, 31, 1, 1, 'IDENT31', "1UL + 1UL"), 'unsigned long int', "1UL + 1UL"),
+            '', 31, 31, 1, 1, 'IDENT31', "1UL + 1UL"), 'unsigned long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 32, 32, 1, 1, 'IDENT32', "1UL + 1L"), 'unsigned long int', "1UL + 1L"),
+            '', 32, 32, 1, 1, 'IDENT32', "1UL + 1L"), 'unsigned long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 33, 33, 1, 1, 'IDENT33', "1UL + 1U"), 'unsigned long int', "1UL + 1U"),
+            '', 33, 33, 1, 1, 'IDENT33', "1UL + 1U"), 'unsigned long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 34, 34, 1, 1, 'IDENT34', "1UL + 1"), 'unsigned long int', "1UL + 1"),
+            '', 34, 34, 1, 1, 'IDENT34', "1UL + 1"), 'unsigned long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 35, 35, 1, 1, 'IDENT35', "1UL + 'a'"), 'unsigned long int', "1UL + 'a'"),
+            '', 35, 35, 1, 1, 'IDENT35', "1UL + 'a'"), 'unsigned long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 36, 36, 1, 1, 'IDENT36', "1L + 1L"), 'long int', "1L + 1L"),
+            '', 36, 36, 1, 1, 'IDENT36', "1L + 1L"), 'long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 37, 37, 1, 1, 'IDENT37', "1L + 1U"), 'long int', "1L + 1U"),
+            '', 37, 37, 1, 1, 'IDENT37', "1L + 1U"), 'long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 38, 38, 1, 1, 'IDENT38', "1L + 1"), 'long int', "1L + 1"),
+            '', 38, 38, 1, 1, 'IDENT38', "1L + 1"), 'long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 39, 39, 1, 1, 'IDENT39', "1L + 'a'"), 'long int', "1L + 'a'"),
+            '', 39, 39, 1, 1, 'IDENT39', "1L + 'a'"), 'long int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 40, 40, 1, 1, 'IDENT40', "1U + 1U"), 'unsigned int', "1U + 1U"),
+            '', 40, 40, 1, 1, 'IDENT40', "1U + 1U"), 'unsigned int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 41, 41, 1, 1, 'IDENT41', "1U + 1"), 'unsigned int', "1U + 1"),
+            '', 41, 41, 1, 1, 'IDENT41', "1U + 1"), 'unsigned int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 42, 42, 1, 1, 'IDENT42', "1U + 'a'"), 'unsigned int', "1U + 'a'"),
+            '', 42, 42, 1, 1, 'IDENT42', "1U + 'a'"), 'unsigned int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 43, 43, 1, 1, 'IDENT43', "1 + 1"), 'int', "1 + 1"),
+            '', 43, 43, 1, 1, 'IDENT43', "1 + 1"), 'int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 44, 44, 1, 1, 'IDENT44', "1 + 'a'"), 'int', "1 + 'a'"),
+            '', 44, 44, 1, 1, 'IDENT44', "1 + 'a'"), 'int'),
         SimpleExpressionMacro(ObjectDefine(
-            '', 45, 45, 1, 1, 'IDENT45', "'a' + 'a'"), 'char', "'a' + 'a'")
+            '', 45, 45, 1, 1, 'IDENT45', "'a' + 'a'"), 'char')
     ]
 
 
@@ -223,15 +223,15 @@ def test_fully_classify_case_label_expression_macros():
 
     assert classified_macros == [
         SimpleConstantMacro(
-            ObjectDefine(c_file, 1, 1, 9, 1, 'RED', '1'), 'int', '1', True, 'Switch2CaseLabels'),
+            ObjectDefine(c_file, 1, 1, 9, 1, 'RED', '1'), 'int', True, 'Switch2CaseLabels'),
         SimpleConstantMacro(
-            ObjectDefine(c_file, 2, 2, 9, 1, 'GREEN', '2'), 'int', '2', True, 'Switch1CaseLabels'),
+            ObjectDefine(c_file, 2, 2, 9, 1, 'GREEN', '2'), 'int', True, 'Switch1CaseLabels'),
         SimpleConstantMacro(
-            ObjectDefine(c_file, 3, 3, 9, 1, 'BLUE', '3'), 'int', '3', True, 'Switch1CaseLabels'),
+            ObjectDefine(c_file, 3, 3, 9, 1, 'BLUE', '3'), 'int', True, 'Switch1CaseLabels'),
         SimpleConstantMacro(
-            ObjectDefine(c_file, 4, 4, 9, 1, 'MAGENTA', '4'), 'int', '4', True, 'Switch3CaseLabels'),
+            ObjectDefine(c_file, 4, 4, 9, 1, 'MAGENTA', '4'), 'int', True, 'Switch3CaseLabels'),
         SimpleConstantMacro(
-            ObjectDefine(c_file, 5, 5, 9, 1, 'CYAN', '5'), 'int', '5', True, 'Switch4CaseLabels'),
+            ObjectDefine(c_file, 5, 5, 9, 1, 'CYAN', '5'), 'int', True, 'Switch4CaseLabels'),
         SimpleConstantMacro(
-            ObjectDefine(c_file, 6, 6, 9, 1, 'YELLOW', '6'), 'int', '6', True, 'Switch4CaseLabels'),
+            ObjectDefine(c_file, 6, 6, 9, 1, 'YELLOW', '6'), 'int', True, 'Switch4CaseLabels'),
     ]

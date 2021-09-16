@@ -54,9 +54,6 @@ class SimpleConstantMacro(ClassifiedMacro):
 
     '''
     c_type: CType
-    # TODO: Remove this field since it is currently identical to the original
-    # macro's value
-    value: str
     used_as_case_label: bool = False
     enum_group_name: str = ""
     emitted = False
@@ -76,9 +73,9 @@ class SimpleConstantMacro(ClassifiedMacro):
             # This assumes that the caller to the emit method will emit
             # the enum declaration (e.g., `enum MacroEnums{<emits>};`)
             self.emitted = True
-            return f"{self.macro.identifier} = {self.value}"
+            return f"{self.macro.identifier} = {self.macro.body}"
         self.emitted = True
-        return f"const {c_type} {self.macro.identifier} = {self.value};"
+        return f"const {c_type} {self.macro.identifier} = {self.macro.body};"
 
 
 # Simple expression macros are macros whose bodies contain expressions
