@@ -59,6 +59,17 @@ Rough data collection -> Fine data collection -> Rough classification
   in the macro body to the parameter names in the macro definition.
 - Other idea: for function-like macros, can just make return type and types
   of parameters void* for now until you can examine AST
+- How should we handle macros that are defined in the file and
+  used as static conditionals? For instance:
+```c
+#define CONDITION
+#ifdef CONDITION
+  // Some code
+#endif
+```
+  This causes a problem because if we were to convert definitions of CONDITION 
+  to constants, then the static conditional would not find CONDITION
+  as being defined.
 
 ## Remember to Keep it Practical for Now
 - We should do research to see how often potentially difficult-to-implement
