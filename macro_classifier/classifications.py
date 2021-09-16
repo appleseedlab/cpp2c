@@ -57,6 +57,8 @@ class SimpleConstantMacro(ClassifiedMacro):
     c_type: CType
     used_as_case_label: bool = False
     enum_group_name: str = ""
+    # TODO: Convert macros that are used to declare statically sized
+    # arrays to enums
     emitted = False
 
     def emit(self) -> str:
