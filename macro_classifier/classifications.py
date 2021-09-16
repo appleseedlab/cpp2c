@@ -57,10 +57,7 @@ class SimpleConstantMacro(ClassifiedMacro):
     # TODO: Remove this field since it is currently identical to the original
     # macro's value
     value: str
-    # TODO: Read AST to determine if an object macro is used as a case label
     used_as_case_label: bool = False
-    # TODO: Group object macros used as case labels in the same switch
-    # statement in the same enum
     enum_group_name: str = ""
     emitted = False
 
@@ -75,8 +72,6 @@ class SimpleConstantMacro(ClassifiedMacro):
         if c_type == "string":
             c_type = "char *"
         if self.used_as_case_label:
-            # TODO: Raise an error if a macro was used as a case label
-            # but its C type isn't numeric (can this even be done?)
             # NOTE: This only emits the enum *value*, not the whole enum.
             # This assumes that the caller to the emit method will emit
             # the enum declaration (e.g., `enum MacroEnums{<emits>};`)
