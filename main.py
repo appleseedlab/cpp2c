@@ -47,10 +47,10 @@ def main():
     # TODO: Perhaps move the emission of converted macros to a function?
     for cm in classified_macros:
         emit_line = cm.macro.start_line - 1
-        if cm.emitted:
-            c_file_lines[emit_line] = ''
-            continue
         if isinstance(cm, SimpleExpressionMacro):
+            if cm.emitted:
+                c_file_lines[emit_line] = ''
+                continue
             if cm.used_as_case_label:
                 macros_in_group = enum_names_to_macros[cm.enum_group_name]
                 emitted_macros = [m.emit()for m in macros_in_group]
