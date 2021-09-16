@@ -20,7 +20,10 @@ from macro_classifier.classifications import (ClassifiedMacro, CType,
                                               SimplePassByValueFunctionMacro,
                                               UnclassifiableMacro)
 
-# TODO: Support more types of expressions.
+# TODO: Support more types of expressions:
+#       - Type casts
+#       - More?
+# TODO: Add support for definitions that map to local variables
 # Maybe just use Clang instead of pycparser?
 Expression = Union[Constant, UnaryOp, BinaryOp, TernaryOp]
 
