@@ -26,8 +26,9 @@ class ClassifiedMacro():
     # Qualifications
 
     - All convertible macro types must be defined within the same file that
-      they are used
-    - The definition of any convertible macro must not end in a semicolon
+      they are used.
+    - Macros are not multiply defined, i.e., they are only defined once.
+    - The definition of any convertible macro must not end in a semicolon.
     '''
     macro: directives.DefineDirective
 
