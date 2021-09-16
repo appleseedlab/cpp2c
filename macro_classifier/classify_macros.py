@@ -10,7 +10,7 @@ from typing import Deque, Dict, List, Set, Union
 
 from clang.cindex import Cursor, CursorKind, Index, TranslationUnit
 from macro_data_collector import directives
-from pycparser.c_ast import BinaryOp, Constant, TernaryOp, UnaryOp
+from pycparser.c_ast import BinaryOp, Cast, Constant, TernaryOp, UnaryOp
 from pycparser.c_parser import CParser
 
 from macro_classifier.clang_utils import FileLineCol, get_file_line_col
@@ -21,11 +21,11 @@ from macro_classifier.classifications import (ClassifiedMacro, CType,
                                               UnclassifiableMacro)
 
 # TODO: Support more types of expressions:
-#       - Type casts
-#       - More?
+#       - Find more?
 # TODO: Add support for definitions that map to local variables
+#       This may need to be done in the fine classification stage...
 # Maybe just use Clang instead of pycparser?
-Expression = Union[Constant, UnaryOp, BinaryOp, TernaryOp]
+Expression = Union[Constant, UnaryOp, BinaryOp, TernaryOp, Cast]
 
 # NOTE: pycparser offers a way to make your own visitor class by
 # subclassing a provided template. This could be useful See c_ast.py:109
@@ -40,6 +40,8 @@ def parse_expression_type(expression: Expression) -> Union[CType, None]:
         return parse_binary_op_type(expression)
     elif isinstance(expression, TernaryOp):
         return parse_ternary_op_type(expression)
+    elif isinstance(expression, Cast):
+        return parse_typecast_type(expression)
     return None
 
 
@@ -82,6 +84,11 @@ def parse_binary_op_type(binary_op: BinaryOp) -> CType:
 def parse_ternary_op_type(ternary_op: TernaryOp) -> CType:
     # TODO: Figure out a better way of determining the return type...
     return parse_expression_type(ternary_op.iftrue)
+
+
+def parse_typecast_type(typecast: Cast) -> CType:
+    # Just use whatever type the expression is being cast to
+    return ' '.join(typecast.to_type.type.type.names)
 
 
 def classify_macro(macro: directives.CPPDirective) -> ClassifiedMacro:

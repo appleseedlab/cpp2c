@@ -215,6 +215,28 @@ def test_classify_simple_expression_macros_binary_ops():
     ]
 
 
+def test_classify_simple_expression_macros_type_casts():
+    typenames = [
+        '   long    double  ',
+        '   double ',
+        '   unsigned    long long int',
+        '   long    long   int',
+        '   unsigned    long    int',
+        '   long int  ',
+        'unsigned int',
+        '   int        ',
+        '   char ',
+    ]
+    macros = [
+        ObjectDefine('', 1, 1, 1, 1, 'A', f'({typename}) 1')
+        for typename in typenames
+    ]
+    result = [classify_macro(m) for m in macros]
+    assert result == [
+        SimpleExpressionMacro(m, ' '.join(t for t in typename.split()))
+        for m, typename in zip(macros, typenames)]
+
+
 def test_fully_classify_case_label_expression_macros():
     c_file = get_test_file_path('case_labels')
     macro_data = collect_macro_data(c_file)
