@@ -4,18 +4,16 @@ classify_macros.py
 Roughly classifies macros based on their types and definitions.
 '''
 
+from collections import deque
 from os.path import basename
-from typing import Dict, List, Set, Union
+from typing import Deque, Dict, List, Set, Union
 
-from clang.cindex import (Cursor, CursorKind, Index, SourceLocation,
-                          TranslationUnit)
+from clang.cindex import Cursor, CursorKind, Index, TranslationUnit
 from macro_data_collector import directives
 from pycparser.c_ast import BinaryOp, Constant, TernaryOp, UnaryOp
 from pycparser.c_parser import CParser
 
-from macro_classifier.clang_utils import (FileLineCol,
-                                          count_nested_case_statements,
-                                          get_file_line_col)
+from macro_classifier.clang_utils import FileLineCol, get_file_line_col
 from macro_classifier.classifications import (ClassifiedMacro, CType,
                                               SimpleConstantMacro,
                                               SimpleExpressionMacro,
@@ -160,25 +158,40 @@ def check_case_label_for_macro_instantiations(
     return found_instantiations
 
 
-def visit(root: Cursor,
-          c_file: str,
-          name_to_macro: Dict[str, ClassifiedMacro],
-          location_to_instantation: Dict[FileLineCol, Cursor],
-          switch_number=0, case_number=0) -> None:
+def check_macros_in_case_labels(
+    root: Cursor,
+    c_file: str,
+    name_to_macro: Dict[str, ClassifiedMacro],
+    location_to_instantation: Dict[FileLineCol, Cursor],
+) -> None:
 
     if root is None:
         return
 
-    location: SourceLocation = root.location
-    if location.file is not None:
-        if basename(location.file.name) == basename(c_file):
-            if root.kind == CursorKind.SWITCH_STMT:
-                switch_number += 1
-                case_number = 0
-            if root.kind == CursorKind.CASE_STMT:
-                case_number += 1
+    child: Cursor
+    switch_statements: List[Cursor] = [
+        child for child
+        in root.walk_preorder()
+        if child.location.file is not None and
+        basename(child.location.file.name) == basename(c_file)
+        and child.kind == CursorKind.SWITCH_STMT
+    ]
+
+    for i, switch_statement in enumerate(switch_statements, 1):
+        q: Deque[Cursor] = deque()
+        # Don't add the switch itself because it would be skipped otherwise
+        q.extend(switch_statement.get_children())
+        while q:
+            cur: Cursor = q.pop()
+
+            # Don't check nested switches here since they
+            # will be checked in another iteration of the for loop
+            if cur.kind == CursorKind.SWITCH_STMT:
+                continue
+
+            if cur.kind == CursorKind.CASE_STMT:
                 macro_names = check_case_label_for_macro_instantiations(
-                    root, location_to_instantation)
+                    cur, location_to_instantation)
                 for name in macro_names:
                     # Use key operator instead of get method to raise error
                     # if name not found
@@ -193,17 +206,11 @@ def visit(root: Cursor,
                         # multiple switch statements, but perhaps the enum
                         # group names of macros used like this should indicate
                         # that they are used in multiple switch statements?
-                        enum_group_name = f'Switch{switch_number}CaseLabels'
+                        enum_group_name = f'Switch{i}CaseLabels'
                         classified_macro.enum_group_name = enum_group_name
 
-    child: Cursor
-    for child in root.get_children():
-        visit(child,
-              c_file,
-              name_to_macro,
-              location_to_instantation,
-              switch_number, case_number)
-        case_number += count_nested_case_statements(child)
+            for child in cur.get_children():
+                q.append(child)
 
 
 def check_macro_usage(classified_macros: List[ClassifiedMacro],
@@ -228,6 +235,7 @@ def check_macro_usage(classified_macros: List[ClassifiedMacro],
         cm.macro.identifier: cm
         for cm in classified_macros
     }
+
     index: Index = Index.create()
     tu = index.parse(
         c_file, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
@@ -242,4 +250,6 @@ def check_macro_usage(classified_macros: List[ClassifiedMacro],
         basename(child.location.file.name) == basename(c_file)
         and child.kind == CursorKind.MACRO_INSTANTIATION
     }
-    visit(root_cursor, c_file, name_to_macro, location_to_instantation)
+
+    check_macros_in_case_labels(
+        root_cursor, c_file, name_to_macro, location_to_instantation)
