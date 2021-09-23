@@ -1,5 +1,5 @@
 '''
-collect_macro_data.py
+collect_macro_facts.py
 
 Reads in a preprocessor statistics file produced by SuperC
 and returns a JSON file containing data on each of the macros
@@ -8,60 +8,67 @@ defined and used in the file that SuperC originally analyzed
 
 import os
 from collections import deque
-from typing import Deque, List
+from typing import Deque, List, Tuple
 
 from clang.cindex import (Cursor, CursorKind, Index, SourceLocation,
                           TranslationUnit)
 
-from macro_data_collector.directives import (DefineDirective, FunctionDefine,
-                                             MacroDataList, ObjectDefine)
+from macro_fact_collector.macro_facts import Location, MacroFact, MacroKind
 
 
-def collect_macro_data(c_file: str) -> MacroDataList:
+def collect_macro_facts(c_file: str) -> List[MacroFact]:
     '''
     Reads in the name of a CPP stats file and returns
-    a list of the macro data found in that file
+    a list of the macro facts found.
 
     Args:
         c_file:     The filepath to the C file that was analyzed
 
     Returns:
-        results:    A list of all the macro usage data in the c file
+        results:    A list of all the macro facts in the c file
     '''
     index: Index = Index.create()
     translation_unit: TranslationUnit = index.parse(
         c_file, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
     root_cursor: Cursor = translation_unit.cursor
 
-    macro_names_locations: Deque[(str, SourceLocation)] = deque()
+    macro_names_locations: Deque[Tuple[str, SourceLocation]] = deque()
 
-    results: MacroDataList = []
+    results: List[MacroFact] = []
 
     for cur in root_cursor.walk_preorder():
-        location: SourceLocation = cur.location
-        if location.file is None:
+        source_location: SourceLocation = cur.location
+        if source_location.file is None:
             continue
-        if os.path.basename(location.file.name) != os.path.basename(c_file):
+        if os.path.basename(source_location.file.name) != os.path.basename(c_file):
             continue
         if cur.kind == CursorKind.MACRO_DEFINITION:
-            macro_names_locations.append((cur.displayname, location))
+            macro_names_locations.append((cur.displayname, source_location))
 
     c_file_lines: List[str]
     with open(c_file, "r") as fp:
         c_file_lines = fp.readlines()
 
-    for name, location in macro_names_locations:
-        start_line = location.line
-        column = location.column
-        identifier = name
-        definition_count = 1  # TODO: Remove this property
-        end_line = start_line
-        body = ""
+    for name, source_location in macro_names_locations:
+        location: Location = Location(c_file,
+                                      source_location.line,
+                                      source_location.line,
+                                      source_location.column)
+        start_line: int = source_location.line
+        column: int = source_location.column
+        identifier: str = name
+        # TODO: Use SuperC to infer count of definitions under same static
+        # conditional
+        definition_count: int = 1
+        end_line: int = start_line
+        body: str = ""
+        parameters = []
+        kind: MacroKind
+
         current_line = c_file_lines[start_line-1]
         # Skip to definition
         current_line = current_line[column-1:]
         # Check for parentheses to determine if object or function-like macro
-        usage: DefineDirective
         if current_line[len(name)] == '(':
             # Fill in parameters and skip parameters to definition for
             # function-like macros
@@ -69,13 +76,10 @@ def collect_macro_data(c_file: str) -> MacroDataList:
                 "(")+1:current_line.find(")")]
             parameters = [parameter.strip()
                           for parameter in parameters_list.split(",")]
-            usage = FunctionDefine(
-                c_file, start_line, end_line, column, definition_count, identifier, body, parameters)
-
+            kind = MacroKind.FunctionLike
             current_line = current_line[current_line.find(")")+1:]
         else:
-            usage = ObjectDefine(
-                c_file, start_line, end_line, column, definition_count, identifier, body)
+            kind = MacroKind.ObjectLike
             # Skip to definition for object macros
             current_line = current_line[len(name):]
 
@@ -154,7 +158,9 @@ def collect_macro_data(c_file: str) -> MacroDataList:
             else:
                 break
 
-        usage.body = body
-        usage.end_line = end_line
-        results.append(usage)
+        fact = MacroFact(location, definition_count, identifier,
+                         body, kind, parameters)
+
+        fact.location.end_line = end_line
+        results.append(fact)
     return results
