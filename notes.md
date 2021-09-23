@@ -1,5 +1,8 @@
 # Notes
 
+## Link to Macro Classification Spreadsheet
+https://docs.google.com/spreadsheets/d/105X24etCkwHLztrKJxefnnQZ2TOorseXEXw6lN8s2go/edit#gid=1535213954
+
 ## Steps
 
 1) Collect basic macro data using Clang
