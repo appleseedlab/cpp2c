@@ -8,7 +8,8 @@ macro's instantiation(s) in the AST, trying to parse its definition as an
 AST fragment, and more.
 '''
 
-from dataclasses import dataclass
+from collections import defaultdict
+from dataclasses import dataclass, field
 from typing import DefaultDict, Optional, Set
 
 from macro_fact_collector.macro_facts import MacroFacts
@@ -29,20 +30,23 @@ class ASTFragment:
 @dataclass
 class MacroInferences:
     macro_facts: MacroFacts
-    ast_fragment: Optional[ASTFragment]
-    parsed_type: Optional[str]
-    body_contains_parameters: bool
-    body_contains_free_variables: bool
-    body_contains_nested_macros: bool
-    parameter_identifiers_to_types: DefaultDict[str, Set]
-    free_variable_identifiers_to_types: DefaultDict[str, Set]
-    macro_identifiers_to_types: DefaultDict[str, Set]
-    body_has_side_effects: bool
-    used_in_case_label: bool
-    used_to_declare_array_size: bool
-    multiply_defined_under_single_compilation_branch: bool
-    appears_in_static_conditional: bool
-    body_contains_stringization: bool
-    body_contains_token_pasting: bool
-    variadic: bool
-    classification: Optional[MacroClassification]
+    ast_fragment: Optional[ASTFragment] = None
+    parsed_type: Optional[str] = None
+    body_contains_parameters: Optional[bool] = None
+    body_contains_free_variables: Optional[bool] = None
+    body_contains_nested_macros: Optional[bool] = None
+    parameter_identifiers_to_types: DefaultDict[str, Set] = field(
+        default_factory=lambda: defaultdict(set))
+    free_variable_identifiers_to_types: DefaultDict[str, Set] = field(
+        default_factory=lambda: defaultdict(set))
+    macro_identifiers_to_types: DefaultDict[str, Set] = field(
+        default_factory=lambda: defaultdict(set))
+    body_has_side_effects: Optional[bool] = None
+    used_in_case_label: Optional[bool] = None
+    used_to_declare_array_size: Optional[bool] = None
+    multiply_defined_under_single_compilation_branch: Optional[bool] = None
+    appears_in_static_conditional: Optional[bool] = None
+    body_contains_stringization: Optional[bool] = None
+    body_contains_token_pasting: Optional[bool] = None
+    variadic: Optional[bool] = None
+    classification: Optional[MacroClassification] = None
