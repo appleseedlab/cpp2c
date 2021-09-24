@@ -11,7 +11,7 @@ AST fragment, and more.
 from dataclasses import dataclass
 from macro_fact_collector.macro_facts import MacroFacts
 from macro_classifier.macro_classification import MacroClassification
-from typing import Optional
+from typing import DefaultDict, Dict, List, Optional, Set
 
 
 # Dataclass replacement for an enum so that it can be serializable
@@ -32,6 +32,9 @@ class MacroInferences:
     body_contains_parameters: bool
     body_contains_free_variables: bool
     body_contains_nested_macros: bool
+    parameter_identifiers_to_types: DefaultDict[str, Set]
+    free_variable_identifiers_to_types: DefaultDict[str, Set]
+    macro_identifiers_to_types: DefaultDict[str, Set]
     body_has_side_effects: bool
     used_in_case_label: bool
     used_to_declare_array_size: bool
