@@ -1,3 +1,10 @@
+'''
+macro_facts.py
+
+Dataclasses for storing macro facts.
+Macro facts include information that is inherent to the macro.
+'''
+
 from dataclasses import dataclass
 from typing import List
 
