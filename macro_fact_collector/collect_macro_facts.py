@@ -1,9 +1,9 @@
 '''
 collect_macro_facts.py
 
-Reads in a preprocessor statistics file produced by SuperC
-and returns a JSON file containing data on each of the macros
-defined and used in the file that SuperC originally analyzed
+Reads in a C file, uses Clang to gather information on all the
+macro definitions it contains, and then returns a list of all
+the macros facts.
 '''
 
 import os
