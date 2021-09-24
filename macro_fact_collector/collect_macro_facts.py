@@ -13,10 +13,10 @@ from typing import Deque, List, Tuple
 from clang.cindex import (Cursor, CursorKind, Index, SourceLocation,
                           TranslationUnit)
 
-from macro_fact_collector.macro_facts import Location, MacroFact, MacroKind
+from macro_fact_collector.macro_facts import Location, MacroFacts, MacroKind
 
 
-def collect_macro_facts(c_file: str) -> List[MacroFact]:
+def collect_macro_facts(c_file: str) -> List[MacroFacts]:
     '''
     Reads in the name of a CPP stats file and returns
     a list of the macro facts found.
@@ -34,7 +34,7 @@ def collect_macro_facts(c_file: str) -> List[MacroFact]:
 
     macro_names_locations: Deque[Tuple[str, SourceLocation]] = deque()
 
-    results: List[MacroFact] = []
+    results: List[MacroFacts] = []
 
     for cur in root_cursor.walk_preorder():
         source_location: SourceLocation = cur.location
@@ -158,7 +158,7 @@ def collect_macro_facts(c_file: str) -> List[MacroFact]:
             else:
                 break
 
-        fact = MacroFact(location, definition_count, identifier,
+        fact = MacroFacts(location, definition_count, identifier,
                          body, kind, parameters)
 
         fact.location.end_line = end_line

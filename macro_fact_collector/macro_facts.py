@@ -10,7 +10,7 @@ from typing import List
 
 
 # Using a dataclass here instead of an enum so that
-# asdict will work when called on MacroFact objects
+# asdict will work when called on MacroFacts objects
 @dataclass
 class MacroKind:
     ObjectLike = "object-like"
@@ -26,7 +26,7 @@ class Location:
 
 
 @dataclass
-class MacroFact:
+class MacroFacts:
     location: Location
     definition_count_under_same_static_conditional: int
     identifier: str
