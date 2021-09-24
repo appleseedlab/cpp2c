@@ -1,7 +1,7 @@
 *.json
 .vscode
 __pycache__
-c-tests
+c_tests
 tests/c_files/*.txt
 *.pdf
 *.sh
