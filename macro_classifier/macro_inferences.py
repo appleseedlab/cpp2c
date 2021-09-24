@@ -9,9 +9,11 @@ AST fragment, and more.
 '''
 
 from dataclasses import dataclass
+from typing import DefaultDict, Optional, Set
+
 from macro_fact_collector.macro_facts import MacroFacts
+
 from macro_classifier.macro_classification import MacroClassification
-from typing import DefaultDict, Dict, List, Optional, Set
 
 
 # Dataclass replacement for an enum so that it can be serializable
