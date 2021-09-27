@@ -112,6 +112,7 @@ def infer_macros_used_in_static_conditionals(
     # This could have been done in the initialization with a list
     # comprehension, but it would be a bit verbose
     for mi in result:
+        mi.appears_in_static_conditional = False
         if (mi.macro_facts.identifier in
                 macro_identifiers_in_static_conditionals):
             mi.appears_in_static_conditional = True
