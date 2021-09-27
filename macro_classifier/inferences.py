@@ -11,12 +11,18 @@ function docstring.
 Each inference returns a new list of updated MacroInferences.
 '''
 
+from collections import deque
 import dataclasses
 import os
 import re
 from typing import List, Set
 
 from clang.cindex import Index, Token, TokenKind, TranslationUnit
+
+from pycparser import CParser
+from pycparser.c_lexer import CLexer
+from pycparser.ply.lex import LexToken, lex
+from pycparser.plyparser import ParseError
 
 from macro_classifier.macro_classification import MacroClassification
 from macro_classifier.macro_inferences import MacroInferences
@@ -208,7 +214,7 @@ def infer_variadic_macros(
     that have it as variadic macros
 
     Args:
-        macro_inferences:   The list of MacroInference objects to check
+        macro_inferences:   The list of MacroInference objects to check.
 
     Returns:
         result:             A copy of macro_inferences, with each macro
@@ -229,3 +235,63 @@ def infer_variadic_macros(
 
     return result
 
+
+def infer_free_variables(
+    macro_inferences: List[MacroInferences]
+) -> List[MacroInferences]:
+    '''
+    Infers the list of free variables in a macro's body,
+    and updates each macros mapping of free variables so that
+    each free variable is mapped initially to an empty set of strings.
+
+    Args:
+        macro_inferences:   The list of MacroInference objects to check.
+
+    Returns:
+        result:             A copy of macro_inferences, with each macro's
+                            free_variable_identifiers_to_types field
+                            updated so that each free variable in the macro's
+                            body is mapped to an empty set of strings.
+    '''
+
+    result = [dataclasses.replace(mi) for mi in macro_inferences]
+
+    macro_names: Set[str] = {
+        mi.macro_facts.identifier for mi in macro_inferences}
+
+    # These functions need to be passed to the CLexer constructor
+    # NOTE: Maybe we can use these for something?
+    def error_func(msg, line, col):
+        pass
+
+    def on_lbrace_func():
+        pass
+
+    def on_rbrace_func():
+        pass
+
+    def type_lookup_func(type_):
+        pass
+
+    for mi in result:
+        lexer = CLexer(error_func, on_lbrace_func,
+                       on_rbrace_func, type_lookup_func)
+        lexer.build()
+        lexer.input(mi.macro_facts.body)
+        while (token := lexer.token()):
+            if not isinstance(token, LexToken):
+                continue
+            # Only check identifier tokens
+            if token.type != 'ID':
+                continue
+            # Check that identifier is not found in parameters
+            if token.value in mi.macro_facts.parameters:
+                continue
+            # Check that identifier is not actually
+            # the name of another macro
+            if token.value in macro_names:
+                continue
+
+            mi.free_variable_identifiers_to_types[token.value] = set()
+
+    return result
