@@ -46,7 +46,7 @@ class MacroInferences:
     used_to_declare_array_size: Optional[bool] = None
     multiply_defined_under_single_compilation_branch: Optional[bool] = None
     appears_in_static_conditional: Optional[bool] = None
-    body_contains_stringization: Optional[bool] = None
+    body_contains_stringification: Optional[bool] = None
     body_contains_token_pasting: Optional[bool] = None
     variadic: Optional[bool] = None
     classification: Optional[MacroClassification] = None

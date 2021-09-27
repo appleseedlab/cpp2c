@@ -15,7 +15,7 @@ class MacroClassification:
     MultiplyDefinedMacro = 'multiply-defined-macro'
     ConfigurationMacro = 'configuration-macro'
     TokenPastingMacro = 'token-pasting-macro'
-    StringizationMacro = 'stringization-macro'
+    StringificationMacro = 'stringification-macro'
     VariadicMacro = 'variadic-macro'
     ConstantTypedefObjectMacro = 'constant-typedef-object-macro'
     ExternalVariableTypedefObjectMacro = 'external-variable-typedef-object-macro'
