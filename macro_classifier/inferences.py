@@ -198,3 +198,34 @@ def infer_macros_using_token_pasting(
         mi.classification = MacroClassification.TokenPastingMacro
 
     return result
+
+
+def infer_variadic_macros(
+    macro_inferences: List[MacroInferences]
+) -> List[MacroInferences]:
+    '''
+    Checks each macro's parameter list for '...', and marks those
+    that have it as variadic macros
+
+    Args:
+        macro_inferences:   The list of MacroInference objects to check
+
+    Returns:
+        result:             A copy of macro_inferences, with each macro
+                            whose parameters includes '...' updated so
+                            that their variadic field is set to True.
+                            Such macros are also classified as
+                            VariadicMacros.
+    '''
+
+    result = [dataclasses.replace(mi) for mi in macro_inferences]
+
+    for mi in result:
+        mi.variadic = False
+        if '...' in mi.macro_facts.parameters:
+            mi.variadic = True
+        if mi.classification is not None:
+            mi.classification = MacroClassification.VariadicMacro
+
+    return result
+
