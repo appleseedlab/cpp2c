@@ -13,9 +13,10 @@ Each inference returns a new list of updated MacroInferences.
 
 import dataclasses
 import os
+import re
 from typing import List, Set
 
-from clang.cindex import Index, SourceLocation, Token, TokenKind, TranslationUnit
+from clang.cindex import Index, Token, TokenKind, TranslationUnit
 
 from macro_classifier.macro_classification import MacroClassification
 from macro_classifier.macro_inferences import MacroInferences
@@ -115,4 +116,84 @@ def infer_macros_used_in_static_conditionals(
                 macro_identifiers_in_static_conditionals):
             mi.appears_in_static_conditional = True
             mi.classification = MacroClassification.ConfigurationMacro
+    return result
+
+
+def infer_macros_using_stringification(
+        macro_inferences: List[MacroInferences]) -> List[MacroInferences]:
+    '''
+    Checks each macro's body for the the stringification operator '#'
+
+    Args:
+        macro_inferences:   The list of MacroInference objects to check.
+
+    Returns:
+        result:             A copy of macro_inferences, with each macro
+                            whose body contains the stringification operator
+                            updated so that their body_contains_stringification
+                            field is set to True. Such macros are also
+                            classified as StringificationMacros.
+    '''
+
+    double_quote_pattern = re.compile(r'\\"|"(?:\\"|[^"])*"|(#)')
+    single_quote_pattern = re.compile(r"\\'|'(?:\\'|[^'])*'|(#)")
+
+    result = [dataclasses.replace(mi) for mi in macro_inferences]
+    for mi in result:
+        mi.body_contains_stringification = False
+
+        dq_search = double_quote_pattern.findall(mi.macro_facts.body)
+        if '#' not in dq_search:
+            continue
+
+        sq_search = single_quote_pattern.findall(mi.macro_facts.body)
+        if '#' not in sq_search:
+            continue
+
+        mi.body_contains_stringification = True
+        if mi.classification is not None:
+            continue
+
+        mi.classification = MacroClassification.StringificationMacro
+
+    return result
+
+
+def infer_macros_using_token_pasting(
+        macro_inferences: List[MacroInferences]) -> List[MacroInferences]:
+    '''
+    Checks each macro's body for the the token pasting operator '#'
+
+    Args:
+        macro_inferences:   The list of MacroInference objects to check.
+
+    Returns:
+        result:             A copy of macro_inferences, with each macro
+                            whose body contains the token pasting operator
+                            updated so that their body_contains_token_pasting
+                            field is set to True. Such macros are also
+                            classified as TokenPastingMacros.
+    '''
+
+    double_quote_pattern = re.compile(r'\\"|"(?:\\"|[^"])*"|(##)')
+    single_quote_pattern = re.compile(r"\\'|'(?:\\'|[^'])*'|(##)")
+
+    result = [dataclasses.replace(mi) for mi in macro_inferences]
+    for mi in result:
+        mi.body_contains_token_pasting = False
+
+        dq_search = double_quote_pattern.findall(mi.macro_facts.body)
+        if '##' not in dq_search:
+            continue
+
+        sq_search = single_quote_pattern.findall(mi.macro_facts.body)
+        if '##' not in sq_search:
+            continue
+
+        mi.body_contains_token_pasting = True
+        if mi.classification is not None:
+            continue
+
+        mi.classification = MacroClassification.TokenPastingMacro
+
     return result
