@@ -1,0 +1,48 @@
+grammar: |-
+  CHARACTER := "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"|"A"|"B"|"C"|"D"|"E"|"F"|"G"|"H"|"I"|"J"|"K"|"L"|"M"|"N"|"O"|"P"|"Q"|"R"|"S"|"T"|"U"|"V"|"W"|"X"|"Y"|"Z" ;
+  CHAR      := "'", CHARACTER, "'" ;
+  CONSTANT  := CHAR ;
+
+triads:
+  - un-preprocessed: |-
+      #define A 'a'
+
+      int main(void) {
+        char a = A;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        char a = 'a';
+        return 0;
+      }
+    converted: |-
+      const char A = 'a';
+
+      int main(void) {
+        char a = A;
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define A 'a'
+
+      int main(void) {
+        int a = A;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int a = 'a';
+        return 0;
+      }
+    converted: |-
+      // Even though A is only used as an int in the AST,
+      // it should still be converted to a char variable since that
+      // is the type its body parses to
+      const char A = 'a';
+
+      int main(void) {
+        int a = A;
+        return 0;
+      }

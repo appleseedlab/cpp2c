@@ -1,0 +1,77 @@
+grammar: |-
+  ANY             := ? any single character ? ;
+  STRING_PREFIX   := "u8" | "L" | "u" | "U" ;
+  STRING_LITERAL  := [STRING_PREFIX], '"', {("\", ANY) | (ANY - ("\" | '"')) }, '"' ;
+
+triads:
+  - un-preprocessed: |-
+      #define NARROW_STRING u8"This is a narrow string"
+      int main(void) {
+        char *s = NARROW_STRING;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        char *s = u8"This is a narrow string";
+        return 0;
+      }
+    converted: |
+      const char *NARROW_STRING = u8"This is a narrow string";
+      int main(void) {
+        char *s = NARROW_STRING;
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define UTF_8_STRING L"This is a UTF-8 wide character string"
+      int main(void) {
+        char *s = UTF_8_STRING;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        char *s = L"This is a UTF-8 wide character string";
+        return 0;
+      }
+    converted: |
+      const char *UTF_8_STRING = L"This is a UTF-8 wide character string";
+      int main(void) {
+        char *s = UTF_8_STRING;
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define UTF_16_STRING u"This is a UTF-16 wide character string"
+      int main(void) {
+        char *s = UTF_16_STRING;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        char *s = u"This is a UTF-16 wide character string";
+        return 0;
+      }
+    converted: |
+      const char *UTF_16_STRING = u"This is a UTF-16 wide character string";
+      int main(void) {
+        char *s = UTF_16_STRING;
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define UTF_32_STRING U"This is a UTF-32 wide character string"
+      int main(void) {
+        char *s = UTF_32_STRING;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        char *s = U"This is a UTF-32 wide character string";
+        return 0;
+      }
+    converted: |
+      const char *UTF_32_STRING = U"This is a UTF-32 wide character string";
+      int main(void) {
+        char *s = UTF_32_STRING;
+        return 0;
+      }

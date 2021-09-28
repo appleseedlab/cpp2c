@@ -1,0 +1,29 @@
+grammar: |-
+  ANY             := ? any single character ? ;
+  WHITE_SPACE     := ? any single whitespace character ? ;
+  STRING_PREFIX   := "u8" | "L" | "u" | "U" ;
+  STRING_LITERAL  := [STRING_PREFIX], '"', {("\", ANY) | (ANY - ("\" | '"')) }, '"' ;
+  COMPOUND_STRING := STRING_LITERAL, {{WHITE_SPACE}, COMPOUND_STRING} ;
+
+triads:
+  - un-preprocessed: |-
+      #define COMPOUND_STRING "This string" "will be" "combined"
+
+      int main(void) {
+        char *s = COMPOUND_STRING;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        char *s = "This string" "will be" "combined";
+        return 0;
+      }
+    converted: |-
+      // Spaces between strings are preserved, since that most closely
+      // reflects the programmer's original intent
+      const char *COMPOUND_STRING = "This string" "will be" "combined";
+
+      int main(void) {
+        char *s = COMPOUND_STRING;
+        return 0;
+      }

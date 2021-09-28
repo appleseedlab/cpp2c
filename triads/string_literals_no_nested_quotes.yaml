@@ -1,0 +1,75 @@
+grammar: |-
+  ANY             := ? any single character ? ;
+  STRING_LITERAL  := '"', {ANY - '"'}, '"' ;
+
+triads:
+  - un-preprocessed: |-
+      #include <stdio.h>
+      #define ACCESS_MODE "r"
+
+      int main(void) {
+        FILE *fp = fopen("some_file.txt", ACCESS_MODE);
+        fclose(fp);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        FILE *fp = fopen("some_file.txt", "r");
+        fclose(fp);
+        return 0;
+      }
+    converted: |-
+      #include <stdio.h>
+      const char * ACCESS_MODE = "r";
+
+      int main(void) {
+        FILE *fp = fopen("some_file.txt", ACCESS_MODE);
+        fclose(fp);
+      }
+
+  - un-preprocessed: |-
+      #include <stdio.h>
+      #define HELLO_WORLD "Hello, World!"
+
+      int main(void) {
+        printf(HELLO_WORLD);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        printf("Hello, World!");
+        return 0;
+      }
+    converted: |-
+      #include <stdio.h>
+      const char *HELLO_WORLD = "Hello, World!";
+
+      int main(void) {
+        // This will work, but will compilers may throw warnings
+        printf(HELLO_WORLD);
+      }
+
+  - un-preprocessed: |-
+      #include <stdio.h>
+      #define HELLO "Hello, "
+
+      int main(void) {
+        printf(HELLO "World!\n");
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        printf("Hello, " "World!\n");
+        return 0;
+      }
+    converted: |-
+      #include <stdio.h>
+      const char *HELLO = "Hello, ";
+
+      int main(void) {
+        // Here, the HELLO macros was replaced with the "%s" format string,
+        // and the converted HELLO macro was passed to the call to printf.
+        // We have to convert the string this way because const char*
+        // variables cannot be combined with string literals at runtime.
+        printf("%s" "World!\n", HELLO);
+      }
