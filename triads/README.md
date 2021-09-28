@@ -54,11 +54,11 @@ pipenv run
 
 Next, open a shell in this directory and run:
 ```bash
-`python preprocess.py <triad_filename>`
+python preprocess.py <triad_filename>
 ```
 
 To preprocess a single file. Alternatively, you may run:
 ```bash
-`python preprocess.py -all`
+python preprocess.py -all
 ```
 to preprocess all the triad files in this directory.
