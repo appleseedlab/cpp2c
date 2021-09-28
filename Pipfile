@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 pycparser = "*"
 libclang = "*"
+"ruamel.yaml" = "*"
 
 [dev-packages]
 autopep8 = "*"
