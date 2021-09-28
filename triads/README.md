@@ -36,3 +36,29 @@ triads:
       ...
   - ...
 ```
+
+## Adding Triads
+If you would like to add a new triad file to this list,
+please ensure that your file follow the file structure above.
+
+You can use the script `preprocess.py` to automatically
+preprocess the un-preprocessed code snippets in a triad file and write
+them to the preprocessed code snippet of their corresponding triad to speed
+up triad creation.
+To use it, first ensure that you have set up Python virtual environment, e.g.
+by running:
+
+```bash
+pipenv run
+```
+
+Next, open a shell in this directory and run:
+```bash
+`python preprocess.py <triad_filename>`
+```
+
+To preprocess a single file. Alternatively, you may run:
+```bash
+`python preprocess.py -all`
+```
+to preprocess all the triad files in this directory.
