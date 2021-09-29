@@ -1,0 +1,59 @@
+grammar: |-
+  DEC_DIGIT         :=  "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" ;
+  DEC_NUMBER        :=  DEC_DIGIT, {DEC_DIGIT} ;
+
+  SIGN              :=  "+" | "-" ;
+  EXPONENT          :=  ("e" | "E"), [SIGN], DEC_NUMBER ;
+
+  FLOAT_NO_SUFFIX   :=  [DEC_NUMBER], ".", DEC_NUMBER, [EXPONENT]
+                    |   DEC_NUMBER, ".", [DEC_NUMBER], [EXPONENT] ;
+
+  FLOAT_SUFFIX      := "f" | "F" | "l" | "L" ;
+
+  FLOAT             :=  FLOAT_NO_SUFFIX, [FLOAT_SUFFIX] ;
+
+triads:
+  - un-preprocessed: |-
+      #define A 1.0f
+      #define B .0e1F
+      #define C 1.l
+      #define D 1.e1L
+      #define E 1.0
+
+      int main(void)
+      {
+          float a = A;
+          float b = B;
+          long double c = C;
+          long double d = D;
+          double e = E;
+          return 0;
+      }
+    preprocessed: |-
+      int main(void)
+      {
+          float a = 1.0f;
+          float b = .0e1F;
+          long double c = 1.l;
+          long double d = 1.e1L;
+          double e = 1.0;
+          return 0;
+      }
+    converted: |-
+      const float A = 1.0f;
+      const float B = .0e1F;
+      const long double C = 1.l;
+      const long double D = 1.e1L;
+      // Float literals are converted to doubles,
+      // unless they have the 'f' or 'F' suffix
+      const double E = 1.0;
+
+      int main(void)
+      {
+          float a = A;
+          float b = B;
+          long double c = C;
+          long double d = D;
+          double e = E;
+          return 0;
+      }
