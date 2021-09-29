@@ -1,0 +1,88 @@
+grammar: |-
+  BIN_PREFIX    := "0b" | "0B" ;
+  BIN_DIGIT     := "0" | "1" ;
+  BIN_NUMBER    := BIN_PREFIX, BIN_DIGIT, {BIN_DIGIT} ;
+
+  OCTAL_PREFIX  := "0" ;
+  OCTAL_DIGIT   := "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+  OCTAL_NUMBER  := OCTAL_PREFIX, OCTAL_DIGIT, {OCTAL_DIGIT} ;
+
+  DEC_DIGIT     := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" ;
+  DEC_NUM       := DIGIT, {DIGIT};
+
+  HEX_PREFIX    := "0x" | "0X" ;
+  HEX_DIGIT     := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"a"|"b"|"c"|"d"|"e"|"f"|"A"|"B"|"C"|"D"|"E"|"F" ;
+  HEX_NUMBER    := HEX_PREFIX, HEX_DIGIT, {HEX_DIGIT} ;
+
+  (*
+    Assume recognition uses short circuiting to avoid
+    recognizing decimal numbers as octal numbers
+  *)
+  INTEGER       :=  BIN_NUMBER | OCTAL_NUMBER | DEC_NUM | HEX_NUMBER ;
+
+  SIGN          :=  "+" | "-" ;
+  EXPONENT      :=  ("e" | "E"), [SIGN], DEC_NUM ;
+  FLOAT         :=  DEC_NUM, [EXPONENT] ;
+
+  NUMBER        :=  INTEGER | FLOAT ;
+
+triads:
+  - un-preprocessed: |-
+      #define BIN 0B10
+      #define OCT 070
+      #define DEC 18
+      #define HEX 0xFACE
+
+      #define U_LONG 10UL
+      #define FLOAT_ 1.0F
+      #define DOUBLE_ 1.5
+      #define L_DOUBLE 1.5l
+
+      int main(void) {
+        int bin = BIN;
+        int oct = OCT;
+        int dec = DEC;
+        int hex = HEX;
+
+        unsigned long u_long = U_LONG;
+        float float_ = FLOAT_;
+        double double_ = DOUBLE_;
+        long double l_double = L_DOUBLE;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int bin = 0B10;
+        int oct = 070;
+        int dec = 18;
+        int hex = 0xFACE;
+
+        unsigned long u_long = 10UL;
+        float float_ = 1.0F;
+        double double_ = 1.5;
+        long double l_double = 1.5l;
+        return 0;
+      }
+    converted: |-
+      const int BIN = 0B10;
+      const int OCT = 070;
+      const int DEC = 18;
+      const int HEX = 0xFACE;
+
+      const unsigned long U_LONG = 10UL;
+      const float FLOAT_ = 1.0F;
+      const double DOUBLE_ = 1.5;
+      const long double L_DOUBLE = 1.5l;
+
+      int main(void) {
+        int bin = BIN;
+        int oct = OCT;
+        int dec = DEC;
+        int hex = HEX;
+
+        unsigned long u_long = U_LONG;
+        float float_ = FLOAT_;
+        double double_ = DOUBLE_;
+        long double l_double = L_DOUBLE;
+        return 0;
+      }
