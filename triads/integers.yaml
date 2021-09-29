@@ -1,0 +1,49 @@
+grammar: |-
+  BIN_PREFIX    := "0b" | "0B" ;
+  BIN_DIGIT     := "0" | "1" ;
+  BIN_NUMBER    := BIN_PREFIX, BIN_DIGIT, {BIN_DIGIT} ;
+
+  OCTAL_PREFIX  := "0" ;
+  OCTAL_DIGIT   := "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+  OCTAL_NUMBER  := OCTAL_PREFIX, OCTAL_DIGIT, {OCTAL_DIGIT} ;
+
+  DEC_DIGIT     := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" ;
+  DEC_NUM       := DIGIT, {DIGIT};
+
+  HEX_PREFIX    := "0x" | "0X" ;
+  HEX_DIGIT     := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"a"|"b"|"c"|"d"|"e"|"f"|"A"|"B"|"C"|"D"|"E"|"F" ;
+  HEX_NUMBER    := HEX_PREFIX, HEX_DIGIT, {HEX_DIGIT} ;
+
+  (*
+    Assume recognition uses short circuiting to avoid
+    recognizing decimal numbers as octal numbers
+  *)
+  INTEGER       :=  BIN_NUMBER | OCTAL_NUMBER | DEC_NUM | HEX_NUMBER ;
+
+triads:
+  - un-preprocessed: |-
+      #define ONE 1
+      #define TWO 0B10
+      #define EIGHT 010
+      #define SIXTEEN 0x1
+
+      int main(void) {
+        int twenty_seven = ONE | TWO | EIGHT | SIXTEEN;
+        return 0;
+      }
+
+    preprocessed: |-
+      int main(void) {
+        int twenty_seven = 1 | 0B10 | 010 | 0x1;
+        return 0;
+      }
+    converted: |-
+      const int ONE = 1;
+      const int TWO = 0B10;
+      const int EIGHT = 010;
+      const int SIXTEEN = 0x1;
+
+      int main(void) {
+        int twenty_seven = ONE | TWO | EIGHT | SIXTEEN;
+        return 0;
+      }
