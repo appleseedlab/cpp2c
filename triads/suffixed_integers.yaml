@@ -22,7 +22,7 @@ grammar: |-
     Assume recognition uses short circuiting to avoid
     recognizing decimal numbers as octal numbers
   *)
-  INTEGER       :=  (BIN_NUMBER | OCTAL_NUMBER | DEC_NUM | HEX_NUMBER) [INT_SUFFIX] ;
+  INTEGER       :=  (BIN_NUMBER | OCTAL_NUMBER | DEC_NUM | HEX_NUMBER), [INT_SUFFIX] ;
 
 triads:
   - un-preprocessed: |-
