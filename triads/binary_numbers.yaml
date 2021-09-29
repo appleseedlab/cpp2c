@@ -1,0 +1,50 @@
+grammar: |-
+  BIN_PREFIX  := "0b" | "0B" ;
+  BIN_DIGIT   := "0" | "1" ;
+  BIN_NUMBER  := BIN_PREFIX, BIN_DIGIT, {BIN_DIGIT} ;
+
+triads:
+  - un-preprocessed: |-
+      #define TRUE 0b1
+      #define FALSE 0b0
+
+      int main(void) {
+        int x = TRUE;
+        int y = FALSE;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 0b1;
+        int y = 0b0;
+        return 0;
+      }
+    converted: |-
+      int TRUE = 0b1;
+      int FALSE = 0b0;
+
+      int main(void) {
+        int x = TRUE;
+        int y = FALSE;
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define FOUR 0B100
+
+      int main(void) {
+        int two = FOUR >> 1;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int two = 0B100 >> 1;
+        return 0;
+      }
+    converted: |-
+      const int FOUR = 0B100;
+
+      int main(void) {
+        int two = FOUR >> 1;
+        return 0;
+      }

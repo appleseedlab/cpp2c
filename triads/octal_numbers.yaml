@@ -1,0 +1,25 @@
+grammar: |-
+  OCTAL_PREFIX  := "0" ;
+  OCTAL_DIGIT   := "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+  OCTAL_NUMBER  := OCTAL_PREFIX, OCTAL_DIGIT, {OCTAL_DIGIT} ;
+
+triads:
+  - un-preprocessed: |-
+      #define HALLOWEEN 031
+
+      int main(void) {
+        int christmas = HALLOWEEN;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int christmas = 031;
+        return 0;
+      }
+    converted: |-
+      const int HALLOWEEN = 031
+
+      int main(void) {
+        int christmas = HALLOWEEN;
+        return 0;
+      }
