@@ -1,0 +1,40 @@
+grammar: |-
+  IDENT_CHAR  :=  ? lowercase and upper case letters, and the underscore ? ;
+  DEC_DIGIT   :=  "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" ;
+
+  IDENTIFIER  :=  IDENT_CHAR, {IDENT_CHAR | DEC_DIGIT} ;
+
+triads:
+  - un-preprocessed: |-
+      #define X x
+
+      int main(void) {
+        int x = 0;
+        int y = X;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 0;
+        int y = x;
+        return 0;
+      }
+    converted: |-
+      // Macros that use dynamic scoping are converted to functions.
+      // The return type of such function is inferred from the macro's
+      // expansions in the AST.
+
+      int X(int x) { return x; }
+
+      // More complex logic is required for macros that modify
+      // their bodies; but the grammar for these triads does not
+      // support such macros
+
+      int main(void) {
+        int x;
+        // Their invocations are replaced with function calls,
+        // and variables that were free variables in the original macro
+        // are passed as arguments instead.
+        int y = X(x);
+        return 0;
+      }
