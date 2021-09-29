@@ -76,15 +76,15 @@ triads:
       }
     preprocessed: |-
       int main(void) {
-        int x1 = 0b1u ;
-        int x2 = 0B1U ;
-        int x3 = 01l ;
-        int x4 = 0x1ll ;
-        int x5 = 0X1L ;
-        int x6 = 1LL ;
-        int x7 = 1ul ;
-        int x8 = 1lu ;
-        int x9 = 1ull ;
+        int x1 = 0b1u;
+        int x2 = 0B1U;
+        int x3 = 01l;
+        int x4 = 0x1ll;
+        int x5 = 0X1L;
+        int x6 = 1LL;
+        int x7 = 1ul;
+        int x8 = 1lu;
+        int x9 = 1ull;
         int x10 = 1llu;
         int x11 = 1uL;
         int x12 = 1Lu;
