@@ -5,7 +5,6 @@ from tempfile import mkstemp
 from typing import Dict
 
 from ruamel import yaml
-from ruamel.yaml.dumper import RoundTripDumper
 from ruamel.yaml.loader import RoundTripLoader
 
 
