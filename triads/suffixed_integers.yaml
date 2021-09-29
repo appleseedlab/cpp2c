@@ -1,0 +1,152 @@
+grammar: |-
+  BIN_PREFIX      := "0b" | "0B" ;
+  BIN_DIGIT       := "0" | "1" ;
+  BIN_NUMBER      := BIN_PREFIX, BIN_DIGIT, {BIN_DIGIT} ;
+
+  OCTAL_PREFIX    := "0" ;
+  OCTAL_DIGIT     := "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+  OCTAL_NUMBER    := OCTAL_PREFIX, OCTAL_DIGIT, {OCTAL_DIGIT} ;
+
+  DEC_DIGIT       := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" ;
+  DEC_NUM         := DIGIT, {DIGIT};
+
+  HEX_PREFIX      := "0x" | "0X" ;
+  HEX_DIGIT       := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"a"|"b"|"c"|"d"|"e"|"f"|"A"|"B"|"C"|"D"|"E"|"F" ;
+  HEX_NUMBER      := HEX_PREFIX, HEX_DIGIT, {HEX_DIGIT} ;
+
+  INT_LEN_SUFFIX  := "l" | "L" | "ll" | "LL" ;
+  INT_SIGN_SUFFIX := "u" | "U" ;
+  INT_SUFFIX      :=  (INT_LEN_SUFFIX, [INT_SIGN_SUFFIX]) | (INT_SIGN_SUFFIX, [INT_LEN_SUFFIX]) ;
+
+  (*
+    Assume recognition uses short circuiting to avoid
+    recognizing decimal numbers as octal numbers
+  *)
+  INTEGER       :=  (BIN_NUMBER | OCTAL_NUMBER | DEC_NUM | HEX_NUMBER) [INT_SUFFIX] ;
+
+triads:
+  - un-preprocessed: |-
+      #define X1  0b1u
+      #define X2  0B1U
+      #define X3  01l
+      #define X4  0x1ll
+      #define X5  0X1L
+      #define X6  1LL
+      #define X7  1ul
+      #define X8  1lu
+      #define X9  1ull
+      #define X10  1llu
+      #define X11  1uL
+      #define X12  1Lu
+      #define X13  1uLL
+      #define X14  1LLu
+      #define X15  1Ul
+      #define X16  1lU
+      #define X17  1Ull
+      #define X18  1llU
+      #define X19  1Ul
+      #define X20  1Lu
+      #define X21  1ULL
+      #define X22  1LLU
+
+      int main(void) {
+        int x1 = X1;
+        int x2 = X2;
+        int x3 = X3;
+        int x4 = X4;
+        int x5 = X5;
+        int x6 = X6;
+        int x7 = X7;
+        int x8 = X8;
+        int x9 = X9;
+        int x10 = X10;
+        int x11 = X11;
+        int x12 = X12;
+        int x13 = X13;
+        int x14 = X14;
+        int x15 = X15;
+        int x16 = X16;
+        int x17 = X17;
+        int x18 = X18;
+        int x19 = X19;
+        int x20 = X20;
+        int x21 = X21;
+        int x22 = X22;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x1 = 0b1u ;
+        int x2 = 0B1U ;
+        int x3 = 01l ;
+        int x4 = 0x1ll ;
+        int x5 = 0X1L ;
+        int x6 = 1LL ;
+        int x7 = 1ul ;
+        int x8 = 1lu ;
+        int x9 = 1ull ;
+        int x10 = 1llu;
+        int x11 = 1uL;
+        int x12 = 1Lu;
+        int x13 = 1uLL;
+        int x14 = 1LLu;
+        int x15 = 1Ul;
+        int x16 = 1lU;
+        int x17 = 1Ull;
+        int x18 = 1llU;
+        int x19 = 1Ul;
+        int x20 = 1Lu;
+        int x21 = 1ULL;
+        int x22 = 1LLU;
+        return 0;
+      }
+    converted: |-
+      // If a suffix is provided, the macro is converted to the type specified
+      const unsigned X1 = 0b1u;
+      const unsigned X2 = 0B1U;
+      const long X3 = 01l;
+      const long long X4 = 0x1ll;
+      const long X5 = 0X1L;
+      const long long X6 = 1LL;
+      const unsigned long X7 = 1ul;
+      const long unsigned X8 = 1lu;
+      const unsigned long long X9 = 1ull;
+      const long long unsigned X10 = 1llu;
+      const unsigned long X11 = 1uL;
+      const long unsigned X12 = 1Lu;
+      const unsigned long long X13 = 1uLL;
+      const long long unsigned X14 = 1LLu;
+      const unsigned long X15 = 1Ul;
+      const long unsigned X16 = 1lU;
+      const unsigned long long X17 = 1Ull;
+      const long long unsigned X18 = 1llU;
+      const unsigned long X19 = 1Ul;
+      const long unsigned X20 = 1Lu;
+      const unsigned long long X21 = 1ULL;
+      const long long unsigned X22 = 1LLU;
+
+      int main(void) {
+        int x1 = X1;
+        int x2 = X2;
+        int x3 = X3;
+        int x4 = X4;
+        int x5 = X5;
+        int x6 = X6;
+        int x7 = X7;
+        int x8 = X8;
+        int x9 = X9;
+        int x10 = X10;
+        int x11 = X11;
+        int x12 = X12;
+        int x13 = X13;
+        int x14 = X14;
+        int x15 = X15;
+        int x16 = X16;
+        int x17 = X17;
+        int x18 = X18;
+        int x19 = X19;
+        int x20 = X20;
+        int x21 = X21;
+        int x22 = X22;
+        return 0;
+      }
