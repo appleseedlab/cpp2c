@@ -1,10 +1,10 @@
 grammar: |-
-  DEC_DIGIT   :=  "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" ;
-  DEC_NUMBER  :=  DEC_DIGIT, {DEC_DIGIT} ;
+  DEC_DIGIT :=  "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9" ;
+  DEC_NUM   :=  DEC_DIGIT, {DEC_DIGIT} ;
 
-  SIGN        :=  "+" | "-" ;
-  EXPONENT    :=  ("e" | "E"), [SIGN], DEC_NUMBER ;
-  FLOAT       :=  DEC_NUMBER, [EXPONENT] ;
+  SIGN      :=  "+" | "-" ;
+  EXPONENT  :=  ("e" | "E"), [SIGN], DEC_NUM ;
+  FLOAT     :=  DEC_NUM, [EXPONENT] ;
 
 triads:
 
