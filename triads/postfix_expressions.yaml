@@ -10,11 +10,15 @@ grammar: |-
   INC_OP              :=  "++" ;
   DEC_OP              :=  "--" ;
 
-  POSTFIX_EXPRESSION  :=  IDENTIFIER
-                      |   POSTFIX_EXPRESSION, "(", ")"
-                      |   POSTFIX_EXPRESSION, ".", IDENTIFIER
-                      |   POSTFIX_EXPRESSION, "->", IDENTIFIER
-                      |   POSTFIX_EXPRESSION, (INC_OP | DEC_OP) ;
+  POSTFIX_EXPRESSION_IDENT  :=  IDENTIFIER
+                            |   POSTFIX_EXPRESSION_IDENT, "(", ")"
+                            |   POSTFIX_EXPRESSION_IDENT, ".", IDENTIFIER
+                            |   POSTFIX_EXPRESSION_IDENT, "->", IDENTIFIER
+                            |   POSTFIX_EXPRESSION_IDENT, (INC_OP | DEC_OP) ;
+
+  CONSTANT                  :=  ? CONSTANT as defined in constants.yaml ? ;
+
+  POSTFIX_EXPRESSION        :=  POSTFIX_EXPRESSION | CONSTANT ;
 
 triads:
   - un-preprocessed: |-
