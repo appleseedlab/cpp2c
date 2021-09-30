@@ -7,7 +7,8 @@ grammar: |-
 
   IDENTIFIER          :=  IDENT_CHAR, {IDENT_CHAR | DEC_DIGIT} ;
 
-  POSTFIX_EXPRESSION  :=  POSTFIX_EXPRESSION, "(", ")"
+  POSTFIX_EXPRESSION  :=  IDENTIFIER
+                      |   POSTFIX_EXPRESSION, "(", ")"
                       |   POSTFIX_EXPRESSION, ".", IDENTIFIER
                       |   POSTFIX_EXPRESSION, "->", IDENTIFIER
                       |   POSTFIX_EXPRESSION, "++", IDENTIFIER
