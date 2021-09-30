@@ -14,7 +14,7 @@ grammar: |-
                       |   POSTFIX_EXPRESSION, "(", ")"
                       |   POSTFIX_EXPRESSION, ".", IDENTIFIER
                       |   POSTFIX_EXPRESSION, "->", IDENTIFIER
-                      |   POSTFIX_EXPRESSION, (INC_OP | DEC_OP), IDENTIFIER ;
+                      |   POSTFIX_EXPRESSION, (INC_OP | DEC_OP) ;
 
 triads:
   - un-preprocessed: |-
