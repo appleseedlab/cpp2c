@@ -7,12 +7,14 @@ grammar: |-
 
   IDENTIFIER          :=  IDENT_CHAR, {IDENT_CHAR | DEC_DIGIT} ;
 
+  INC_OP              :=  "++" ;
+  DEC_OP              :=  "--" ;
+
   POSTFIX_EXPRESSION  :=  IDENTIFIER
                       |   POSTFIX_EXPRESSION, "(", ")"
                       |   POSTFIX_EXPRESSION, ".", IDENTIFIER
                       |   POSTFIX_EXPRESSION, "->", IDENTIFIER
-                      |   POSTFIX_EXPRESSION, "++", IDENTIFIER
-                      |   POSTFIX_EXPRESSION, "--", IDENTIFIER ;
+                      |   POSTFIX_EXPRESSION, (INC_OP | DEC_OP), IDENTIFIER ;
 
 triads:
   - un-preprocessed: |-
