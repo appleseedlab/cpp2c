@@ -1,0 +1,38 @@
+# TODO: Add non-nullary functions and array indexing once expression
+#       grammars are complete.
+
+# TODO: Add sizeof(typename) rules once constant expression grammars
+#       are complete
+
+grammar: |-
+  POSTFIX_EXPRESSION        :=  ? POSTFIX_EXPRESSION as defined in postfix_expressions.yaml" ? ;
+
+  UNARY_OP                  :=  '&' | '*' | '+' | '-' | '~' | '!' ;
+
+  UNARY_EXPRESSION          :=  POSTFIX_EXPRESSION
+                            |   (INC_OP | DEC_OP), UNARY_EXPRESSION
+                            |   UNARY_OP, UNARY_EXPRESSION
+                            |   "sizeof", UNARY_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define NEG_ONE -1
+
+      int main(int argc, char const *argv[])
+      {
+          int x = NEG_ONE;
+          return 0;
+      }
+
+    preprocessed: |-
+
+    converted: |-
+      // Unary expressions that are applied constants to are
+      // converted how the constant would be converted.
+      const int NEG_ONE = -1;
+
+      int main(int argc, char const *argv[])
+      {
+          int x = NEG_ONE;
+          return 0;
+      }
