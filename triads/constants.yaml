@@ -80,3 +80,102 @@ triads:
         double speed = SPEED;
         return 0;
       }
+
+  - un-preprocessed: |-
+      #define CASE_1 1
+      #define CASE_2 2
+      #define CASE_3 3
+      #define CASE_4 4
+
+      int main(int argc, char const *argv[])
+      {
+          int case_number = 1;
+
+          switch (case_number)
+          {
+          case CASE_1:
+          case CASE_2:
+              break;
+
+          case CASE_3:
+              switch (case_number)
+              {
+              case CASE_1:
+              case CASE_4:
+                  break;
+
+              default:
+                  break;
+              }
+
+          default:
+              break;
+          }
+          return 0;
+      }
+
+    preprocessed: |-
+      int main(int argc, char const *argv[])
+      {
+          int case_number = 1;
+
+          switch (case_number)
+          {
+          case 1:
+          case 2:
+              break;
+
+          case 3:
+              switch (case_number)
+              {
+              case 1:
+              case 4:
+                  break;
+
+              default:
+                  break;
+              }
+
+          default:
+              break;
+          }
+          return 0;
+      }
+    converted: |-
+      // Constants used as case labels are converted to enums,
+      // since const variables cannot be used as case labels
+      // in ANSI C.
+      // Macros used as case labels in the same switch statement are
+      // grouped into the same enum.
+      // Macros that are used as case labels in multiple switch statements
+      // are grouped the enum for the first switch statement they were used in.
+      enum SWITCH_0_CASES { CASE_1 = 1, CASE_2 = 2, CASE_3 = 3};
+
+      enum SWITCH_1_CASES { CASE_4 = 4};
+
+      int main(int argc, char const *argv[])
+      {
+          int case_number = 1;
+
+          switch (case_number)
+          {
+          case CASE_1:
+          case CASE_2:
+              break;
+
+          case CASE_3:
+              switch (case_number)
+              {
+              case CASE_1:
+              case CASE_4:
+                  break;
+
+              default:
+                  break;
+              }
+
+          default:
+              break;
+          }
+          return 0;
+      }
