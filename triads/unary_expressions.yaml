@@ -86,3 +86,32 @@ triads:
         printf("%d\n", x);
         return 0;
       }
+
+  - un-preprocessed: |-
+      #define SIZE_OF_A sizeof a
+
+      int main(void)
+      {
+          int a = 1;
+          unsigned long x = SIZE_OF_A;
+          return 0;
+      }
+    preprocessed: |-
+      int main(void)
+      {
+          int a = 1;
+          unsigned long x = sizeof a;
+          return 0;
+      }
+    converted: |-
+      # sizeof expressions that include free variables are converted to
+      # functions that return unsigned long values
+      unsigned long SIZE_OF_A(int a) { return sizeof a;}
+
+      int main(void)
+      {
+          int a = 1;
+          # Macro invocations are converted to function calls
+          unsigned long x = SIZE_OF_A(a);
+          return 0;
+      }
