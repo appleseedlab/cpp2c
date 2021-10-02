@@ -1,0 +1,38 @@
+grammar: |-
+  MULTIPLICATIVE_EXPRESSION :=  ? MULTIPLICATIVE_EXPRESSION as defined in multiplicative_expressions.yaml ? ;
+  ADDITIVE_EXPRESSION       :=  ADDITIVE_EXPRESSION '+' MULTIPLICATIVE_EXPRESSION ;
+  ADDITIVE_EXPRESSION       :=  ADDITIVE_EXPRESSION '-' MULTIPLICATIVE_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define A_PLUS_B_INC a + b++
+
+      int main(void) {
+        int a = 1;
+        int b = 2;
+        int c = A_PLUS_B_INC;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int a = 1;
+        int b = 2;
+        int c = a + b++;
+        return 0;
+      }
+    converted: |-
+      // Macros are converted following the rules of the grammars
+      // they reduce to. Side-effected variables are converted to
+      // pass-by-reference values.
+      int A_PLUS_B_INC(int a, int *b) {return a + (*b)++;}
+
+      int main(void) {
+        int a = 1;
+        int b = 2;
+        // Macro invocations are converted to function calls,
+        // and free variables are passed to it.
+        // If the free variable does not suffer from side-effects,
+        // it is passed by value. Otherwise, it is passed by reference.
+        int c = A_PLUS_B_INC(a, &b);
+        return 0;
+      }
