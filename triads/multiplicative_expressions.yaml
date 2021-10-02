@@ -21,8 +21,8 @@ triads:
           return 0;
       }
     converted: |-
-      # Multiplicative expressions that only involve constants
-      # are converted to constant expressions.
+      // Multiplicative expressions that only involve constants
+      // are converted to constant expressions.
       int FOUR = 2 * 2;
 
       int main(void)
@@ -45,13 +45,13 @@ triads:
         return 0;
       }
     converted: |-
-      # A few notes here:
-      # 1) Function-like macros are converted to functions.
-      # 2) For expressions involving variables of multiple numeric types,
-      #    the return type is determined based upon the types of the
-      #    variables involved and follows the C type hierarchy.
-      # 3) Free variables are added to the parameter list of converted
-      # macros.
+      // A few notes here:
+      // 1) Function-like macros are converted to functions.
+      // 2) For expressions involving variables of multiple numeric types,
+      //    the return type is determined based upon the types of the
+      //    variables involved and follows the C type hierarchy.
+      // 3) Free variables are added to the parameter list of converted
+      // macros.
       unsigned long HASH(int x, unsigned long n) { return x % n; }
       int main(void)
       {

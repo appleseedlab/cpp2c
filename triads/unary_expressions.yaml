@@ -104,14 +104,14 @@ triads:
           return 0;
       }
     converted: |-
-      # sizeof expressions that include free variables are converted to
-      # functions that return unsigned long values
+      // sizeof expressions that include free variables are converted to
+      // functions that return unsigned long values
       unsigned long SIZE_OF_A(int a) { return sizeof a;}
 
       int main(void)
       {
           int a = 1;
-          # Macro invocations are converted to function calls
+          // Macro invocations are converted to function calls
           unsigned long x = SIZE_OF_A(a);
           return 0;
       }
