@@ -1,0 +1,27 @@
+grammar: |-
+  ADDITIVE_EXPRESSION :=  ? ADDITIVE_EXPRESSION as defined in additive_expressions.yaml ? ;
+  SHIFT_EXPRESSION    :=  SHIFT_EXPRESSION '<<' ADDITIVE_EXPRESSION
+                      |   SHIFT_EXPRESSION '>>' ADDITIVE_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define FOUR 1 << 2
+
+      int main(void) {
+        int x = FOUR;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 1 << 2;
+        return 0;
+      }
+    converted: |-
+      // Like other binary expressions, shift expressions are converted
+      // based on the types of their operands
+      const int FOUR = 1 << 2;
+
+      int main(void) {
+        int x = FOUR;
+        return 0;
+      }
