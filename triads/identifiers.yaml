@@ -38,3 +38,62 @@ triads:
         int y = X(x);
         return 0;
       }
+
+  - un-preprocessed: |-
+      #define X 5
+      #define Y X
+
+      int main(void) {
+        int z = Y;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int z = 5;
+        return 0;
+      }
+    converted: |-
+      const int X = 5;
+      // Nested macros are treated like any other identifier.
+      // If a nested macro can be converted, then it's conversion
+      // will be used to determine how to convert the macro in which
+      // it is nested.
+      cont int Y = X;
+
+      int main(void) {
+        int z = Y;
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      // Notice in this example that Y is defined before X, but refers
+      // X in its definition
+      #define Y X
+      #define X 5
+
+      int main(void) {
+        int z = Y;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int z = 5;
+        return 0;
+      }
+    converted: |-
+      const int X = 5;
+      // If a macro's body contains another macro who is not defined
+      // at the time the parent macro is defined, the converted parent
+      // macro's definition is moved right after the nested macro's
+      // definition.
+      cont int Y = X;
+
+      int main(void) {
+        int z = Y;
+        return 0;
+      }
+
+      int main(void) {
+        int z = Y;
+        return 0;
+      }
