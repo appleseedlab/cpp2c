@@ -26,7 +26,13 @@ grammar: |-
 
   SIGN            :=  "+" | "-" ;
   EXPONENT        :=  ("e" | "E"), [SIGN], DEC_NUM ;
-  FLOAT           :=  DEC_NUM, [EXPONENT] ;
+  
+  FLOAT_NO_SUFFIX :=  [DEC_NUM], ".", DEC_NUM, [EXPONENT]
+                  |   DEC_NUM, ".", [DEC_NUM], [EXPONENT] ;
+
+  FLOAT_SUFFIX    := "f" | "F" | "l" | "L" ;
+
+  FLOAT           :=  FLOAT_NO_SUFFIX, [FLOAT_SUFFIX] ;
 
   NUMBER          :=  INTEGER | FLOAT ;
 
