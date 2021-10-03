@@ -208,3 +208,50 @@ triads:
           int x = RETURNS_ONE(2, 3);
           return 0;
       }
+
+  - un-preprocessed: |-
+      #define X 1
+      #define X 2
+
+      int main(void) {
+        int x = X;
+        return 0;
+      }
+
+    preprocessed: |-
+      Does not preprocess
+
+    converted: |-
+      // Macros that are multiply-defined under the same compilation branch
+      // are not supported.
+
+  - un-preprocessed: |-
+      #ifdef A
+      #define X 1
+      #else
+      #define X 2
+      #endif
+
+      int main(void) {
+        int x = X;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 2;
+        return 0;
+      }
+    converted: |-
+      // Macros that are multiply-defined, but only under under separate
+      // compilation branches, are supported because static conditionals
+      // are left intact.
+      #ifdef A
+      const int X = 1;
+      #else
+      const int X = 2;
+      #endif
+
+      int main(void) {
+        int x = X;
+        return 0;
+      }
