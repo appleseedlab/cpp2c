@@ -1,0 +1,39 @@
+grammar: |-
+  SHIFT_EXPRESSION      :=  ? SHIFT_EXPRESSION as defined in shift_expressions.yaml ? ;
+
+  RELATIONAL_EXPRESSION :=  RELATIONAL_EXPRESSION '<' SHIFT_EXPRESSION
+                        |   RELATIONAL_EXPRESSION '>' SHIFT_EXPRESSION
+                        |   RELATIONAL_EXPRESSION '<=' SHIFT_EXPRESSION
+                        |   RELATIONAL_EXPRESSION '>=' SHIFT_EXPRESSION ;
+triads:
+  - un-preprocessed: |-
+      #define CMP(x, y) ((x) > (y))
+
+      int main(void) {
+        int z = CMP(1,2);
+        int w = CMP(1.0,2);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int z = ((1) > (2));
+        int w = ((1.0) > (2));
+        return 0;
+      }
+    converted: |-
+      // The macro is converted to a function.
+      // The types of its parameters are inferred from the arguments passed
+      // to the macro's invocation(s).
+      // The function's return type is inferred from its usage in the AST.
+      // If the type of argument across invocations is not consistent
+      // (e.g., x in this example is passed as both an int and a float),
+      // but are all numeric, then the type of parameter is determined by
+      // following the C type hierarchy.
+      // The return type of the function is inferred accordingly.
+      double CMP(double x, int y) { return x > y; }
+
+      int main(void) {
+        int z = CMP(1,2);
+        int w = CMP(1.0,2);
+        return 0;
+      }
