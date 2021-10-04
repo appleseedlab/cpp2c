@@ -1,0 +1,27 @@
+grammar: |-
+  INCLUSIVE_OR_EXPRESSION :=  ? INCLUSIVE_OR_EXPRESSION as defined in inclusive_or_expressions.yaml ? ;
+
+  LOGICAL_AND_EXPRESSION  :=  LOGICAL_AND_EXPRESSION, '&&', INCLUSIVE_OR_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define LOGICAL_AND(a, b) a && b
+
+      int main(void) {
+        int c = LOGICAL_AND(1UL, 2.0f);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int c = 1UL && 2.0f;
+        return 0;
+      }
+    converted: |-
+      // Logical and expressions always return an int;
+      // 1 === True, 0 === False.
+      int LOGICAL_AND(unsigned long a, float b) { return a && b; }
+
+      int main(void) {
+        int c = LOGICAL_AND(1UL, 2.0f);
+        return 0;
+      }
