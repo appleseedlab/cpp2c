@@ -1,10 +1,10 @@
 grammar: |-
   CONDITIONAL_EXPRESSION  :=  ? CONDITIONAL_EXPRESSION as defined in conditional_expressions.yaml ? ;
-  UNARY_EXPRESSION        :=  ? UNARY_EXPRESSION as defined in unary_expressions.yaml ? ;
+  IDENTIFIER              :=  ? IDENTIFIER as defined in identifiers.yaml ? ;
 
   ASSIGNMENT_OPERATOR     :=  '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|=' ; 
   ASSIGNMENT_EXPRESSION   :=  CONDITIONAL_EXPRESSION
-                          |   UNARY_EXPRESSION, ASSIGNMENT_OPERATOR, ASSIGNMENT_EXPRESSION ;
+                          |   IDENTIFIER, ASSIGNMENT_OPERATOR, ASSIGNMENT_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-
