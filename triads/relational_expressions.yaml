@@ -7,7 +7,7 @@ grammar: |-
                         |   RELATIONAL_EXPRESSION, '>=', SHIFT_EXPRESSION ;
 triads:
   - un-preprocessed: |-
-      #define CMP(x, y) ((x) > (y))
+      #define CMP(x, y) x > y
 
       int main(void) {
         int z = CMP(1,2);
@@ -16,8 +16,8 @@ triads:
       }
     preprocessed: |-
       int main(void) {
-        int z = ((1) > (2));
-        int w = ((1.0) > (2));
+        int z = 1 > 2;
+        int w = 1.0 > 2;
         return 0;
       }
     converted: |-
