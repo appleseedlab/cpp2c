@@ -1,0 +1,13 @@
+# TODO: Create triads once primary expression grammars and triads are complete.
+
+grammar: |-
+  CONDITIONAL_EXPRESSION  :=  ? CONDITIONAL_EXPRESSION as defined in conditional_expressions.yaml ? ;
+
+  CONSTANT_EXPRESSION     :=  CONDITIONAL_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+
+    preprocessed: |-
+
+    converted: |-
