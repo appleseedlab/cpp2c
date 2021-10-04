@@ -1,0 +1,10 @@
+# TODO: Finish this grammar once the grammar for expressions is complete.
+
+grammar: |-
+
+triads:
+  - un-preprocessed: |-
+
+    preprocessed: |-
+
+    converted: |-
