@@ -1,10 +1,10 @@
 grammar: |-
   SHIFT_EXPRESSION      :=  ? SHIFT_EXPRESSION as defined in shift_expressions.yaml ? ;
 
-  RELATIONAL_EXPRESSION :=  RELATIONAL_EXPRESSION '<' SHIFT_EXPRESSION
-                        |   RELATIONAL_EXPRESSION '>' SHIFT_EXPRESSION
-                        |   RELATIONAL_EXPRESSION '<=' SHIFT_EXPRESSION
-                        |   RELATIONAL_EXPRESSION '>=' SHIFT_EXPRESSION ;
+  RELATIONAL_EXPRESSION :=  RELATIONAL_EXPRESSION, '<', SHIFT_EXPRESSION
+                        |   RELATIONAL_EXPRESSION, '>', SHIFT_EXPRESSION
+                        |   RELATIONAL_EXPRESSION, '<=', SHIFT_EXPRESSION
+                        |   RELATIONAL_EXPRESSION, '>=', SHIFT_EXPRESSION ;
 triads:
   - un-preprocessed: |-
       #define CMP(x, y) ((x) > (y))
