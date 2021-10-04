@@ -22,6 +22,7 @@ from pycparser.ply.lex import LexToken, lex
 
 from macro_classifier.macro_classification import MacroClassification
 from macro_classifier.macro_inferences import MacroInferences
+from macro_fact_collector.macro_facts import MacroKind
 
 
 def infer_macros_used_in_static_conditionals(
@@ -237,7 +238,7 @@ def infer_free_variables(
 ) -> List[MacroInferences]:
     '''
     Infers the list of free variables in a macro's body,
-    and updates each macros mapping of free variables so that
+    and updates each macro's mapping of free variables so that
     each free variable is mapped initially to an empty set of strings.
 
     Args:
@@ -298,7 +299,7 @@ def infer_parameters_used(
 ) -> List[MacroInferences]:
     '''
     Infers the parameters used in a macro's body,
-    and updates each macros mapping of parameters so that
+    and updates each macro's mapping of parameters so that
     each used parameter is mapped initially to an empty set of strings.
 
     Args:
@@ -351,5 +352,120 @@ def infer_parameters_used(
                 continue
 
             mi.parameter_identifiers_to_types[token.value] = set()
+
+    return result
+
+
+def infer_constant_literal_macros(
+        macro_inferences: List[MacroInferences]
+) -> List[MacroInferences]:
+    '''
+    Checks each macro to see if its body is composed only of constant literals.
+    If so, then the MacroInference object's parsed_type field is updated to the
+    parsed type and the macro is classified as either a 
+    ConstantExpressionObjectMacro or a ConstantExpressionFunctionMacro.
+
+    Args:
+        macro_inferences:   The list of MacroInference objects to check.
+
+    Returns:
+        result:             A copy of macro_inferences, with each macro
+                            that is a constant updated with their correct
+                            inference information.
+    '''
+
+    int_patterns = [
+        r'''(?P<BINARY_NUMBER>(?:0b|0B)[01]+)''',
+        r'''(?P<OCTAL_NUMBER>(?:0)[0-7]+)''',
+        r'''(?P<HEX_NUMBER>(?:0x|0X)[0-9a-fA-F]+)''',
+        r'''(?P<DEC_NUMBER>(?:\d+))''',
+    ]
+    int_suffix_patterns = [
+        r'''(?P<UNSIGNED_SUFFIX>u|U)''',
+        r'''(?P<LONG_SUFFIX>l|L)''',
+        r'''(?P<UNSIGNED_LONG_SUFFIX>ul|lu|Ul|lU|uL|Lu|UL|LU)''',
+        r'''(?P<LONG_LONG_SUFFIX>l|ll|L|LL)''',
+        r'''(?P<UNSIGNED_LONG_LONG_SUFFIX>ull|llu|Ull|llU|uLL|LLu|ULL|LLU)''',
+    ]
+    int_pattern = f'''^(?:{'|'.join(int_patterns)})(?:{'|'.join(int_suffix_patterns)})?$'''
+
+    double_patterns = [
+        r'''(?P<DOUBLE_OPTIONAL_LEADING_DIGIT>(:?\d+)?\.(:?\d+)(:?[eE][+-](:?\d+))?)''',
+        r'''(?P<DOUBLE_OPTIONAL_FRACTIONAL>(:?\d+)\.(:?\d+)?(:?[eE][+-](:?\d+))?)''',
+    ]
+    double_suffix_patterns = [
+        r'''(?P<FLOAT_SUFFIX>f|F)''',
+        r'''(?P<LONG_DOUBLE_SUFFIX>l|L)'''
+    ]
+    double_pattern = f'''^(?:{'|'.join(double_patterns)})(?:{'|'.join(double_suffix_patterns)})?$'''
+
+    char_pattern = r'''^(?P<CHAR_PATTERN>[luU]?'(?:[0-9a-zA-Z]|[!"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~ \t\n\r\x0b\x0c]|\\\\)')$'''
+
+    string_pattern = r'''^(?P<STRING_LITERAL>(?P<STRING_PREFIX>u8|L|u|U)?"(?:(?:\\\S)|(?:[0-9a-zA-Z]|[!#$%&'()*+,\-./:;<=>?@[\]^_`{|}~ \t\n\r\x0b\x0c]))*")'''
+    string_literal_pattern = re.compile(string_pattern)
+
+    patterns = [
+        int_pattern,
+        double_pattern,
+        char_pattern,
+        string_pattern
+    ]
+
+    pattern_str = '|'.join(patterns)
+    pattern = re.compile(pattern_str)
+
+    result = [dataclasses.replace(mi) for mi in macro_inferences]
+
+    for mi in result:
+        body = mi.macro_facts.body.strip()
+        if (m := pattern.match(body)):
+            groups = m.groupdict()
+
+            if (groups['BINARY_NUMBER'] or
+                    groups['OCTAL_NUMBER'] or
+                    groups['HEX_NUMBER'] or
+                    groups['DEC_NUMBER']
+                ):
+                mi.parsed_type = 'int'
+                if groups['UNSIGNED_SUFFIX']:
+                    mi.parsed_type = 'unsigned'
+                elif groups['LONG_SUFFIX']:
+                    mi.parsed_type = 'long'
+                elif groups['UNSIGNED_LONG_SUFFIX']:
+                    mi.parsed_type = 'unsigned long'
+                elif groups['LONG_LONG_SUFFIX']:
+                    mi.parsed_type = 'long long'
+
+            if (groups['DOUBLE_OPTIONAL_LEADING_DIGIT'] or
+                    groups['DOUBLE_OPTIONAL_FRACTIONAL']
+                ):
+                mi.parsed_type = 'double'
+                if groups['FLOAT_SUFFIX']:
+                    mi.parsed_type = 'float'
+                elif groups['LONG_DOUBLE_SUFFIX']:
+                    mi.parsed_type = 'long double'
+
+            if groups['CHAR_PATTERN']:
+                mi.parsed_type = 'char'
+
+            if groups['STRING_LITERAL']:
+                while string_literal_pattern.match(body):
+                    # Check if valid compound string
+                    body = string_literal_pattern.sub('', body)
+                    body = body.lstrip()
+                if not body:
+                    mi.parsed_type = 'char *'
+                else:
+                    # If the body is not a well-formed string, the macro cannot
+                    # be converted
+                    mi.classification = MacroClassification.InconvertibleTypeExpressionObjectMacro
+
+            # Only classify macros that weren't previously classified as
+            # inconvertible
+            if mi.classification is None:
+                if mi.macro_facts.kind == MacroKind.ObjectLike:
+                    mi.classification = MacroClassification.ConstantExpressionObjectMacro
+                elif mi.macro_facts.kind == MacroKind.FunctionLike:
+                    mi.classification = MacroClassification.ConstantExpressionFunctionMacro
 
     return result
