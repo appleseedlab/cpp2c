@@ -1,0 +1,31 @@
+grammar: |-
+  RELATIONAL_EXPRESSION :=  ? RELATIONAL_EXPRESSION as defined in relational_expressions.yaml ? ;
+
+  EQUALITY_EXPRESSION :=  EQUALITY_EXPRESSION, '==', RELATIONAL_EXPRESSION
+                      |   EQUALITY_EXPRESSION, '!=', RELATIONAL_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define EQ(a, b) a == b
+
+      int main(void) {
+        int a = 'a';
+        int c = EQ(a, 97);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int a = 'a';
+        int c = a == 97;
+        return 0;
+      }
+    converted: |-
+      // Equality expressions are always converted to int type:
+      // 1 === True; 0 === False.
+      int EQ(char a, int b) { return a == b; }
+
+      int main(void) {
+        int a = 'a';
+        int c = EQ(a, 97);
+        return 0;
+      }
