@@ -1,0 +1,69 @@
+grammar: |-
+  ASSIGNMENT_EXPRESSION :=  ? ASSIGNMENT_EXPRESSION as defined in assignment_expressions.yaml ? ;
+
+  EXPRESSION            :=  ASSIGNMENT_EXPRESSION
+                        |   EXPRESSION, ',', ASSIGNMENT_EXPRESSION;
+
+triads:
+  - un-preprocessed: |-
+      #define SET_X_TO(y) x = y
+
+      int main(void) {
+        int x;
+        SET_X_TO(0);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x;
+        x = 0;
+        return 0;
+      }
+    converted: |-
+      // Macro is converted to a function.
+      // Side-effected free variables and parameters are converted
+      // to pass-by-reference parameters.
+      int SET_X_TO(int y, int *x) {return (*x) = y; }
+
+      int main(void) {
+        int x;
+        // Memory addresses of side-effected free variables are passed to
+        // the function call.
+        SET_X_TO(0, &x);
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define SET_X_AND_Y_TO(z) x = z, y = z
+
+      int main(void) {
+        int x, y;
+        int z = 1;
+        SET_X_AND_Y_TO(z);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x, y;
+        int z = 1;
+        x = z, y = z;
+        return 0;
+      }
+    converted: |-
+      // The macro is converted to a function.
+      // The side-effected free variables are converted to pass-by-reference
+      // parameters.
+      // The return type is inferred from the return type of the last
+      // assignment expression, since that is what is returned by
+      // multiple assignment expressions.
+      // This looks odd, but is in fact legal ANSI C.
+      int SET_X_AND_Y_TO(int z, int *x, int *y) { return (*x) = z, (*y) = z; }
+
+      int main(void) {
+        int x, y;
+        int z = 1;
+        // The memory addresses of the side-effected free variables are passed
+        // to the function call.
+        SET_X_AND_Y_TO(z, &x, &y);
+        return 0;
+      }
