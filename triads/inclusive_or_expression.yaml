@@ -1,0 +1,25 @@
+grammar: |-
+  EXCLUSIVE_OR_EXPRESSION :=  ? EXCLUSIVE_OR_EXPRESSION as defined in exclusive_or_expressions.yaml ? ;
+
+  INCLUSIVE_OR_EXPRESSION :=  INCLUSIVE_OR_EXPRESSION, '|', EXCLUSIVE_OR_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define OR(a, b) a | b
+
+      int main(void) {
+        int THREE = OR(0b01, 0b10);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int THREE = 0b01 | 0b10;
+        return 0;
+      }
+    converted: |-
+      int OR(int a, int b) { return a | b; }
+
+      int main(void) {
+        int THREE = OR(0b01, 0b10);
+        return 0;
+      }
