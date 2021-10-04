@@ -1,0 +1,27 @@
+grammar: |-
+  LOGICAL_AND_EXPRESSION  :=  ? LOGICAL_AND_EXPRESSION as defined in logical_and_expressions.yaml ? ;
+
+  LOGICAL_OR_EXPRESSION   :=  LOGICAL_OR_EXPRESSION, '||', LOGICAL_AND_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define IMPLIES(a, b) !a || b
+
+      int main(void) {
+        int result = IMPLIES(1, 0);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int result = !1 || 0;
+        return 0;
+      }
+    converted: |-
+      // Logical or expressions always return an int ;
+      // 1 === True; 0 === False.
+      int IMPLIES(int a, int b) !a || b
+
+      int main(void) {
+        int result = IMPLIES(1, 0);
+        return 0;
+      }
