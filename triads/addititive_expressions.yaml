@@ -1,7 +1,7 @@
 grammar: |-
   MULTIPLICATIVE_EXPRESSION :=  ? MULTIPLICATIVE_EXPRESSION as defined in multiplicative_expressions.yaml ? ;
-  ADDITIVE_EXPRESSION       :=  ADDITIVE_EXPRESSION '+' MULTIPLICATIVE_EXPRESSION ;
-  ADDITIVE_EXPRESSION       :=  ADDITIVE_EXPRESSION '-' MULTIPLICATIVE_EXPRESSION ;
+  ADDITIVE_EXPRESSION       :=  ADDITIVE_EXPRESSION, '+', MULTIPLICATIVE_EXPRESSION
+                            | ADDITIVE_EXPRESSION, '-', MULTIPLICATIVE_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-
@@ -34,5 +34,37 @@ triads:
         // If the free variable does not suffer from side-effects,
         // it is passed by value. Otherwise, it is passed by reference.
         int c = A_PLUS_B_INC(a, &b);
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define ADD(a, b) a + b
+
+      int main(void) {
+        int c = ADD(1.0, 2);
+        return 0;
+      }
+
+    preprocessed: |-
+      int main(void) {
+        int c = 1.0 + 2;
+        return 0;
+      }
+    converted: |-
+      // The macro is converted to a function.
+      // The types of its parameters are inferred from the arguments passed
+      // to the macro's invocation(s).
+      // The function's return type is inferred from its usage in the AST.
+      // If the type of argument across invocations is not consistent
+      // (e.g., a in this example is passed as both an int and a double),
+      // but are all numeric, then the type of the parameter is determined by
+      // following the C type hierarchy.
+      // The return type of the function is inferred in a similar manner based
+      // upon the types in the macro's expression body.
+      double ADD(double a, int b) { return a + b; }
+
+      int main(void) {
+        int c = ADD(1, 2);
+        int d = ADD(1.0, 2);
         return 0;
       }
