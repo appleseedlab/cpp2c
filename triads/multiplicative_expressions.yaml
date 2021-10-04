@@ -1,8 +1,8 @@
 grammar: |-
   CAST_EXPRESSION           :=  ? CAST_EXPRESSION as defined in cast_expressions.yaml ? ;
-  MULTIPLICATIVE_EXPRESSION :=  '*' * CAST_EXPRESSION
-                            |   '/' * CAST_EXPRESSION
-                            |   '%' * CAST_EXPRESSION ;
+  MULTIPLICATIVE_EXPRESSION :=  MULTIPLICATIVE_EXPRESSION, '*', CAST_EXPRESSION
+                            |   MULTIPLICATIVE_EXPRESSION, '/', CAST_EXPRESSION
+                            |   MULTIPLICATIVE_EXPRESSION, '%', CAST_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-
