@@ -1,6 +1,7 @@
 grammar: |-
   ADDITIVE_EXPRESSION :=  ? ADDITIVE_EXPRESSION as defined in additive_expressions.yaml ? ;
-  SHIFT_EXPRESSION    :=  SHIFT_EXPRESSION '<<' ADDITIVE_EXPRESSION
+  SHIFT_EXPRESSION    :=  ADDITIVE_EXPRESSION
+                      |   SHIFT_EXPRESSION '<<' ADDITIVE_EXPRESSION
                       |   SHIFT_EXPRESSION '>>' ADDITIVE_EXPRESSION ;
 
 triads:

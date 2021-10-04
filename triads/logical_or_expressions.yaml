@@ -1,7 +1,8 @@
 grammar: |-
   LOGICAL_AND_EXPRESSION  :=  ? LOGICAL_AND_EXPRESSION as defined in logical_and_expressions.yaml ? ;
 
-  LOGICAL_OR_EXPRESSION   :=  LOGICAL_OR_EXPRESSION, '||', LOGICAL_AND_EXPRESSION ;
+  LOGICAL_OR_EXPRESSION   :=  LOGICAL_AND_EXPRESSION
+                          |   LOGICAL_OR_EXPRESSION, '||', LOGICAL_AND_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-

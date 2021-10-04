@@ -1,6 +1,7 @@
 grammar: |-
   EQUALITY_EXPRESSION :=  ? EQUALITY_EXPRESSION as defined in equality_expressions.yaml ? ;
-  AND_EXPRESSION      :=  AND_EXPRESSION, '&', EQUALITY_EXPRESSION ;
+  AND_EXPRESSION      :=  EQUALITY_EXPRESSION
+                      |   AND_EXPRESSION, '&', EQUALITY_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-

@@ -1,7 +1,8 @@
 grammar: |-
   INCLUSIVE_OR_EXPRESSION :=  ? INCLUSIVE_OR_EXPRESSION as defined in inclusive_or_expressions.yaml ? ;
 
-  LOGICAL_AND_EXPRESSION  :=  LOGICAL_AND_EXPRESSION, '&&', INCLUSIVE_OR_EXPRESSION ;
+  LOGICAL_AND_EXPRESSION  :=  INCLUSIVE_OR_EXPRESSION
+                          |   LOGICAL_AND_EXPRESSION, '&&', INCLUSIVE_OR_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-

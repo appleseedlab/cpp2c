@@ -1,7 +1,8 @@
 grammar: |-
   MULTIPLICATIVE_EXPRESSION :=  ? MULTIPLICATIVE_EXPRESSION as defined in multiplicative_expressions.yaml ? ;
-  ADDITIVE_EXPRESSION       :=  ADDITIVE_EXPRESSION, '+', MULTIPLICATIVE_EXPRESSION
-                            | ADDITIVE_EXPRESSION, '-', MULTIPLICATIVE_EXPRESSION ;
+  ADDITIVE_EXPRESSION       :=  MULTIPLICATIVE_EXPRESSION
+                            |   ADDITIVE_EXPRESSION, '+', MULTIPLICATIVE_EXPRESSION
+                            |   ADDITIVE_EXPRESSION, '-', MULTIPLICATIVE_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-

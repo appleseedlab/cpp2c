@@ -1,7 +1,8 @@
 grammar: |-
   EXCLUSIVE_OR_EXPRESSION :=  ? EXCLUSIVE_OR_EXPRESSION as defined in exclusive_or_expressions.yaml ? ;
 
-  INCLUSIVE_OR_EXPRESSION :=  INCLUSIVE_OR_EXPRESSION, '|', EXCLUSIVE_OR_EXPRESSION ;
+  INCLUSIVE_OR_EXPRESSION :=  EXCLUSIVE_OR_EXPRESSION
+                          |   INCLUSIVE_OR_EXPRESSION, '|', EXCLUSIVE_OR_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-

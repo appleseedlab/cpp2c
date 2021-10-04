@@ -1,7 +1,8 @@
 grammar: |-
   AND_EXPRESSION          :=  ? AND_EXPRESSION as defined in and_expressions.yaml; ?
 
-  EXCLUSIVE_OR_EXPRESSION :=  EXCLUSIVE_OR_EXPRESSION, '^', AND_EXPRESSION ;
+  EXCLUSIVE_OR_EXPRESSION :=  AND_EXPRESSION
+                          |   EXCLUSIVE_OR_EXPRESSION, '^', AND_EXPRESSION ;
 
 triads:
   - un-preprocessed: |-
