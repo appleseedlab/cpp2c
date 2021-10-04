@@ -21,7 +21,7 @@ triads:
       }
     converted: |-
       // Macros that use dynamic scoping are converted to functions.
-      // The return type of such function is inferred from the macro's
+      // The return type of such functions is inferred from the macro's
       // expansions in the AST.
 
       int X(int x) { return x; }
