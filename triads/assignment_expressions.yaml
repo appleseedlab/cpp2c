@@ -1,0 +1,63 @@
+grammar: |-
+  CONDITIONAL_EXPRESSION  :=  ? CONDITIONAL_EXPRESSION as defined in conditional_expressions.yaml ? ;
+  UNARY_EXPRESSION        :=  ? UNARY_EXPRESSION as defined in unary_expressions.yaml ? ;
+
+  ASSIGNMENT_OPERATOR     :=  '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|=' ; 
+  ASSIGNMENT_EXPRESSION   :=  CONDITIONAL_EXPRESSION
+                          |   UNARY_EXPRESSION, ASSIGNMENT_OPERATOR, ASSIGNMENT_EXPRESSION ;
+
+triads:
+  - un-preprocessed: |-
+      #define DOUBLE_X(x) x <<= 1
+
+      int main(void) {
+        int x = 1;
+        DOUBLE_X(x);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 1;
+        x <<= 1;
+        return 0;
+      }
+    converted: |-
+      // The macro is converted into a function.
+      // Macro parameters that are side-effected are converted to pointers.
+      int DOUBLE_X(int *x) { return (*x) <<= 1; }
+
+      int main(void) {
+        int x = 1;
+        // Side-effected arguments are altered so that their memory addresses
+        // are passed instead.
+        DOUBLE_X(&x);
+        return 0;
+      }
+
+  - un-preprocessed: |-
+      #define SHIFT_Y_BY(x) y <<= x
+
+      int main(void) {
+        int y = 0;
+        SHIFT_Y_BY(2);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int y = 0;
+        y <<= 2;
+        return 0;
+      }
+    converted: |-
+      // The macro is converted to a function.
+      // Side-effected free variables are added to the end of the function's
+      // parameter list as to pass-by-reference parameters.
+      int SHIFT_Y_BY(int x, int *y) { return (*y) <<= x; }
+
+      int main(void) {
+        int y = 0;
+        // Memory addresses of side-effected free variables are passed to
+        // the invocation of the converted macro.
+        SHIFT_Y_BY(2, &y);
+        return 0;
+      }
