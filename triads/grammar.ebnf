@@ -33,6 +33,11 @@ string_literal              =   ? any valid C string literal ?;
 
 main                        =   'int main(void)', compound_statement;
 
+(*
+Note: This production rule for compound statements specifies that a
+compound statement may not contain a mix of declarations and statements.
+This is in strict adherence to ANSI C / C89 standards.
+*)
 compound_statement          =   '{', declaration_list, '}'
                             |   '{', statement_list, '}'
                             |   '{', declaration_list, statement_list, '}';
