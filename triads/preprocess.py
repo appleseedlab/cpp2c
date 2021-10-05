@@ -60,7 +60,7 @@ def main():
         print(f"Usage: FILENAME | (-a --all)", file=sys.stderr)
         return
     filename: str = sys.argv[1]
-    if filename.casefold() in ['-a,', '-all', '--a', '--all']:
+    if filename.casefold() in ['-a', '-all', '--a', '--all']:
         for file in os.listdir(os.curdir):
             if file.endswith('.yaml'):
                 preprocess_example(file)
