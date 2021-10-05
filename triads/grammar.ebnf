@@ -1,0 +1,92 @@
+start                       =   translation_unit;
+
+translation_unit            =   [declaration_list], main;
+
+declaration_list            =   declaration, [declaration_list];
+
+declaration                 =   declaration_specs, init_declarator;
+
+declaration_specs           =   [type_qualifier], type_specifier;
+
+type_qualifier              =   'const';
+
+type_specifier              =   ? any c primitive type ?;
+
+init_declarator             =   declarator, '=', initializer;
+
+declarator                  =   [pointer], direct_declarator;
+
+pointer                     =   '*';
+
+direct_declarator           =   identifier;
+
+identifier                  =   ? any valid C identifier ?;
+
+initializer                 =   assignment_expression;
+
+assignment_expression       =   constant
+                            |   string_literal;
+
+constant                    =   ? any valid C numeric literal value ?;
+
+string_literal              =   ? any valid C string literal ?;
+
+main                        =   'int main(void) compound_statement;
+
+compound_statement          =   '{', declaration_list, '}'
+                            |   '{', statement_list, '}'
+                            |   '{', declaration_list, statement_list, '}';
+
+statement_list              =   statement, [statement_list];
+
+statement                   =   expression_statement
+                            |   jump_statement;
+
+expression_statement        =   [expression], ';';
+
+expression                  =   [expression, ','], assignment_expression;
+
+assignment_expression       =   conditional_expression
+                            |   identifier, assignment_operator, assignment_expression;
+
+assignment_operator         =   ? any c operator concatenated with '=' ?;
+
+conditional_expression      =   logical_or_expression, ['?', expression, ':', conditional_expression];
+
+logical_or_expression       =   [logical_or_expression, '||'], logical_and_expression;
+
+logical_and_expression      =   [logical_and_expression, '&&'], inclusive_or_expression;
+
+inclusive_or_expression     =   [inclusive_or_expression, '|'], exclusive_or_expression;
+
+exclusive_or_expression     =   [exclusive_or_expression, '^'], and_expression;
+
+and_expression              =   [and_expression, '&'], equality_expression;
+
+equality_expression         =   [equality_expression, ('==' | '!=')], relational_expression;
+
+relational_expression       =   [relational_expression, ('<' | '>' | '<=' | '>=')], shift_expression;
+
+shift_expression            =   [shift_expression, ('<<' | '>>')], additive_expression;
+
+additive_expression         =   [additive_expression, ('+' | '-')], multiplicative_expression;
+
+multiplicative_expression   =   [multiplicative_expression, ('*' | '/' | '%')], cast_expression;
+
+cast_expression             =   unary_expression
+                            |   '(', type_specifier, ')', cast_expression;
+
+unary_expression            =   postfix_expression
+                            |   ('++' | '--' | 'sizeof'), unary_expression
+                            |   ('&' | '*' | '+' | '~' | '-' | '!'), cast_expression
+                            |   'sizeof', '(', type_specifier, ')';
+
+postfix_expression          =   primary_expression
+                            |   postfix_expression, ('++' | '--');
+
+primary_expression          =   identifier
+                            |   constant
+                            |   string_literal
+                            |   '(', expression, ')';
+
+jump_statement              =   'return', [expression], ';';
