@@ -1,6 +1,11 @@
 start                       =   translation_unit;
 
-translation_unit            =   [declaration_list], main;
+translation_unit            =   [external_declaration_list], main;
+
+external_declaration_list   =   external_declaration, [external_declaration_list];
+
+external_declaration        =   declaration
+                            |   function_definition;
 
 declaration_list            =   declaration, [declaration_list];
 
@@ -23,33 +28,6 @@ direct_declarator           =   identifier;
 identifier                  =   ? any valid C identifier ?;
 
 initializer                 =   assignment_expression;
-
-assignment_expression       =   constant
-                            |   string_literal;
-
-constant                    =   ? any valid C numeric literal value ?;
-
-string_literal              =   ? any valid C string literal ?;
-
-main                        =   'int main(void)', compound_statement;
-
-(*
-Note: This production rule for compound statements specifies that a
-compound statement may not contain a mix of declarations and statements.
-This is in strict adherence to ANSI C / C89 standards.
-*)
-compound_statement          =   '{', declaration_list, '}'
-                            |   '{', statement_list, '}'
-                            |   '{', declaration_list, statement_list, '}';
-
-statement_list              =   statement, [statement_list];
-
-statement                   =   expression_statement
-                            |   jump_statement;
-
-expression_statement        =   [expression], ';';
-
-expression                  =   [expression, ','], assignment_expression;
 
 assignment_expression       =   conditional_expression
                             |   identifier, assignment_operator, assignment_expression;
@@ -94,4 +72,32 @@ primary_expression          =   identifier
                             |   string_literal
                             |   '(', expression, ')';
 
+constant                    =   ? any valid C numeric literal value ?;
+
+string_literal              =   ? any valid C string literal ?;
+
+function_definition         =   declaration_specs, declarator, parameter_list, compound_statement;
+
+parameter_list              =   ? a valid list of function parameters ?;
+
+(*
+Note: This production rule for compound statements specifies that a
+compound statement may not contain a mix of declarations and statements.
+This is in strict adherence to ANSI C / C89 standards.
+*)
+compound_statement          =   '{', declaration_list, '}'
+                            |   '{', statement_list, '}'
+                            |   '{', declaration_list, statement_list, '}';
+
+statement_list              =   statement, [statement_list];
+
+statement                   =   expression_statement
+                            |   jump_statement;
+
+expression_statement        =   [expression], ';';
+
+expression                  =   [expression, ','], assignment_expression;
+
 jump_statement              =   'return', [expression], ';';
+
+main                        =   'int main(void)', compound_statement;
