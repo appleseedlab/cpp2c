@@ -31,7 +31,7 @@ constant                    =   ? any valid C numeric literal value ?;
 
 string_literal              =   ? any valid C string literal ?;
 
-main                        =   'int main(void) compound_statement;
+main                        =   'int main(void)', compound_statement;
 
 compound_statement          =   '{', declaration_list, '}'
                             |   '{', statement_list, '}'
