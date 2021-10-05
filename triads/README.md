@@ -8,11 +8,12 @@ Each triad is composed of three versions of the same snippet of C code:
 3. The way the code is expected to look after its macros have been converted
    to existing C constructs.
 
-Each triad is stored as a YAML file to allow for programmatic access to its
-contents.
+Sets of triads are stored in YAML files to allow for programmatic access to them.
 
-Each triad file also contains the grammar used for identifying a macro's
-corresponding AST fragment (e.g., a statement, expression, etc.).
+This directory also contains a grammar for recognizing a subset of ANSI C.
+The preprocessed and converted code snippets in each triad belong to the
+language recognized by this grammar.
+
 The grammar is specified using
 [EBNF notation](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form).
 
@@ -24,9 +25,6 @@ specifications of the ANSI C grammar.
 
 ## Sample Triad File Structure
 ```yaml
-grammar: |-
-  ...
-
 triads:
   - un-preprocessed: |-
       ...
