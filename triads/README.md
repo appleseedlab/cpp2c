@@ -2,11 +2,14 @@
 
 This directory contains code "triads".
 
-Each triad is composed of three versions of the same snippet of C code:
+Each triad includes three versions of the same snippet of C code:
 1. The un-preprocessed code.
 2. The pre-processed code.
 3. The way the code is expected to look after its macros have been converted
    to existing C constructs.
+
+Each triad also includes a comment field listing any extra
+information about how the macro was converted.
 
 Sets of triads are stored in YAML files to allow for programmatic access to them.
 
@@ -31,6 +34,8 @@ triads:
     preprocessed: |-
       ...
     converted: |-
+      ...
+    comments: |-
       ...
   - ...
 ```
