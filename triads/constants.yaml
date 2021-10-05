@@ -1,0 +1,94 @@
+triads:
+  - un-preprocessed: |-
+      #define ONE   1
+      #define TWO   2U
+      #define THREE 3L
+      #define FOUR  4LL
+      #define FIVE  5UL
+      #define SIX   6ULL
+      #define SEVEN 7.0
+      #define EIGHT 8.0f
+      #define NINE  9.0l
+      #define A     'A'
+
+      int main(void) {
+        int one                 = ONE;
+        unsigned two            = TWO;
+        long three              = THREE;
+        long long four          = FOUR;
+        unsigned long five      = FIVE;
+        unsigned long long six  = SIX;
+        double seven            = SEVEN;
+        float eight             = EIGHT;
+        long double nine        = NINE;
+        char a                  = A;
+
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int one = 1;
+        unsigned two = 2U;
+        long three = 3L;
+        long long four = 4LL;
+        unsigned long five = 5UL;
+        unsigned long long six = 6ULL;
+        double seven = 7.0;
+        float eight = 8.0f;
+        long double nine = 9.0l;
+        char a = 'A';
+
+        return 0;
+      }
+    converted: |-
+      const int ONE = 1;
+      const unsigned TWO = 2U;
+      const long THREE = 3L;
+      const long long FOUR = 4LL;
+      const unsigned long FIVE = 5UL;
+      const unsigned long long SIX = 6ULL;
+      const double SEVEN = 7.0;
+      const float EIGHT = 8.0f;
+      const long double NINE = 9.0l;
+      const char A = 'A';
+
+      int main(void) {
+        int one                 = ONE;
+        unsigned two            = TWO;
+        long three              = THREE;
+        long long four          = FOUR;
+        unsigned long five      = FIVE;
+        unsigned long long six  = SIX;
+        double seven            = SEVEN;
+        float eight             = EIGHT;
+        long double nine        = NINE;
+        char a                  = A;
+
+        return 0;
+      }
+    comments: |-
+      A macro whose body consists of a single numeric constant is
+      converted to a constant of the same type as the constant in its body.
+
+  - un-preprocessed: |-
+      #define FILENAME  "input.txt"
+
+      int main(void) {
+        const char *t = FILENAME;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        const char *t = "input.txt";
+        return 0;
+      }
+    converted: |-
+      const char *FILENAME = "input.txt"
+
+      int main(void) {
+        const char *t = FILENAME;
+        return 0;
+      }
+    comments: |-
+      A macro whose body consists of a single string literal is
+      converted to a constant of the 'const char *' type.
