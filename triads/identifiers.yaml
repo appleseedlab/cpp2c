@@ -1,0 +1,37 @@
+triads:
+  - un-preprocessed: |-
+      #define DYN_X x
+
+      int main(void) {
+        int x = 1;
+        int y, z;
+        y = DYN_X;
+        z = DYN_X;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 1;
+        int y, z;
+        y = x;
+        z = x;
+        return 0;
+      }
+    converted: |-
+      int DYN_X(int x) { return x; }
+
+      int main(void) {
+        int x = 1;
+        int y, z;
+        y = DYN_X(x);
+        z = DYN_X(x);
+        return 0;
+      }
+
+    comments: |-
+      A macro whose body contains a free variable that does not suffer from
+      side-effects is converted to a function which returns the value of
+      that free variable.
+
+      All invocations of the macro are replaced with calls to the function,
+      with the free variable passed as an argument each time.
