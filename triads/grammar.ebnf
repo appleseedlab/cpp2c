@@ -21,7 +21,9 @@ storage_class_specifier     =   'typedef';
 
 type_qualifier              =   'const';
 
-type_specifier              =   ? any c primitive type ?;
+type_specifier              =   ? any c primitive type, or in the
+                                  case of a typedef,
+                                  the name of the defined type ?;
 
 init_declarator             =   declarator, '=', initializer;
 
