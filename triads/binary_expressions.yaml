@@ -31,7 +31,7 @@ triads:
         return 0;
       }
     comments: |-
-      A function-like macro whose body contains an expression is
+      A function-like macro whose body is an expression is
       converted to a function that returns that expression.
       The types of the function's parameters are inferred from the types
       of the arguments passed to the original macro invocations.

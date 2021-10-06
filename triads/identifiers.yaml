@@ -29,7 +29,7 @@ triads:
       }
 
     comments: |-
-      A macro whose body contains a free variable that does not suffer from
+      A macro whose body is a free variable that does not suffer from
       side-effects is converted to a function which includes the free variable
       in its parameter list, and returns the value of that free variable.
 
@@ -59,7 +59,7 @@ triads:
         return 0;
       }
     comments: |-
-      A function-like macro whose body contains a parameter that does not
+      A function-like macro whose body is a parameter that does not
       suffer from side-effects is converted to a function which includes the
       parameter in its parameter list, and returns the value of that parameter.
 
