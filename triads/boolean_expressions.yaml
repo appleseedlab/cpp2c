@@ -1,0 +1,44 @@
+triads:
+  - un-preprocessed: |-
+      #define EQ(x, y) x == y
+      #define NOT(x) !x
+      #define IMPLIES(x, y) (!x) || (y)
+
+      int main(void) {
+        int x = 1;
+        int y = 2;
+        int z = EQ(x, y);
+        int v = NOT(x);
+        int w = IMPLIES(z, x);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 1;
+        int y = 2;
+        int z = x == y;
+        int v = !x;
+        int w = (!z) || (x);
+        return 0;
+      }
+    converted: |-
+      int EQ(int x, int y) { return x == y; }
+      int NOT(int x) { return !x; }
+      int IMPLIES(int x, int y) { return (!x) || (y); }
+
+      int main(void) {
+        int x = 1;
+        int y = 2;
+        int z = EQ(x, y);
+        int v = NOT(x);
+        int w = IMPLIES(z, x);
+        return 0;
+      }
+    comments: |-
+      A macro whose body is an expression that returns a boolean value
+      (e.g., ==, !=, &&, ||, !) is converted like any other macro whose
+      body is an expression, with one exception: The return type of the
+      converted macro's function is int.
+      This is to comply with the
+      [ISO/IEC 9899:TC3](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
+      standard that relational operators have a return type of int.
