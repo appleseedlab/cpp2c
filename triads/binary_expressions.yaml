@@ -1,0 +1,97 @@
+triads:
+  - un-preprocessed: |-
+      #define SHIFT(X, s) (((X) << (s)) | ((X) >> (32 - (s))))
+
+      int main(void) {
+        int x = 0b100;
+        unsigned long y = 0b100;
+        unsigned long shamt = 2;
+        unsigned z = SHIFT(x, shamt);
+        z = SHIFT(y, shamt);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 0b100;
+        unsigned long y = 0b100;
+        unsigned long shamt = 2;
+        unsigned z = (((x) << (shamt)) | ((x) >> (32 - (shamt))));
+        z = (((y) << (shamt)) | ((y) >> (32 - (shamt))));
+        return 0;
+      }
+    converted: |-
+      unsigned long SHIFT(unsigned long X, unsigned long s) { return (((X) << (s)) | ((X) >> (32 - (s)))); }
+
+      int main(void) {
+        int x = 0b100;
+        unsigned long y = 0b100;
+        unsigned long shamt = 2;
+        unsigned z = SHIFT(x, shamt);
+        z = SHIFT(y, shamt);
+        return 0;
+      }
+    comments: |-
+      A function-like macro whose body contains an expression is
+      converted to a function that returns that expression.
+      The types of the function's parameters are inferred from the types
+      of the arguments passed to the original macro invocations.
+
+      In the case that an argument is not passed with a consistent type,
+      and all the types are numeric, the C type hierarchy is used to
+      determine which type to give the parameter (e.g., in this case X
+      is passed as both an int and an unsigned long in separate calls to SHIFT.
+      unsigned long is higher than int in the C type hierarchy, so that type
+      is chosen as the type for the parameter X in the converted function).
+
+      In the case that an argument is not passed a consistent type
+      and the types are not all numeric types, the function is not
+      converted since its correct type cannot be inferred.
+
+      The return type of the function is inferred from the type of the
+      expression in the function's body, which can be determined after the
+      types of the function's parameter's have been inferred.
+      The return type is not inferred from the types of any variables that
+      the function is assigned to (z in this case).
+
+  - un-preprocessed: |-
+      #define ADD_AND_INC_Y(x) x + ++y
+
+      int main(void) {
+        int x = 0;
+        int y = 0;
+        int z = ADD_AND_INC_Y(x);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 0;
+        int y = 0;
+        int z = x + ++y;
+        return 0;
+      }
+    converted: |-
+      int ADD_AND_INC_Y(int x, int *y) { return x + ++(*y); }
+
+      int main(void) {
+        int x = 0;
+        int y = 0;
+        int z = ADD_AND_INC_Y(x, &y);
+        return 0;
+      }
+    comments: |-
+      A function-like macro whose body contains side-effected free
+      variables is converted to a function, with pointers to the side-effected
+      free variables added to the end of its parameter list.
+      Whenever the side-effected variable appears in the macro body,
+      it is accessed via a dereference.
+
+      In this case, the macro parameter x does not suffer from side-effects,
+      so it is converted to a function parameter of type int.
+
+      Invocations of the macro are converted to function calls.
+      Arguments that do not suffer from side-effects are passed by value.
+      Arguments that do are passed by reference.
+      Any arguments that were not present in the original macro's parameter
+      list, but are present in the converted function's parameter list,
+      are added to the end of the converted macro's function calls'
+      argument lists.
