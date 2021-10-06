@@ -11,7 +11,13 @@ declaration_list            =   declaration, [declaration_list];
 
 declaration                 =   declaration_specs, init_declarator;
 
-declaration_specs           =   [type_qualifier], type_specifier;
+declaration_specs           =   declaration_spec, [declaration_specs];
+
+declaration_spec            =   storage_class_specifier
+                            |   type_qualifier
+                            |   type_specifier;
+
+storage_class_specifier     =   'typedef';
 
 type_qualifier              =   'const';
 
