@@ -1,0 +1,76 @@
+triads:
+  - un-preprocessed: |-
+      #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+      int main(void) {
+        int x = 5;
+        int y = 7;
+        int z = MAX(x, y);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 5;
+        int y = 7;
+        int z = (((x) > (y)) ? (x) : (y));
+        return 0;
+      }
+    converted: |-
+      int MAX(int a, int b) { return (((a) > (b)) ? (a) : (b)); }
+
+      int main(void) {
+        int x = 5;
+        int y = 7;
+        int z = MAX(x, y);
+        return 0;
+      }
+    comments: |-
+      A macro whose body is a conditional expression is converted
+      just like any other macro whose body is an expression: it is
+      converted to a function that returns the expression.
+
+      One additional stipulation exists for macros whose bodies contain 
+      a conditional expression: The types of the expressions on the LHS
+      and RHS of the ':' in the conditional expression must type check.
+
+      This is so that the overall type of the conditional expression can be
+      determined.
+      If the types do not type check (e.g., the type of the expression on
+      the LHS is a string, whereas the type of the expression on the RHS
+      is a numeric type), then the macro cannot be converted.
+
+  - un-preprocessed: |-
+      #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+      int main(void) {
+        int x = 5;
+        int y = 7;
+        int z = MAX(x, y);
+        double p = 2;
+        float q = MAX(y, p);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 5;
+        int y = 7;
+        int z = (((x) > (y)) ? (x) : (y));
+        double p = 2;
+        float q = (((y) > (p)) ? (y) : (p));
+        return 0;
+      }
+    converted: |-
+      double MAX(int a, double b) { return (((a) > (b)) ? (a) : (b)); }
+
+      int main(void) {
+        int x = 5;
+        int y = 7;
+        int z = MAX(x, y);
+        double p = 2;
+        float q = MAX(y, p);
+        return 0;
+      }
+    comments: |-
+      This triad is similar to the previous one.
+      In this case however, the type of the converted function is determined
+      from the type of the conditional expression in the function's body.
