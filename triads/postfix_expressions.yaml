@@ -1,0 +1,112 @@
+triads:
+  - un-preprocessed: |-
+      #define INC_X x++
+      #define DEC_X x--
+
+      int main(void) {
+        int x = 0;
+        INC_X;
+        DEC_X;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 0;
+        x++;
+        x--;
+        return 0;
+      }
+    converted: |-
+      int INC_X(int *x) { return (*x)++; }
+      int DEC_X(int *x) { return (*x)--; }
+
+      int main(void) {
+        int x = 0;
+        INC_X(&x);
+        DEC_X(&x);
+        return 0;
+      }
+    comments: |-
+      A macro whose body contains a free variable that suffers from
+      side-effects is converted to a function that includes a pointer to the
+      free variable in its parameter list.
+      Whenever the body of the function refers to the free variable, it does
+      so via a dereference (e.g., (*x) in this case).
+      The return value of the function is the return value of the expression
+      in the function's body.
+
+      All invocations to the macro are replaced with function calls,
+      with a reference to the free variable passed each time.
+
+  - un-preprocessed: |-
+      #define INC_X(x) x++
+      #define DEC_X(x) x--
+
+      int main(void) {
+        int x = 0;
+        INC_X(x);
+        DEC_X(x);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 0;
+        x++;
+        x--;
+        return 0;
+      }
+    converted: |-
+      int INC_X(int *x) { return (*x)++; }
+      int DEC_X(int *x) { return (*x)--; }
+
+      int main(void) {
+        int x = 0;
+        INC_X(&x);
+        DEC_X(&x);
+        return 0;
+      }
+    comments: |-
+      A macro whose body contains a parameter that suffers from
+      side-effects is converted to a function that includes a pointer to the
+      parameter in its parameter list.
+      Whenever the body of the function refers to the parameter, it does
+      so via a dereference (e.g., (*x) in this case).
+      The return value of the function is the return value of the expression
+      in the function's body.
+
+      All invocations to the macro are modified so that a reference to the
+      to the side-effected argument is passed instead of the argument itself.
+
+  - un-preprocessed: |-
+      #define CALL_F_WITH(f, x) f(x)
+
+      int triple(int x) { return x * 3; }
+
+      int main(void) {
+        int x = 1;
+        int y = CALL_F_WITH(triple, x);
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x = 1;
+        int y = triple(x);
+        return 0;
+      }
+    converted: |-
+      int CALL_F_WITH(int (*f)(int), int x) { return f(x); }
+
+      int triple(int x) { return x * 3; }
+
+      int main(void) {
+        int x = 1;
+        int y = CALL_F_WITH(triple, x);
+        return 0;
+      }
+    comments: |-
+      A macro whose body contains a function call behaves similarly
+      to a macro whose body contains a parameter / free variable that
+      does not suffer from side-effects: The function is converted to
+      a typed parameter.
+
+      Invocations of the macro can be left as-is.
