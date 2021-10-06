@@ -65,7 +65,10 @@ unary_expression            =   postfix_expression
                             |   'sizeof', '(', type_specifier, ')';
 
 postfix_expression          =   primary_expression
-                            |   postfix_expression, ('++' | '--');
+                            |   postfix_expression, ('++' | '--')
+                            |   identifier, '(', [argument_expression_list], ')';
+
+argument_expression_list    =   assignment_expression, [',', argument_expression_list];
 
 primary_expression          =   identifier
                             |   constant
