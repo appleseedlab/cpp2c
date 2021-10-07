@@ -23,6 +23,8 @@ combination of C's two type qualifiers; see the correpsonding production rule)
 on a declarator, since even though a redundant application of the same
 qualifier is technically legal C, it parses to the same thing as using
 that qualifier only once.
+
+Productions that lack a type_spec component default to the int type.
 *)
 declaration_specs           =   storage_class_specifier
                             |   storage_class_specifier, type_qualifier
