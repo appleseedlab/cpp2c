@@ -9,17 +9,33 @@ external_declaration        =   declaration
 
 declaration                 =   declaration_specs, init_declarator;
 
+(*
+Note: This grammar imposes greater retrictions on the ordering of
+declaration specifiers than C99 or ASNI C standards.
+This makes the grammar easier to reason about, but will
+have to be changed eventually to be less restrictive.
+
+This production only allows for one storage class specifier since only
+one makes sense anyway.
+
+This production only allows for a single type qualifer (which could be a
+combination of C's two type qualifiers; see the correpsonding production)
+on a declarator, since even though a redundant application of the same
+qualifier is technically legal C, it parses to the same thing as using
+that qualifier only once.
+*)
 declaration_specs           =   [storage_class_specifier], [type_qualifier], type_spec;
 
 storage_class_specifier     =   'typedef' | 'extern' | 'static' | 'auto' | 'register';
 
-type_qualifier              =   'const' | 'volatile' | 'const volatile' | 'volatile const';
+(* Includes all combinations of C's type qualifiers. *)
+type_qualifier              =   'const', ['volatile'] | 'volatile', ['const'];
 
 type_specifier              =   ? any c primitive type, or in the
                                   case of a typedef,
                                   the name of the defined type ?;
 
-init_declarator             =   declarator, '=', initializer;
+init_declarator             =   declarator, ['=', initializer];
 
 declarator                  =   [pointer], direct_declarator;
 
