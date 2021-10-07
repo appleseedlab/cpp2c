@@ -7,8 +7,6 @@ external_declaration_list   =   external_declaration, [external_declaration_list
 external_declaration        =   declaration
                             |   function_definition;
 
-declaration_list            =   declaration, [declaration_list];
-
 declaration                 =   declaration_specs, init_declarator;
 
 declaration_specs           =   declaration_spec, [declaration_specs];
