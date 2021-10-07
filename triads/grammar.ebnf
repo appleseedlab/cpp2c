@@ -24,7 +24,8 @@ on a declarator, since even though a redundant application of the same
 qualifier is technically legal C, it parses to the same thing as using
 that qualifier only once.
 
-Productions that lack a type_spec component default to the int type.
+Functions/variables/typdefs whose declaration specifiers lack a type_specifier
+nonterminal default to the `int` type specifier.
 *)
 declaration_specs           =   storage_class_specifier
                             |   storage_class_specifier, type_qualifier
