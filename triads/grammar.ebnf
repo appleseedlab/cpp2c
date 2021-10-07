@@ -9,15 +9,11 @@ external_declaration        =   declaration
 
 declaration                 =   declaration_specs, init_declarator;
 
-declaration_specs           =   declaration_spec, [declaration_specs];
+declaration_specs           =   [storage_class_specifier], [type_qualifier], type_spec;
 
-declaration_spec            =   storage_class_specifier
-                            |   type_qualifier
-                            |   type_specifier;
+storage_class_specifier     =   'typedef' | 'extern' | 'static' | 'auto' | 'register';
 
-storage_class_specifier     =   'typedef';
-
-type_qualifier              =   'const';
+type_qualifier              =   'const' | 'volatile' | 'const volatile' | 'volatile const';
 
 type_specifier              =   ? any c primitive type, or in the
                                   case of a typedef,
@@ -27,7 +23,7 @@ init_declarator             =   declarator, '=', initializer;
 
 declarator                  =   [pointer], direct_declarator;
 
-pointer                     =   '*';
+pointer                     =   '*' [[type_qualifier], pointer];
 
 direct_declarator           =   identifier;
 
