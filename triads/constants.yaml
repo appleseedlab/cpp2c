@@ -37,7 +37,6 @@ triads:
         float eight = 8.0f;
         long double nine = 9.0l;
         char a = 'A';
-
         return 0;
       }
     converted: |-

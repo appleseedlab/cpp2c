@@ -88,6 +88,7 @@ triads:
         return 0;
       }
     preprocessed: |-
+      int triple(int x) { return x * 3; }
       int main(void) {
         int x = 1;
         int y = triple(x);
