@@ -36,7 +36,7 @@ identifier                  =   ? any valid C identifier ?;
 initializer                 =   assignment_expression;
 
 assignment_expression       =   conditional_expression
-                            |   identifier, assignment_operator, assignment_expression;
+                            |   {pointer}, identifier, assignment_operator, assignment_expression;
 
 assignment_operator         =   ? any c operator concatenated with '=' ?;
 
