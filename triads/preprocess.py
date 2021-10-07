@@ -25,16 +25,13 @@ def preprocess_example(filename: str) -> str:
             with open(tempfile_name, 'w') as fp:
                 fp.write(un_preprocessed)
 
-            output: CompletedProcess = run(f'cpp {fp.name}',
+            output: CompletedProcess = run(f'cpp -P {fp.name}',
                                            shell=True, capture_output=True)
 
+            preprocessed = str(output.stdout, encoding='ascii').strip()
             if output.stderr:
                 preprocessed = "Does not preprocess"
                 print(f"Errors preprocessing: {output.stderr}", sys.stderr)
-            else:
-                preprocessed = str(output.stdout, encoding='ascii')
-                main_start: int = preprocessed.find('int main')
-                preprocessed = preprocessed[main_start:].strip()
 
             triad['preprocessed'] = preprocessed
 
