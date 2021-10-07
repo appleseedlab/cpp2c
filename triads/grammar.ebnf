@@ -7,7 +7,7 @@ external_declaration_list   =   external_declaration, [external_declaration_list
 external_declaration        =   declaration
                             |   function_definition;
 
-declaration                 =   declaration_specs, init_declarator;
+declaration                 =   declaration_specs, [init_declarator_list], ';';
 
 (*
 Note: This grammar imposes greater retrictions on the ordering of
@@ -34,6 +34,8 @@ type_qualifier              =   'const', ['volatile'] | 'volatile', ['const'];
 type_specifier              =   ? any c primitive type, or in the
                                   case of a typedef,
                                   the name of the defined type ?;
+
+init_declarator_list        =   init_declarator, [',', init_declarator_list];
 
 init_declarator             =   declarator, ['=', initializer];
 
