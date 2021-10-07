@@ -1,0 +1,70 @@
+triads:
+  - un-preprocessed: |-
+      #define CONST const
+      #define INTEGER int
+
+      int main(void) {
+        CONST a;
+        INTEGER a;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        const a;
+        int a;
+        return 0;
+      }
+    converted: |-
+      typedef const CONST;
+      typedef int INTEGER;
+
+      int main(void)
+      {
+          CONST a;
+          INTEGER a;
+          return 0;
+      }
+    comments: |-
+      A macro whose body is declaration specifiers is converted to a
+      typedef.
+
+      This is not quite the same as using a macro, because a typedef for
+      declaration specifiers that lack a type specifier is assumed to have
+      the a type specifier of int; whereas a macro whose body is declaration
+      specifiers without a type specifier is just that: declaration specifiers
+      that lack the type specifiers component.
+
+      The next triad demonstrates how this nuance can make a declaration
+      specifiers macro inconvertible.
+
+  - un-preprocessed: |-
+      #define CONST const
+
+      int main(void) {
+        CONST float x;
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        const float x;
+        return 0;
+      }
+    converted: |
+
+    comments: |-
+      The macro CONST is inconvertible, because of the reason explained in
+      the previous triad's comments.
+
+      In the un-preprocessed code, CONST is used as declaration specifiers
+      that lack a type specifiers component.
+      Therefore, it's grammatically correct to declare x as `CONST float x`,
+      since the `float` type specifier fills in missing type specifier from
+      the original macro.
+
+      However, if we were to convert CONST to a typedef, then CONST
+      would become a type specifier equivalent to `const int` (since the
+      default type for symbols whose declaration specifiers that
+      lack a type specifier is `int`).
+      Then, declaring x as `CONST float x` would no longer be grammatically
+      correct, since the declaration specifiers of a declaration can
+      consist of at most one type specifier.
