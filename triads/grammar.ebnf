@@ -142,7 +142,7 @@ constant_expression         =   conditional_expression;
 
 expression_statement        =   [expression], ';';
 
-expression                  =   [expression, ','], assignment_expression;
+expression                  =   assignment_expression, [',', expression];
 
 selection_statement         =   'if', '(', expression, ')', statement, ['else', statement]
                             |   'switch', '(', expression, ')', statement;
