@@ -59,9 +59,31 @@ declarator                  =   [pointer], direct_declarator;
 
 pointer                     =   '*' [[type_qualifier], pointer];
 
-direct_declarator           =   identifier;
+direct_declarator           =   identifier
+                            |   '(', delcator, ')'
+                            |   direct_declarator, '[', [constant_expression], ']'
+                            |   direct_declarator, '(', [parameter_type_list | identifier_list], ')';
 
 identifier                  =   ? any valid C identifier ?;
+
+(*
+This is missing the produciton rule for ellipsis because we do not support
+variadic functions.
+*)
+parameter_type_list         =   parameter_list;
+
+parameter_list              =   parameter_declaration, [',', parameter_list];
+
+parameter_declaration       =   declaration_specs, [declarator | abstract_declarator];
+
+abstract_declarator         =   pointer
+                            |   [pointer], direct_abstract_declarator;
+
+direct_abstract_declarator  =   '(', abstract_declarator, ')'
+                            |   [direct_abstract_declarator], '[', [constant_expression], ']'
+                            |   [direct_abstract_declarator], '(', [parameter_type_list], ')';
+
+identifier_list             =   identifier, [',', identifier_list];
 
 initializer                 =   assignment_expression;
 
