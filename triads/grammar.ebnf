@@ -151,6 +151,9 @@ iteration_statement         =   'while', '(', expression, ')', statement
                             |   'do', statement, 'while', '(', expression, ')', ';'
                             |   'for', '(', expression_statement, expression_statement, [expression], ')', statement;
 
-jump_statement              =   'return', [expression], ';';
+jump_statement              =   'goto', identifier, ';'
+                            |   'continue', ';'
+                            |   'break', ';'
+                            |   'return', [expression], ';';
 
 main                        =   'int main(void)', compound_statement;
