@@ -129,12 +129,27 @@ compound_statement          =   '{', declaration_list, '}'
 
 statement_list              =   statement, [statement_list];
 
-statement                   =   expression_statement
+statement                   =   labeled_statement
+                            |   compound_statement
+                            |   expression_statement
+                            |   selection_statement
+                            |   iteration_statement
                             |   jump_statement;
+
+labeled_statement           =   (identifier | 'case', const, constant_expression | 'default'), ':', statement;
+
+constant_expression         =   conditional_expression;
 
 expression_statement        =   [expression], ';';
 
 expression                  =   [expression, ','], assignment_expression;
+
+selection_statement         =   'if', '(', expression, ')', statement, ['else', statement]
+                            |   'switch', '(', expression, ')', statement;
+
+iteration_statement         =   'while', '(', expression, ')', statement
+                            |   'do', statement, 'while', '(', expression, ')', ';'
+                            |   'for', '(', expression_statement, expression_statement, [expression], ')', statement;
 
 jump_statement              =   'return', [expression], ';';
 
