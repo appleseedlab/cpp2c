@@ -55,3 +55,74 @@ triads:
       Converting a macro to a function with side-effects accomplishes
       the same task, and also ensures that the semicolon will not be
       swallowed.
+
+  - un-preprocessed: |-
+      #define READ 'r'
+      #define WRITE 'w'
+
+      int main(void)
+      {
+          int mode = 'r';
+          switch (mode)
+          {
+          case READ:
+              // Open file in read mode
+              break;
+          case WRITE:
+              // Open file in write mode
+          default:
+              break;
+          }
+          return 0;
+      }
+    preprocessed: |-
+      int main(void)
+      {
+          int mode = 'r';
+          switch (mode)
+          {
+          case 'r':
+              break;
+          case 'w':
+          default:
+              break;
+          }
+          return 0;
+      }
+    converted: |-
+      enum switch_1_case_labels {READ = 'r', WRITE = 'w'};
+
+      int main(void)
+      {
+          int mode = 'r';
+
+          switch (mode)
+          {
+          case READ:
+              // Open file in read mode
+              break;
+
+          case WRITE:
+              // Open file in write mode
+
+          default:
+              break;
+          }
+
+          return 0;
+      }
+    comments: |-
+      A macro whose body is a numeric constant, and is invoked as the
+      constant expression component of a case statement production
+      (i.e., as a *case label*), is converted to an enum instead of
+      a constant variable.
+      Macros who are used as case labels in the same switch statement
+      are grouped together in the same enum grouping.
+      In the case that a macro is used as a case label in multiple switch
+      statements, it is grouped in the enum grouping made for the first
+      switch statement it was found under.
+
+      We convert macros used as case labels to enums instead of variables
+      with the `const` type qualifier because GCC does not consider such
+      variables to be legal case labels, and will throw an error if it finds
+      one used as a case label.
