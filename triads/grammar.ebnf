@@ -136,7 +136,7 @@ statement                   =   labeled_statement
                             |   iteration_statement
                             |   jump_statement;
 
-labeled_statement           =   (identifier | 'case', const, constant_expression | 'default'), ':', statement;
+labeled_statement           =   (identifier | 'case', constant_expression | 'default'), ':', statement;
 
 constant_expression         =   conditional_expression;
 
