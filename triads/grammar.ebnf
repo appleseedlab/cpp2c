@@ -1,6 +1,6 @@
 start                       =   translation_unit;
 
-translation_unit            =   [external_declaration_list], main;
+translation_unit            =   [external_declaration_list];
 
 external_declaration_list   =   external_declaration, [external_declaration_list];
 
@@ -178,5 +178,3 @@ jump_statement              =   'goto', identifier, ';'
                             |   'continue', ';'
                             |   'break', ';'
                             |   'return', [expression], ';';
-
-main                        =   'int main(void)', compound_statement;
