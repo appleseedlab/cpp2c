@@ -1,0 +1,48 @@
+triads:
+  - un-preprocessed: |-
+      #define ONE 1
+
+      struct Bit
+      {
+          unsigned val : ONE;
+      };
+
+      int main(void)
+      {
+          return 0;
+      }
+    preprocessed: |-
+      struct Bit
+      {
+          unsigned val : 1;
+      };
+      int main(void)
+      {
+          return 0;
+      }
+    converted: |-
+      enum BitMemberWidths {ONE = 1};
+
+      struct Bit
+      {
+          unsigned val : ONE;
+      };
+
+      int main(void)
+      {
+          return 0;
+      }
+    comments: |-
+      If a macro is a constant numeric expression, and is used to specify
+      the width of a struct or union member, then the macro is converted
+      to an enum instead of a variable with the `const` type qualifier.
+
+      We convert these macros in this way because certain compilers,
+      such as GCC, do not support the use of `const` variables to
+      specify the width of a struct or union member.
+
+      Macros that are used to specify the width of members in the same
+      struct or union are grouped into the same macro.
+      In the case that a macro is used to specify the widths of the members
+      of several structs or unions, then the macro is placed in the enum
+      grouping for the first struct or union it was invoked in.
