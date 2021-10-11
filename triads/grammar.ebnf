@@ -29,27 +29,49 @@ nonterminal default to the `int` type specifier.
 *)
 declaration_specs           =   storage_class_specifier
                             |   storage_class_specifier, type_qualifier
-                            |   storage_class_specifier, type_qualifier, type_spec
-                            |   storage_class_specifier, type_spec
-                            |   storage_class_specifier, type_spec, type_qualifier
+                            |   storage_class_specifier, type_qualifier, type_specifier
+                            |   storage_class_specifier, type_specifier
+                            |   storage_class_specifier, type_specifier, type_qualifier
                             |   type_qualifier
                             |   type_qualifier, storage_class_specifier
-                            |   type_qualifier, storage_class_specifier, type_spec
-                            |   type_qualifier, type_spec
-                            |   type_qualifier, type_spec, storage_class_specifier
-                            |   type_spec
-                            |   type_spec, storage_class_specifier
-                            |   type_spec, storage_class_specifier, type_qualifier
-                            |   type_spec, type_qualifier
-                            |   type_spec, type_qualifier, storage_class_specifier;
+                            |   type_qualifier, storage_class_specifier, type_specifier
+                            |   type_qualifier, type_specifier
+                            |   type_qualifier, type_specifier, storage_class_specifier
+                            |   type_specifier
+                            |   type_specifier, storage_class_specifier
+                            |   type_specifier, storage_class_specifier, type_qualifier
+                            |   type_specifier, type_qualifier
+                            |   type_specifier, type_qualifier, storage_class_specifier;
 
 storage_class_specifier     =   'typedef' | 'extern' | 'static' | 'auto' | 'register';
 
 (* Includes all combinations of C's type qualifiers. *)
 type_qualifier              =   'const', ['volatile'] | 'volatile', ['const'];
 
-type_specifier              =   ? any c primitive type, defined type, 
-                                  struct or union type, or enum type ?;
+type_specifier              =   ? any c primitive type or defined type ?
+                            |   struct_or_union_specifier
+                            |   enum_specifier;
+
+struct_or_union_specifier   =   ('struct' | 'union'), [identifier], '{', struct_declaration_list, '}'
+                            |   ('struct' | 'union'), identifier;
+
+struct_declaration_list     =   struct_declaration, [struct_declaration_list];
+
+struct_declaration          =   specifier_qualifier_list, struct_declarator_list, ';';
+
+specifier_qualifier_list    =   (type_specifier | type_qualifier), [specifier_qualifier_list];
+
+struct_declarator_list      =   struct_declarator, ',', [struct_declarator_list];
+
+struct_declarator           =   declarator, [':', constant_expression]
+                            |   ':', constant_expression;
+
+enum_specifier              =   'enum', identifier, ['{', enumerator_list, '}']
+                            |   'enum', '{', enumerator_list, '}';
+
+enumerator_list             =   enumerator, ',', [enumerator_list];
+
+enumerator                  =   identifier, ['=', constant_expression];
 
 init_declarator_list        =   init_declarator, [',', init_declarator_list];
 
@@ -60,7 +82,7 @@ declarator                  =   [pointer], direct_declarator;
 pointer                     =   '*' [[type_qualifier], pointer];
 
 direct_declarator           =   identifier
-                            |   '(', delcator, ')'
+                            |   '(', declarator, ')'
                             |   direct_declarator, '[', [constant_expression], ']'
                             |   direct_declarator, '(', [parameter_type_list | identifier_list], ')';
 
