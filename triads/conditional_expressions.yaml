@@ -74,3 +74,51 @@ triads:
       This triad is similar to the previous one.
       In this case however, the type of the converted function is determined
       from the type of the conditional expression in the function's body.
+
+  - un-preprocessed: |-
+      #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+      int z = MAX(1, 2);
+    preprocessed: |-
+      int z = (((1) > (2)) ? (1) : (2));
+    converted: |-
+      int MAX(int a, int b) { return (((a) > (b)) ? (a) : (b)); }
+      int z;
+      void __init_globals(void) {
+        z = MAX(1, 2);
+      }
+      int main(void) {
+        __init_globals();
+        return 0;
+      }
+    comments: |-
+      If a global variable is assigned to the result of a macro invocation,
+      and the macro would be converted to a function, then the assignment
+      of the variable to the converted function call is moved to a special
+      function `__init_globals`.
+      If a main function exists, then a call to `__init_globals` is placed
+      on the first line of the main function's body.
+      If a main method does not exist, then a main function is created and
+      a call to `__init_globals` is placed inside it.
+
+      We have to perform these steps in order to comply with
+      section 6.7.8, constraint 4, of
+      [ISO/IEC 9899:TC3](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf).
+      Global variable are static variables, and thus are not allowed to
+      be initialized to non-constant expressions such as function calls.
+      This means that if post-conversion a global variable would be initialized
+      to a function call, the initialization of the global variable must be
+      moved to an assignment within another function call.
+
+      This conversion assumes that the original macro invocation expanded
+      to a constant expression.
+      For instance, if in the original code snippet in this triad, z
+      were assigned to MAX(x, y), where x and y are other global variables,
+      then the expanded macro would not be a constant expression and thus
+      illegal.
+      We do not check this, and leave it to the programmer to verify the
+      correctness of their macros.
+      Most modern compilers will throw an error if such a case were to arise,
+      so the programmer should be able to easily check this.
+
+      In order for this translation to work, there must be at most 1 main
+      function definition in the entire converted program.
