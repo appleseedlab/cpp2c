@@ -1,0 +1,39 @@
+triads:
+  - un-preprocessed: |-
+      #define ADDR_OF_X &x
+      int main(void) {
+        int x;
+        int *y = ADDR_OF_X;  
+        return 0;
+      }
+    preprocessed: |-
+      int main(void) {
+        int x;
+        int *y = &x;
+        return 0;
+      }
+    converted: |-
+      int *ADDR_OF_X(int *x) { return &(*x); }
+      int main(void) {
+        int x;
+        int *y = ADDR_OF_X(&x);
+        return 0;
+      }
+    comments: |-
+      A macro whose body contains an expression which applies the & unary
+      operator to one of its parameters or free variables is converted
+      to a function which includes a reference to the parameter
+      or free variable in its parameter list.
+      If the function returns a memory address, then its return type is
+      a pointer of the type of the data stored in the variable whose
+      address is returned.
+      A reference to the parameter or free variable is added to all the
+      invocations of the macro.
+
+      We need to pass a reference to the parameter or free variable instead
+      of passing it by value in order to ensure that the correct memory
+      address is returned by the function.
+      If we were to pass the parameter or free variable by value, and return
+      the address of that, we would actually be returning the memory address
+      of the local copy of the variable that the function call adds to the
+      call stack.
