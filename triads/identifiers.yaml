@@ -104,5 +104,5 @@ triads:
       it is aliasing.
       We do not do this because functions in C are
       [not really first class citizens](https://stackoverflow.com/a/48092241/6824430),
-      and this would not be in compliance with section 6.7.5.3 of the
-      [ANSI C standard](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf).
+      and this would not be in compliance with section 6.7.5.3, constraint 1 of
+      [ISO/IEC 9899:TC3](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf).
