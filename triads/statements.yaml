@@ -116,6 +116,7 @@ triads:
       constant expression component of a case statement production
       (i.e., as a *case label*), is converted to an enum instead of
       a constant variable.
+      
       Macros who are used as case labels in the same switch statement
       are grouped together in the same enum grouping.
       In the case that a macro is used as a case label in multiple switch
