@@ -80,3 +80,8 @@ Rough data collection -> Fine data collection -> Rough classification
 - It could be that such features are not often used by developers,
   so we can just focus on converting simple constant object macros
   and functions that don't reference variables from outer scopes for now
+
+## The Eta Rule
+- Eta reduction:      `\x -> f x` to `f`
+- Eta abstraction:    `f` to `\x -> f x`
+- Eta conversion:     Either one of the above
