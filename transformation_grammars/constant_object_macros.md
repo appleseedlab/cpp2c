@@ -49,7 +49,7 @@ Explanation
 -----------------------------------------------------------------------
 
 This transformation uses eta abstraction to guarantee that the
-resulting transformation will be sound.E
+resulting transformation will be sound.
 
 Informally, eta abstraction is the process of converting a function
 `f` to `\x -> f x`, where `\x` defines a lambda expression that accepts
