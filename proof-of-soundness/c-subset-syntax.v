@@ -1,0 +1,122 @@
+Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
+Require Import ZArith.
+Open Scope Z_scope.
+
+
+
+Inductive unop : Type :=
+  | Positive
+  | Negative.
+
+Inductive binop : Type :=
+  | Plus
+  | Sub
+  | Mul
+  | Div.
+
+Inductive const_exp : Type :=
+  | ConstNum (n : Z)
+  | ConstParenExpr (ce : const_exp)
+  | ConstUnOp (uo : unop) (ce : const_exp)
+  | ConstBinOp (ce1 ce2 : const_exp) (bo : binop).
+
+Inductive var_exp : Type :=
+  | X (x : string)
+  | Num (n : Z)
+  | ParenExpr (va : var_exp)
+  | UnOp (uo : unop) (va : var_exp)
+  | BinOp (va1 va2 : var_exp) (bo : binop)
+  | Assign (va1 va2 : var_exp)
+  | CallOrInvoke (x : string) (vas: list var_exp).
+
+Inductive exp : Type :=
+  | ConstExpr (ce : const_exp)
+  | VarExpr (va : var_exp).
+
+(* TODO: Make this meaningful*)
+Definition lookup (x:string) : Z := 1.
+
+Fixpoint ceval (ce : const_exp) : Z :=
+  match ce with
+  | ConstNum n => n
+  | ConstParenExpr ce => ceval ce
+  | ConstUnOp uo ce =>
+    let v := ceval ce in
+      match uo with
+     | Positive => id v
+     | Negative => - v
+     end
+  | ConstBinOp ce1 ce2 bo =>
+    let v1 := (ceval ce1) in
+    let v2 := (ceval ce2) in
+      match bo with
+      | Plus => v1 + v2
+      | Sub => v1 - v2
+      | Mul => v1 * v2
+      | Div => v1 / v2
+      end
+end.
+
+
+Fixpoint veval (va : var_exp) : Z :=
+  match va with
+  | X x => lookup x
+  | Num n => n
+  | ParenExpr va => veval va
+  | UnOp uo va =>
+    let v := veval va in
+      match uo with
+      | Positive => id v
+      | Negative => - v
+      end
+  | BinOp va1 va2 bo =>
+    let v1 := veval va1 in
+    let v2 := veval va2 in
+      match bo with
+      | Plus => v1 + v2
+      | Sub => v1 - v2
+      | Mul => v1 * v2
+      | Div => v1 / v2
+      end
+  | Assign va1 va2 => 
+    (* TODO: Return the update to the state! *)
+    veval va2
+  | CallOrInvoke x vas =>
+    (* TODO: Add semantics for function calls and invocations*)
+    0
+  end.
+
+
+Definition eeval (e : exp) : Z :=
+  match e with
+  | ConstExpr ce => ceval ce
+  | VarExpr va => veval va
+  end.
+
+Lemma neg_neg_zequal : forall n : Z,
+  - - n = n.
+Proof.
+induction n as [].
+- simpl. reflexivity.
+- simpl. reflexivity.
+- simpl. reflexivity.
+Qed.
+
+(* Proof that the negation is involute in our language; i.e.,
+that applying the unary operation negate to a value twice results
+in the same value.*)
+Theorem neg_neg_equal : forall e : var_exp,
+(veval (UnOp Negative (UnOp Negative e))) = veval e.
+Proof.
+  induction e as [].
+  - reflexivity.
+  - simpl. rewrite neg_neg_zequal. reflexivity.
+  - simpl. rewrite neg_neg_zequal. reflexivity.
+  - induction uo. 
+    -- simpl. rewrite neg_neg_zequal. reflexivity.
+    -- simpl. rewrite neg_neg_zequal. reflexivity.
+  - simpl. rewrite neg_neg_zequal. reflexivity.
+  - simpl. rewrite neg_neg_zequal. reflexivity.
+  - simpl. reflexivity.
+Qed.
