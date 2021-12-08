@@ -16,14 +16,14 @@ Inductive binop : Type :=
   | Div.
 
 Inductive const_exp : Type :=
-  | ConstNum (n : Z)
+  | ConstNum (z : Z)
   | ConstParenExpr (ce : const_exp)
   | ConstUnOp (uo : unop) (ce : const_exp)
   | ConstBinOp (ce1 ce2 : const_exp) (bo : binop).
 
 Inductive var_exp : Type :=
   | X (x : string)
-  | Num (n : Z)
+  | Num (z : Z)
   | ParenExpr (va : var_exp)
   | UnOp (uo : unop) (va : var_exp)
   | BinOp (va1 va2 : var_exp) (bo : binop)
@@ -39,7 +39,7 @@ Definition lookup (x:string) : Z := 1.
 
 Fixpoint ceval (ce : const_exp) : Z :=
   match ce with
-  | ConstNum n => n
+  | ConstNum z => z
   | ConstParenExpr ce => ceval ce
   | ConstUnOp uo ce =>
     let v := ceval ce in
@@ -94,29 +94,24 @@ Definition eeval (e : exp) : Z :=
   | VarExpr va => veval va
   end.
 
-Lemma neg_neg_zequal : forall n : Z,
-  - - n = n.
+Lemma nnzeq : forall z : Z,
+  - - z = z.
 Proof.
-induction n as [].
-- simpl. reflexivity.
-- simpl. reflexivity.
-- simpl. reflexivity.
+induction z as [].
+- (* 0 *)     simpl. reflexivity.
+- (* z > 0 *) simpl. reflexivity.
+- (* z < 0 *) simpl. reflexivity.
 Qed.
 
 (* Proof that the negation is involute in our language; i.e.,
-that applying the unary operation negate to a value twice results
-in the same value.*)
-Theorem neg_neg_equal : forall e : var_exp,
-(veval (UnOp Negative (UnOp Negative e))) = veval e.
+that applying the unary operation negate to a constant expression twice
+results in the same value.*)
+Theorem neg_neg_equal_ce : forall ce : const_exp,
+ceval (ConstUnOp Negative (ConstUnOp Negative ce)) = ceval ce.
 Proof.
-  induction e as [].
-  - reflexivity.
-  - simpl. rewrite neg_neg_zequal. reflexivity.
-  - simpl. rewrite neg_neg_zequal. reflexivity.
-  - induction uo. 
-    -- simpl. rewrite neg_neg_zequal. reflexivity.
-    -- simpl. rewrite neg_neg_zequal. reflexivity.
-  - simpl. rewrite neg_neg_zequal. reflexivity.
-  - simpl. rewrite neg_neg_zequal. reflexivity.
-  - simpl. reflexivity.
+  induction ce as [].
+  - (* ConstNum *)        simpl. rewrite nnzeq. reflexivity.
+  - (* ConstParentExpr *) simpl. rewrite nnzeq. reflexivity.
+  - (* ConstUnOp *)       simpl. rewrite nnzeq. reflexivity.
+  - (* ConstBinOp *)      simpl. rewrite nnzeq. reflexivity.
 Qed.
