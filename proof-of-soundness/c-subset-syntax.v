@@ -4,17 +4,27 @@ Require Import ZArith.
 Require Import Coq.FSets.FMapList.
 Require Import Coq.Strings.String.
 
-Open Scope Z_scope.
-Open Scope string_scope.
-
 
 (* I'm not sure if this is correct, but it seems to work *)
-Definition environment : Set := list (string * nat).
-Definition state : Set := list (nat * Z).
+(* Environment and store/state are implemented as associative arrays. *)
+Definition environment : Set := @list (string * nat).
+Definition state : Set := @list (nat * Z).
 
 (* TODO: Make these meaningful *)
-Definition lookupE (x:string) (E:environment) : nat := 1.
-Definition lookupS (l:nat) (S:state) : Z := 1.
+Definition lookupE (x:string) (E:environment) : option nat :=
+  match find (fun pair => String.eqb (fst pair) x) E with
+  | None => None
+  | Some (_, l) => Some l
+  end.
+
+Definition lookupS (l:nat) (S:state) : option Z :=
+  match find (fun pair => Nat.eqb (fst pair) l) S with
+  | None => None
+  | Some (_, z) => Some z
+  end.
+
+(* Compute (find (fun s => s =? "s") (nil)). *)
+(* Compute (find (fun s => s =? "s") (cons "s" (nil))). *)
 
 
 Inductive unop : Type :=
@@ -35,6 +45,7 @@ Inductive const_expr : Type :=
 
 (* TODO: Currently we can only assign from strings to r-values.
    This need to be fixed so that LHS of assignments can be an l-value *)
+(* TODO: Add macro invocations *)
 Inductive expr : Type :=
   | X (x : string)
   | Num (z : Z)
@@ -42,7 +53,7 @@ Inductive expr : Type :=
   | UnExpr (uo : unop) (e : expr)
   | BinExpr (bo : binop) (e1 e2 : expr)
   | Assign (x: string) (e : expr)
-  | CallOrInvoke (x : string) (es: list expr).
+  | FunctionCall (x : string) (es: list expr).
 
 (* TODO: Add state to these evaluation rules.
    May have to define evaluation as a relation instead of as
@@ -91,20 +102,32 @@ Fixpoint eeval (e : expr) : Z :=
   | Assign x e => 
     (* TODO: Return the update to the state! *)
     eeval e
-  | CallOrInvoke x vas =>
+  | FunctionCall x es =>
     (* TODO: Add semantics for function calls and invocations*)
     0
   end.
 
+(* I think this would be easier with monads... *)
 Reserved Notation
   "[ S , E '|-' e '=>' v , S' ]"
   (at level 90, left associativity).
 Inductive eevalR : state -> environment -> expr -> Z -> state -> Prop :=
+  (* Variable lookup, fail to find identifier *) 
+  | E_X_No_Identifier : forall S E x,
+    lookupE x E = None ->
+    (* FIXME: Represent failed variable lookup using an option type *)
+    [S, E |- (X x) => 0, S]
+  (* Variable lookup, fail to find l-value *)
+  | E_X_No_L_value : forall S E x l,
+    lookupE x E = Some l ->
+    lookupS l S = None ->
+    (* FIXME: Represent failed l-value lookup using an option type *)
+    [S, E |- (X x) => 0, S]
   (* Variable lookup returns the variable's r-value
      and does not change the state *)
-  | E_X : forall S E x l v,
-    lookupE x E = l ->
-    lookupS l S = v ->
+  | E_X_Success : forall S E x l v,
+    lookupE x E = Some l ->
+    lookupS l S = Some v ->
     [S, E |- (X x) => v, S]
   (* Numerals evaluate to their integer representation and do not
      change the state *)
@@ -149,6 +172,9 @@ Inductive eevalR : state -> environment -> expr -> Z -> state -> Prop :=
     [S, E |- e1 => v1, S'] ->
     [S', E |- e2 => v2, S''] ->
     [S'', E |- (BinExpr Div e1 e2) => (v1 / v2), S''']
+  (* Variable assignments update the store by adding a new l-value to
+     r-value mapping or by overriding an existing one.
+     The r-value is returned along with the update state *)
   | E_Assign : forall S E l x e v S' S'',
     [S, E |- e => v, S'] ->
     lookupE x E = l ->
@@ -156,11 +182,21 @@ Inductive eevalR : state -> environment -> expr -> Z -> state -> Prop :=
     (* update S' l v = S''*)
     S'' = S' ->
     [S, E |- (Assign x e) => v, S'']
+  (* For function calls, each of the function call's arguments are
+     evaluated, then the function call itself is evaluated, and finally
+     the result of the call is returned along with the ultimate state. *)
+  | E_FunctionCall: forall S E x es,
+    (* TODO: Fetch definition, evaluate arguments *)
+    [S, E |- (FunctionCall x es) => 0, S]
   where "[ S , E '|-' e '=>' v , S' ]" := (eevalR S E e v S') : type_scope.
+
+Open Scope Z_scope.
 
 Lemma nnzeq : forall z : Z,
   - - z = z.
 Proof. induction z as []; reflexivity. Qed.
+
+Close Scope Z_scope.
 
 (* Proof that negation is involute in our language; i.e.,
 that applying the unary operation negate to a constant exprression twice
@@ -195,6 +231,7 @@ Inductive stmt : Type :=
   | IfElseStmt (cond: expr) (s0 s1: stmt)
   | WhileStmt (cond : expr) (s0 : stmt).
 
+Open Scope Z_scope.
 
 Reserved Notation
   "st '=[' s ']=>' st'"
@@ -236,3 +273,5 @@ Inductive stmtevalR : state -> stmt -> state -> Prop :=
     st' =[ WhileStmt e s0 ]=> st'' ->
     st =[ WhileStmt e s0 ]=> st''
   where "st '=[' s ']=>' st'" := (stmtevalR st s st') : type_scope.
+
+Close Scope Z_scope.
