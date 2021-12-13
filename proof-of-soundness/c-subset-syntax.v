@@ -4,19 +4,24 @@ Require Import ZArith.
 Require Import Coq.FSets.FMapList.
 Require Import Coq.Strings.String.
 
+Open Scope string_scope.
 
-(* I'm not sure if this is correct, but it seems to work *)
 (* Environment and store/state are implemented as associative arrays. *)
 Definition environment : Set := @list (string * nat).
 Definition state : Set := @list (nat * Z).
 
-(* TODO: Make these meaningful *)
+(* Looks up a variable name in the environment and returns
+   the corresponding L-value wrapped in an option type if found;
+   otherwise returns None *)
 Definition lookupE (x:string) (E:environment) : option nat :=
   match find (fun pair => String.eqb (fst pair) x) E with
   | None => None
   | Some (_, l) => Some l
   end.
 
+(* Looks up an L-value in the store and returns
+   the corresponding R-value wrapped in an option type if found;
+   otherwise returns None *)
 Definition lookupS (l:nat) (S:state) : option Z :=
   match find (fun pair => Nat.eqb (fst pair) l) S with
   | None => None
@@ -26,25 +31,42 @@ Definition lookupS (l:nat) (S:state) : option Z :=
 (* Compute (find (fun s => s =? "s") (nil)). *)
 (* Compute (find (fun s => s =? "s") (cons "s" (nil))). *)
 
-
+(* Unary operators *)
 Inductive unop : Type :=
   | Positive
   | Negative.
 
+Definition unopToOp (uo : unop) : (Z -> Z) :=
+  match uo with
+  | Positive => id
+  | Negative => Z.opp
+  end.
+
+(* Binary operators *)
 Inductive binop : Type :=
   | Plus
   | Sub
   | Mul
   | Div.
 
+Definition binopToOp (bo : binop) : (Z -> Z -> Z) :=
+  match bo with
+  | Plus => Zplus
+  | Sub => Zminus
+  | Mul => Zmult
+  | Div => Z.div
+  end.
+
+(* Syntax for constant expressions, i.e., ones that don't involve
+   variables and don't have side-effects *)
 Inductive const_expr : Type :=
   | ConstNum (z : Z)
   | ConstParenExpr (ce : const_expr)
   | ConstUnExpr (uo : unop) (ce : const_expr)
   | ConstBinExpr (bo : binop) (ce1 ce2 : const_expr).
 
-(* TODO: Currently we can only assign from strings to r-values.
-   This need to be fixed so that LHS of assignments can be an l-value *)
+(* TODO: Currently we can only assign from strings to R-values.
+   This need to be fixed so that LHS of assignments can be an L-value *)
 (* TODO: Add macro invocations *)
 Inductive expr : Type :=
   | X (x : string)
@@ -53,173 +75,8 @@ Inductive expr : Type :=
   | UnExpr (uo : unop) (e : expr)
   | BinExpr (bo : binop) (e1 e2 : expr)
   | Assign (x: string) (e : expr)
-  | FunctionCall (x : string) (es: list expr).
-
-(* TODO: Add state to these evaluation rules.
-   May have to define evaluation as a relation instead of as
-   a function *)
-Fixpoint ceeval (ce : const_expr) : Z :=
-  match ce with
-  | ConstNum z => z
-  | ConstParenExpr ce => ceeval ce
-  | ConstUnExpr uo ce =>
-    let v := ceeval ce in
-      match uo with
-     | Positive => id v
-     | Negative => - v
-     end
-  | ConstBinExpr bo ce1 ce2 =>
-    let v1 := (ceeval ce1) in
-    let v2 := (ceeval ce2) in
-      match bo with
-      | Plus => v1 + v2
-      | Sub => v1 - v2
-      | Mul => v1 * v2
-      | Div => v1 / v2
-      end
-end.
-
-Fixpoint eeval (e : expr) : Z :=
-  match e with
-  | X x => 0
-  | Num n => n
-  | ParenExpr e => eeval e
-  | UnExpr uo e =>
-    let v := eeval e in
-      match uo with
-      | Positive => id v
-      | Negative => - v
-      end
-  | BinExpr bo e1 e2 =>
-    let v1 := eeval e1 in
-    let v2 := eeval e2 in
-      match bo with
-      | Plus => v1 + v2
-      | Sub => v1 - v2
-      | Mul => v1 * v2
-      | Div => v1 / v2
-      end
-  | Assign x e => 
-    (* TODO: Return the update to the state! *)
-    eeval e
-  | FunctionCall x es =>
-    (* TODO: Add semantics for function calls and invocations*)
-    0
-  end.
-
-(* I think this would be easier with monads... *)
-Reserved Notation
-  "[ S , E '|-' e '=>' v , S' ]"
-  (at level 90, left associativity).
-Inductive eevalR : state -> environment -> expr -> Z -> state -> Prop :=
-  (* Variable lookup, fail to find identifier *) 
-  | E_X_No_Identifier : forall S E x,
-    lookupE x E = None ->
-    (* FIXME: Represent failed variable lookup using an option type *)
-    [S, E |- (X x) => 0, S]
-  (* Variable lookup, fail to find l-value *)
-  | E_X_No_L_value : forall S E x l,
-    lookupE x E = Some l ->
-    lookupS l S = None ->
-    (* FIXME: Represent failed l-value lookup using an option type *)
-    [S, E |- (X x) => 0, S]
-  (* Variable lookup returns the variable's r-value
-     and does not change the state *)
-  | E_X_Success : forall S E x l v,
-    lookupE x E = Some l ->
-    lookupS l S = Some v ->
-    [S, E |- (X x) => v, S]
-  (* Numerals evaluate to their integer representation and do not
-     change the state *)
-  | E_Num : forall S E n,
-    [S, E |- (Num n) => n, S]
-  (* Parenthesized expressions evaluate to themselves.
-     Currently they do not change the state, but TODO: fix this *)
-  | E_ParenExpr : forall S E e v S',
-    [S, E |- e => v, S'] ->
-    [S, E |- (ParenExpr e) => v, S']
-  (* Unary negation evaluates the inner expression, and returns
-     the negation of that result along with any side-effects
-     from evaluating it*)
-  | E_UnExprNegate : forall S E S' e v,
-    [S, E |- e => v, S'] ->
-    [S', E |- (UnExpr Negative e) => -v, S']
-  (* Unary positive evaluates the inner expression, and returns
-     the that result along with any side-effects from evaluating it*)
-  | E_UnExprPositive : forall S E S' e v,
-    [S, E |- e => v, S'] ->
-    [S', E |- (UnExpr Positive e) => v, S']
-  (* Binary expressions evaluate their inner expressions
-     in left-to-right-order, apply their operator to these subresults,
-     and return the appropriate result along with any side-effects
-     that occurred from evaluating subexpressions. *)
-  (* NOTE: Evaluation rules do not handle operator precedence.
-     The parser must use a concrete syntax to generate a parse tree
-     with the appropriate precedence levels in it.*)
-  | E_BinExprPlus : forall S E S' S'' S''' e1 e2 v1 v2,
-    [S, E |- e1 => v1, S'] ->
-    [S', E |- e2 => v2, S''] ->
-    [S'', E |- (BinExpr Plus e1 e2) => (v1 + v2), S''']
-  | E_BinExprSub : forall S E S' S'' S''' e1 e2 v1 v2,
-    [S, E |- e1 => v1, S'] ->
-    [S', E |- e2 => v2, S''] ->
-    [S'', E |- (BinExpr Sub e1 e2) => (v1 - v2), S''']
-  | E_BinExprMul : forall S E S' S'' S''' e1 e2 v1 v2,
-    [S, E |- e1 => v1, S'] ->
-    [S', E |- e2 => v2, S''] ->
-    [S'', E |- (BinExpr Mul e1 e2) => (v1 * v2), S''']
-  | E_BinExprDiv : forall S E S' S'' S''' e1 e2 v1 v2,
-    [S, E |- e1 => v1, S'] ->
-    [S', E |- e2 => v2, S''] ->
-    [S'', E |- (BinExpr Div e1 e2) => (v1 / v2), S''']
-  (* Variable assignments update the store by adding a new l-value to
-     r-value mapping or by overriding an existing one.
-     The r-value is returned along with the update state *)
-  | E_Assign : forall S E l x e v S' S'',
-    [S, E |- e => v, S'] ->
-    lookupE x E = l ->
-    (* TODO: Actually store the variable *)
-    (* update S' l v = S''*)
-    S'' = S' ->
-    [S, E |- (Assign x e) => v, S'']
-  (* For function calls, each of the function call's arguments are
-     evaluated, then the function call itself is evaluated, and finally
-     the result of the call is returned along with the ultimate state. *)
-  | E_FunctionCall: forall S E x es,
-    (* TODO: Fetch definition, evaluate arguments *)
-    [S, E |- (FunctionCall x es) => 0, S]
-  where "[ S , E '|-' e '=>' v , S' ]" := (eevalR S E e v S') : type_scope.
-
-Open Scope Z_scope.
-
-Lemma nnzeq : forall z : Z,
-  - - z = z.
-Proof. induction z as []; reflexivity. Qed.
-
-Close Scope Z_scope.
-
-(* Proof that negation is involute in our language; i.e.,
-that applying the unary operation negate to a constant exprression twice
-results in the same value.*)
-Theorem neg_neg_equal_ce : forall ce : const_expr,
-  ceeval (ConstUnExpr Negative (ConstUnExpr Negative ce)) = ceeval ce.
-Proof.
-  induction ce as []; simpl; rewrite nnzeq; reflexivity.
-Qed.
-
-(* Proof that adding zero any constant exprression results in the same
-value *)
-Theorem optimize_ce: forall ce : const_expr,
-  ceeval (ConstBinExpr Plus (ConstNum 0) ce) = ceeval ce.
-Proof.
-  induction ce as []; reflexivity.
-Qed.
-
-
-(* Define evaluation as a relation instead of a function *)
-Inductive cevalR : const_expr -> Z -> Prop :=
-  | E_ConstNum (z : Z) : cevalR (ConstNum z) z.
-
+  | FunctionCall (x : string) (es: list expr)
+  | MacroInvocation (x : string) (es: list expr).
 
 Inductive stmt : Type :=
   (* We may not need this, I added it to make the evaluation rule
@@ -231,33 +88,143 @@ Inductive stmt : Type :=
   | IfElseStmt (cond: expr) (s0 s1: stmt)
   | WhileStmt (cond : expr) (s0 : stmt).
 
+(* Maybe these should be split up into two separate types?
+   See the definition of func_definition for an explanation why *)
+Inductive decl : Type :=
+  | LocalDecl (x:string) (e:expr)
+  | GlobalDecl (x:string) (ce:const_expr).
+
+(* Mappings from function and macro names to their definitions *)
+(* Functions are defined as a 4-tuple:
+   0: List of parameter names
+   1: List of declarations
+   2: List of statements
+   3: Return expressions
+*)
+(* This is actually kind of ugly, because it says that a function
+   definition could be a list of declarations, which could each
+   either be global or local. Since they are inside a function body,
+   however, of course they are local. How to rectify this? *)
+Definition func_definition : Set :=
+  ((list string) * (list decl) * (list stmt) * expr).
+Definition func_definitions : Set := @list (string * func_definition).
+
+(* Macro definitions are serialized as a two-tuple containing a
+   list of their parameter names and their macro body
+   (a single expression) *)
+Definition macro_body : Set := ((list string) * expr).
+Definition macro_bodies : Set := @list (string * macro_body).
+
+(* Looks up a function name in the function defintion list and returns
+   the corresponding definition wrapped in an option type if found;
+   otherwise returns None *)
+Definition definition
+  (x:string) (defs:func_definitions) : option func_definition :=
+  match find (fun pair => String.eqb (fst pair) x) defs with
+  | None => None
+  | Some (_, def) => Some def
+  end.
+
+(* Looks up a macro name in the function defintion list and returns
+   the corresponding definition wrapped in an option type if found;
+   otherwise returns None *)
+Definition invocation
+  (x:string) (defs:macro_bodies) : option macro_body :=
+  match find (fun pair => String.eqb (fst pair) x) defs with
+  | None => None
+  | Some (_, body) => Some body
+  end.
+
+(* Right now, a term that fails to evaluate will simply get "stuck";
+   we do not provide any error messages. I think we could add this
+   later using a sum type. *)
+Reserved Notation
+  "[ S , E , F , M '|-' e '=>' v , S' ]"
+  (at level 90, left associativity).
+
+Inductive eevalR :
+  state -> environment -> func_definitions -> macro_bodies ->
+  expr -> Z ->
+  state -> Prop :=
+  (* Variable lookup returns the variable's R-value
+     and does not change the state *)
+  | E_X_Success : forall S E F M x l v,
+    lookupE x E = Some l ->
+    lookupS l S = Some v ->
+    [S, E, F, M |- (X x) => v, S]
+  (* Numerals evaluate to their integer representation and do not
+     change the state *)
+  | E_Num : forall S E F M n,
+    [S, E, F, M |- (Num n) => n, S]
+  (* Parenthesized expressions evaluate to themselves *)
+  | E_ParenExpr : forall S E F M e v S',
+    [S, E, F, M |- e => v, S'] ->
+    [S, E, F, M |- (ParenExpr e) => v, S']
+  (* Unary expressions *)
+  | E_UnExpr : forall S E F M S' uo e v,
+    [S, E, F, M |- e => v, S'] ->
+    [S', E, F, M |- (UnExpr uo e) => ((unopToOp uo) v), S']
+  (* Binary expressions *)
+  (* NOTE: Evaluation rules do not handle operator precedence.
+     The parser must use a concrete syntax to generate a parse tree
+     with the appropriate precedence levels in it.*)
+  | E_BinExpr : forall S E F M bo e1 e2 S' v1 S'' v2 S''',
+    [S, E, F, M |- e1 => v1, S'] ->
+    [S', E, F, M |- e2 => v2, S''] ->
+    [S'', E, F, M |- (BinExpr bo e1 e2) => (((binopToOp bo) v1 v2)), S''']
+  | E_Assign_No_Identifier: forall S E F M x e v S',
+    [S, E, F, M |- e => v, S'] ->
+    lookupE x E = None ->
+    [S, E, F, M |- (Assign x e) => v, S]
+  (* Variable assignments update the store by adding a new L-value to
+     R-value mapping or by overriding an existing one.
+     The R-value is returned along with the updated state *)
+  | E_Assign_Success : forall S E F M l x e v S',
+    [S, E, F, M |- e => v, S'] ->
+    lookupE x E = Some l ->
+    [S, E, F, M |- (Assign x e) => v, (l,v)::S']
+  (* For function calls, each of the function call's arguments are
+     evaluated, then the function call itself is evaluated, and finally
+     the result of the call is returned along with the ultimate state. *)
+  | E_FunctionCall: forall S E F M x es def,
+    definition x F = Some def ->
+    [S, E, F, M |- (FunctionCall x es) => 0, S]
+  (* Macro invocation, no side-effects *)
+  | E_MacroInvocation : forall S E F M x es body,
+    invocation x M = Some body ->
+    [S, E, F, M |- (MacroInvocation x es) => 0, S]
+  where "[ S , E , F , M '|-' e '=>' v , S' ]" := (eevalR S E F M e v S') : type_scope.
+
+(* TODO: Fix evaluation rules for statements *)
+(*
 Open Scope Z_scope.
 
 Reserved Notation
-  "st '=[' s ']=>' st'"
+  "[ S, E '=[' s ']=>' S' ]"
   (at level 91, left associativity).
 (* Define the evaluation rule for statements as a
    relation instead of an inductive type to permite the non-
    determinism introduced by while loops *)
-Inductive stmtevalR : state -> stmt -> state -> Prop :=
+Inductive stmtevalR : state -> environment -> stmt -> state -> Prop :=
   (* A skip statement does not change the state *)
-  | E_Skip : forall st,
-    st =[ Skip ]=> st
-  (* An expr statement does not change the state (for now) *)
-  | E_ExprStmt : forall st e,
-    st =[ ExprStmt e ]=> st
+  | E_Skip : forall S E,
+    [S, E =[ Skip ]=> S]
+  (* An expr statement may change the state *)
+  | E_ExprStmt : forall S E e S',
+    eevalR S E e _ S' ->
+    [S, E =[ ExprStmt e ]=> S']
   (* An if statement whose expression evaluates to
      has their else statement evaluated *)
-  | E_IfElseFalse : forall st st' e s0 s1,
-    eeval e = 0 ->
-    st =[ s1 ]=> st' ->
-    st =[ IfElseStmt e s0 s1 ]=> st'
+  | E_IfElseFalse : forall S E e s0 s1 S' S'',
+    eevalR S E e 0%Z S' ->
+    [S, E =[ s1 ]=> S''] ->
+    [S, E =[ IfElseStmt e s0 s1 ]=> S']
   (* An if statement whose expression evaluates a nonzero value
      has their true statement evaluated *)
-  | E_IfElseTrue : forall st st' e s0 s1,
-    eeval e <> 0 ->
-    st =[ s0 ]=> st' ->
-    st =[ IfElseStmt e s0 s1 ]=> st'
+  | E_IfElseTrue : forall S E e s0 s1 S' S'',
+    eevalR S E e  S' ->
+    [S', E =[ s0 ]=> S''] ->
+    [S, E =[ IfElseStmt e s0 s1 ]=> S'']
   (* A while statement whose expression evaluates to 0
      does not change the state *)
   | E_WhileFalse : forall st e s0,
@@ -272,6 +239,9 @@ Inductive stmtevalR : state -> stmt -> state -> Prop :=
     st =[ s0 ]=> st' ->
     st' =[ WhileStmt e s0 ]=> st'' ->
     st =[ WhileStmt e s0 ]=> st''
-  where "st '=[' s ']=>' st'" := (stmtevalR st s st') : type_scope.
+  where "[ S, E '=[' s ']=>' S' ]" := (stmtevalR S E s S') : type_scope.
 
 Close Scope Z_scope.
+*)
+
+Close Scope string_scope.
