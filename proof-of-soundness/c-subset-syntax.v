@@ -67,7 +67,6 @@ Inductive const_expr : Type :=
 
 (* TODO: Currently we can only assign from strings to R-values.
    This need to be fixed so that LHS of assignments can be an L-value *)
-(* TODO: Add macro invocations *)
 Inductive expr : Type :=
   | X (x : string)
   | Num (z : Z)
@@ -83,10 +82,10 @@ Inductive stmt : Type :=
      for compound statements easier to define *)
   | Skip
   | ExprStmt (e : expr)
-  (* TODO: Add compound statemetns *)
-  (* TODO: Allow for ifs without else branches *)
+  | CompoundStmt (stmts: list stmt)
+  | IfStmt (cond: expr) (s0 : stmt)
   | IfElseStmt (cond: expr) (s0 s1: stmt)
-  | WhileStmt (cond : expr) (s0 : stmt).
+  | WhileStmt (cond: expr) (s0 : stmt).
 
 (* Maybe these should be split up into two separate types?
    See the definition of func_definition for an explanation why *)
@@ -167,7 +166,7 @@ Inductive eevalR :
   (* Binary expressions *)
   (* NOTE: Evaluation rules do not handle operator precedence.
      The parser must use a concrete syntax to generate a parse tree
-     with the appropriate precedence levels in it.*)
+     with the appropriate precedence levels in it. *)
   | E_BinExpr : forall S E F M bo e1 e2 S' v1 S'' v2 S''',
     [S, E, F, M |- e1 => v1, S'] ->
     [S', E, F, M |- e2 => v2, S''] ->
@@ -186,62 +185,55 @@ Inductive eevalR :
   (* For function calls, each of the function call's arguments are
      evaluated, then the function call itself is evaluated, and finally
      the result of the call is returned along with the ultimate state. *)
+  (* TODO *)
   | E_FunctionCall: forall S E F M x es def,
     definition x F = Some def ->
     [S, E, F, M |- (FunctionCall x es) => 0, S]
   (* Macro invocation, no side-effects *)
-  | E_MacroInvocation : forall S E F M x es body,
+  (* TODO *)
+  | E_MacroInvocationNoSideEffects : forall S E F M x es body,
     invocation x M = Some body ->
     [S, E, F, M |- (MacroInvocation x es) => 0, S]
   where "[ S , E , F , M '|-' e '=>' v , S' ]" := (eevalR S E F M e v S') : type_scope.
 
 (* TODO: Fix evaluation rules for statements *)
-(*
+
 Open Scope Z_scope.
 
 Reserved Notation
-  "[ S, E '=[' s ']=>' S' ]"
+  "[ S , E , F , M '=[' s ']=>' S' ]"
   (at level 91, left associativity).
 (* Define the evaluation rule for statements as a
    relation instead of an inductive type to permite the non-
    determinism introduced by while loops *)
-Inductive stmtevalR : state -> environment -> stmt -> state -> Prop :=
+Inductive stmtevalR :
+  state -> environment -> func_definitions -> macro_bodies ->
+  stmt ->
+  state -> Prop :=
   (* A skip statement does not change the state *)
-  | E_Skip : forall S E,
-    [S, E =[ Skip ]=> S]
-  (* An expr statement may change the state *)
-  | E_ExprStmt : forall S E e S',
-    eevalR S E e _ S' ->
-    [S, E =[ ExprStmt e ]=> S']
-  (* An if statement whose expression evaluates to
-     has their else statement evaluated *)
-  | E_IfElseFalse : forall S E e s0 s1 S' S'',
-    eevalR S E e 0%Z S' ->
-    [S, E =[ s1 ]=> S''] ->
-    [S, E =[ IfElseStmt e s0 s1 ]=> S']
-  (* An if statement whose expression evaluates a nonzero value
-     has their true statement evaluated *)
-  | E_IfElseTrue : forall S E e s0 s1 S' S'',
-    eevalR S E e  S' ->
-    [S', E =[ s0 ]=> S''] ->
-    [S, E =[ IfElseStmt e s0 s1 ]=> S'']
-  (* A while statement whose expression evaluates to 0
-     does not change the state *)
-  | E_WhileFalse : forall st e s0,
-    eeval e = 0 ->
-    st =[ WhileStmt e s0 ]=> st
-  (* This is the interesting one.
-     A while statement whose expression evaluates to a nonzero value
-     has their body evaluated, then they themselves are evaluated
-     again with the updated state *)
-  | E_WhileTrue : forall st st' st'' e s0,
-    eeval e <> 0 ->
-    st =[ s0 ]=> st' ->
-    st' =[ WhileStmt e s0 ]=> st'' ->
-    st =[ WhileStmt e s0 ]=> st''
-  where "[ S, E '=[' s ']=>' S' ]" := (stmtevalR S E s S') : type_scope.
+  | E_Skip : forall S E F M,
+    [S, E, F, M =[ Skip ]=> S]
+  (* An expression statement evaluates its expression and returns 
+     the resulting state *)
+  | E_ExprStmt : forall S E F M e v S',
+    eevalR S E F M e v S' ->
+    [S, E, F, M =[ ExprStmt e ]=> S']
+  (* An empty compound statement evaluates to its initial state *)
+  | E_CompoundStatementEmpty : forall S E F M,
+    [S, E, F, M =[ CompoundStmt nil ]=> S]
+  | E_CompoundStatementNotEmpty : forall S  E F M stmts s0 rst S' S'',
+    head stmts = Some s0 ->
+    tail stmts = rst ->
+    [S, E, F, M =[ s0 ]=> S'] ->
+    [S', E, F, M =[ CompoundStmt rst ]=> S''] ->
+    [S', E, F, M =[ CompoundStmt stmts ]=> S'']
+  (* TODO: If statement *)
+  (* TODO: If else statement *)
+  (* TODO: While statement *)
+  
+  where "[ S , E , F , M '=[' s ']=>' S' ]" := (stmtevalR S E F M s S') : type_scope.
 
 Close Scope Z_scope.
-*)
+
 
 Close Scope string_scope.
