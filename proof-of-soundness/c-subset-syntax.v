@@ -59,8 +59,8 @@ Inductive const_expr : Type :=
 (* TODO: Currently we can only assign from strings to R-values.
    This need to be fixed so that LHS of assignments can be an L-value *)
 Inductive expr : Type :=
-  | X (x : string)
   | Num (z : Z)
+  | X (x : string)
   | ParenExpr (e : expr)
   | UnExpr (uo : unop) (e : expr)
   | BinExpr (bo : binop) (e1 e2 : expr)
@@ -120,14 +120,93 @@ Definition invocation
   (x:string) (defs:macro_definitions) : option macro_definition :=
   option_map snd (find (fun pair => String.eqb (fst pair) x) defs).
 
+Open Scope Z_scope.
+
+(* Here is an attempt to define evaluation using a function.
+   This does not work because evaluation is inherently
+   nondeterministic, but could work if we added a "step"
+   variable to force evaluation to eventually terminate *)
+Fail Fixpoint expreval
+  (S : state) (E : environment)
+  (F : func_definitions) (M : macro_definitions)
+  (e : expr) : (Z * state) :=
+  match e with
+  | Num z => (z, S)
+  | X x =>
+    match lookupE x E with
+    | None => (0, S) (* FIXME *)
+    | Some l =>
+      match lookupS l S with
+      | None => (0, S) (* FIXME *)
+      | Some v => (v, S)
+      end
+    end
+  | ParenExpr e0 => expreval S E F M e0
+  | UnExpr uo e0 =>
+    let '(v', S') := expreval S E F M e0 in
+      ((unopToOp uo) v', S')
+  | BinExpr bo e1 e2 =>
+    let '(v1, S') := expreval S E F M e1 in
+      let '(v2, S'') := expreval S' E F M e2 in
+        ((binopToOp bo) v1 v2, S'')
+  | Assign x e0 =>
+    let '(v, S') := expreval S E F M e0 in
+      match lookupE x E with
+      | None => (0, S) (* FIXME *)
+      | Some l =>
+        match lookupS l S' with
+        | None => (0, S) (* FIXME *)
+        | Some _ => (v, (l,v)::S')
+        end
+      end
+  | CallOrInvocation x es =>
+    match definition x F with
+    | None =>
+      match invocation x M with
+      | None => (0, S) (* FIXME *)
+      | Some (menv, mexpr) =>
+        let '(v, S') := expreval S menv F M mexpr in
+          (v, S')
+      end
+    | Some (fenv, fstmt, fexpr) =>
+      let S' := stmteval S fenv F M fstmt in
+        let '(v, S'') := expreval S' fenv F M fexpr in
+          (v, S'')
+    end
+  end
+with stmteval
+  (S : state) (E : environment)
+  (F : func_definitions) (M : macro_definitions)
+  (s : stmt) : state :=
+  match s with
+  | Skip => S
+  | ExprStmt e =>
+    let '(_, S') := expreval S E F M e in
+      S'
+  | CompoundStmt stmts =>
+    match stmts with
+    | nil => S
+    | cons s0 rst =>
+      let S' := stmteval S E F M s0 in
+        stmteval S' E F M (CompoundStmt rst)
+    end
+  | IfStmt cond s0 =>
+    let '(v, S') := expreval S E F M cond in
+      if (v =? 0) then S' else stmteval S' E F M s0
+  | IfElseStmt cond s0 s1 =>
+    let '(v, S') := expreval S E F M cond in
+      if (v =? 0) then stmteval S' E F M s0 else stmteval S' E F M s1
+  | WhileStmt cond s0 =>
+    let '(v, S') := expreval S E F M cond in
+      if (v =? 0) then S' else stmteval S' E F M (WhileStmt cond s0)
+  end.
+
+
 (* Right now, a term that fails to evaluate will simply get "stuck";
    i.e. it will fail to be reduced further.
    We do not provide any error messages, but I think we could add this
    later using a sum type. *)
 (* TODO: Add G, the global environment *)
-
-Open Scope Z_scope.
-
 Reserved Notation
   "[ S , E , F , M '|-' e '=>' v , S' ]"
   (at level 90, left associativity).
@@ -138,16 +217,16 @@ Inductive exprevalR :
   state -> environment -> func_definitions -> macro_definitions ->
   expr ->
   Z -> state -> Prop :=
+  (* Numerals evaluate to their integer representation and do not
+     change the state *)
+  | E_Num : forall S E F M n,
+    [S, E, F, M |- (Num n) => n, S]
   (* Variable lookup returns the variable's R-value
      and does not change the state *)
   | E_X_Success : forall S E F M x l v,
     lookupE x E = Some l ->
     lookupS l S = Some v ->
     [S, E, F, M |- (X x) => v, S]
-  (* Numerals evaluate to their integer representation and do not
-     change the state *)
-  | E_Num : forall S E F M n,
-    [S, E, F, M |- (Num n) => n, S]
   (* Parenthesized expressions evaluate to themselves *)
   | E_ParenExpr : forall S E F M e v S',
     [S, E, F, M |- e => v, S'] ->
@@ -268,35 +347,45 @@ Definition has_side_effects (e : expr) : bool. Admitted.
 Definition get_dynamic_vars (md : macro_definition) : list string.
 Admitted.
 
+Definition arg_transformer
+  (f : func_definitions -> macro_definitions -> expr -> (func_definitions*macro_definitions*expr))
+  (cur_e : expr)
+  (acc : (func_definitions*macro_definitions*(list expr)))
+  : (func_definitions*macro_definitions*(list expr)) :=
+    let '(lastF, lastM, lastList) := acc in
+      let '(newF, newM, newe) :=
+        (f lastF lastM cur_e) in
+          (newF, newM, newe::lastList).
+
 Fixpoint transform
   (F: func_definitions) (M: macro_definitions) (e:expr) : 
   (func_definitions * macro_definitions * expr) :=
   match e with
- (* Don't transform variables *)
- | X x => (F, M, X x)
- (* Don't transform numerals *)
- | Num z => (F, M, Num z)
- (* Transform the inner expression of a parenthesize expression *)
- | ParenExpr e =>
+  (* Don't transform numerals *)
+  | Num z => (F, M, Num z)
+  (* Don't transform variables *)
+  | X x => (F, M, X x)
+  (* Transform the inner expression of a parenthesize expression *)
+  | ParenExpr e =>
     let '(F', M', e') := (transform F M e) in
       (F', M', ParenExpr e')
- (* Transform the operand of a unary expressions *)
- | UnExpr uo e => 
+  (* Transform the operand of a unary expressions *)
+  | UnExpr uo e => 
     let '(F', M', e') := (transform F M e) in
       (F', M', UnExpr uo e')
- (* Transform the operands of a binary expressions *)
- | BinExpr bo e1 e2 =>
+  (* Transform the operands of a binary expressions *)
+  | BinExpr bo e1 e2 =>
     let '(F', M', e1') := transform F M e1 in
       let '(F'', M'', e2') := (transform F' M' e2) in
-         (F'', M'', BinExpr bo e1' e2')
- (* Transform the expression of an assignment *)
- (* (this will have to change if L-value evaluation is added *)
- | Assign x e =>
+        (F'', M'', BinExpr bo e1' e2')
+  (* Transform the expression of an assignment *)
+  (* (this will have to change if L-value evaluation is added *)
+  | Assign x e =>
     let '(F', M', e') := (transform F M e) in
       (F', M', Assign x e')
- (* Transformation here varies whether a function or macro invocation
-    is being called *)
- | CallOrInvocation x es =>
+  (* Transformation here varies whether a function or macro invocation
+     is being called *)
+  | CallOrInvocation x es =>
     match definition x F with
     (* If this identifier maps to a function definition, then the
        original piece of code was a function call.
@@ -307,65 +396,64 @@ Fixpoint transform
        having to reverse the list afterward. *)
     | Some def =>
       let '(finalF, finalM, finalList) :=
-      fold_right (
-        fun e acc =>
-          let '(lastF, lastM, lastList) := acc in
-            let '(newF, newM, newe) := (transform lastF lastM e) in
-              (newF, newM, newe::lastList)
-        ) (F, M, nil) es in
+        fold_right (arg_transformer transform) (F, M, nil) es in
           (finalF, finalM, CallOrInvocation x finalList)
     | None =>
-        match invocation x M with
-        | Some (menv, mexpr) =>
-          (* add guard clauses for different transformations *)
-          (* need a way of generating a fresh name *)
-          (* Do any of the the macro arguments have side_effects? *)
-          match existsb has_side_effects es with
-            (* If not, then proceed with other checks *)
-            | false =>
-              (* Does the macro body have side-effects? *)
-              match has_side_effects mexpr with
-              | false =>
-                (* Does the macro use dynamic scoping? *)
-                match get_dynamic_vars (menv, mexpr) with
-                (* No, so just transform the macro to a function *)
-                | nil =>
-                  (* Don't remove from M; copy a new definition
-                     to just F *)
-                  let fname := x ++ "__as_function" in
-                    let F' := (fname, (menv, Skip, mexpr))::F in
-                      (F', M, CallOrInvocation fname es)
-                (* Yes, so add the dynamic variables to the transformed
-                   function's parameter list *)
-                | dyn_vars => (F, M, e) (* FIXME *)
-                end
-              | true =>
-                (* Does the macro use dynamic scoping? *)
-                match get_dynamic_vars (menv, mexpr) with
-                (* No, so just transform the macro to a function *)
-                | nil => (F, M, e) (* FIXME *)
-                (* Yes, so add the dynamic variables to the transformed
-                   function's parameter list *)
-                | dyn_vars => (F, M, e) (* FIXME *)
-                end
-              end
-            (* If so, then don't transform the macro *)
-            | true => (F, M, e)
+      match invocation x M with
+      | Some (menv, mexpr) =>
+        (* add guard clauses for different transformations *)
+        (* need a way of generating a fresh name *)
+        (* Do any of the the macro arguments have side_effects? *)
+        match existsb has_side_effects es with
+        (* If not, then proceed with other checks *)
+        | false =>
+          (* Does the macro body have side-effects? *)
+          match has_side_effects mexpr with
+          | false =>
+            (* Does the macro use dynamic scoping? *)
+            match get_dynamic_vars (menv, mexpr) with
+            (* No, so just transform the macro to a function *)
+            | nil =>
+              (* Don't remove from M; copy a new definition
+                 to just F *)
+              let fname := x ++ "__as_function" in
+                (* And recursively transform the invocation arguments *)
+                let F' := (fname, (menv, Skip, mexpr))::F in
+                  let '(finalF, finalM, finalList) :=
+                    fold_right (arg_transformer transform) (F', M, nil) es in
+                      (finalF, finalM, CallOrInvocation fname finalList)
+            (* Yes, so add the dynamic variables to the transformed
+             function's parameter list *)
+            | dyn_vars => (F, M, e) (* FIXME *)
             end
-        (* If a call can't be connected to a function or macro, then
-           it's erroneous anyway so leave it as-is *)
-        | None => (F, M, e)
+          | true =>
+            (* Does the macro use dynamic scoping? *)
+            match get_dynamic_vars (menv, mexpr) with
+            (* No, so just transform the macro to a function *)
+            | nil => (F, M, e) (* FIXME *)
+            (* Yes, so add the dynamic variables to the transformed
+               function's parameter list *)
+            | dyn_vars => (F, M, e) (* FIXME *)
+            end
+          end
+        (* If so, then don't transform the macro *)
+        | true => (F, M, e)
         end
+      (* If a call can't be connected to a function or macro, then
+         it's erroneous anyway so leave it as-is *)
+      | None => (F, M, e)
       end
- end.
+    end
+  end.
 
 
-(* Variables are equivalent under transformation *)
-Fact var_eq_transformed :
+
+(* Numerals are equivalent under transformation *)
+Theorem num_eq_transformed : 
   forall (S S': state) (E : environment)
          (F F': func_definitions) (M M': macro_definitions)
-         (e e': expr) (x : string) (v : Z),
-  e = X x ->
+         (e e': expr) (v z: Z),
+  e = Num z ->
   transform F M e = (F', M', e') ->
   exprevalR S E F M e v S' = exprevalR S E F' M' e' v S'.
 Proof.
@@ -375,12 +463,12 @@ Proof.
   reflexivity.
 Qed.
 
-(* Numerals are equivalent under transformation *)
-Theorem num_eq_transformed : 
+(* Variables are equivalent under transformation *)
+Fact var_eq_transformed :
   forall (S S': state) (E : environment)
          (F F': func_definitions) (M M': macro_definitions)
-         (e e': expr) (v z: Z),
-  e = Num z ->
+         (e e': expr) (x : string) (v : Z),
+  e = X x ->
   transform F M e = (F', M', e') ->
   exprevalR S E F M e v S' = exprevalR S E F' M' e' v S'.
 Proof.
@@ -425,7 +513,7 @@ Theorem func_call_eq_transformed_macro_no_side_effects :
   get_dynamic_vars (menv, mexpr) = nil ->
   fname = x ++ "__as_function" ->
   transform F M e = (F', M', e') ->
-  definition fname F = Some (menv, Skip, mexpr) ->
+  fold_right (arg_transformer transform) ((fname, (menv, Skip, mexpr)) :: F, M, nil) es = (F', M', es) ->
   (* This premise is VERY strong, can we weaken it?
      Here we assume that a call to the macro will result
      in the same value and state as a call to the
@@ -437,10 +525,8 @@ Proof.
   intros.
   rewrite H in H6. simpl in H6.
   rewrite H0, H1, H2, H3, H4 in H6.
-  rewrite <- H5 in H6.
-  inversion H6.
-  simpl. rewrite H. pattern M' at 1; rewrite <- H11. rewrite H10.
-  rewrite H8. reflexivity.
+  rewrite <- H5 in H6. rewrite H7 in H6.
+  inversion H6. rewrite H. rewrite H8. reflexivity.
 Qed.
 
 
