@@ -52,7 +52,7 @@ Fixpoint transform_macros
     let '(F', M', e') := (transform_macros F M e) in
       (F', M', ParenExpr e')
   (* Transform the operand of a unary expression *)
-  | UnExpr uo e => 
+  | UnExpr uo e =>
     let '(F', M', e') := (transform_macros F M e) in
       (F', M', UnExpr uo e')
   (* Transform the operands of a binary expression *)

@@ -158,7 +158,7 @@ Inductive exprevalR :
   (* Unary expressions *)
   | E_UnExpr : forall S E F M S' uo e v,
     [S, E, F, M |- e => v, S'] ->
-    [S', E, F, M |- (UnExpr uo e) => ((unopToOp uo) v), S']
+    [S, E, F, M |- (UnExpr uo e) => ((unopToOp uo) v), S']
   (* Binary expressions *)
   (* NOTE: Evaluation rules do not handle operator precedence.
      The parser must use a concrete syntax to generate a parse tree
