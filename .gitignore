@@ -7,3 +7,7 @@ tests/c_files/*.txt
 *.sh
 .pytest_cache
 *~
+*.vok
+*.vo
+*.vos
+.*.aux
