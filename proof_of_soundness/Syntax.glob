@@ -1,0 +1,123 @@
+DIGEST c02781904bc39e5e92bc0a334523fb50
+FCpp2C.Syntax
+R15:31 Coq.ZArith.ZArith <> <> lib
+R49:66 Coq.Strings.String <> <> lib
+ind 102:105 <> unop
+constr 121:128 <> Positive
+constr 134:141 <> Negative
+def 220:227 <> unopToOp
+R235:238 Cpp2C.Syntax <> unop ind
+binder 230:231 <> uo:3
+R245:248 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R244:244 Coq.Numbers.BinNums <> Z ind
+R249:249 Coq.Numbers.BinNums <> Z ind
+R263:264 Cpp2C.Syntax <> uo:3 var
+R275:282 Cpp2C.Syntax <> Positive constr
+R287:288 Coq.Init.Datatypes <> id def
+R294:301 Cpp2C.Syntax <> Negative constr
+R306:310 Coq.ZArith.BinInt Z opp def
+ind 353:357 <> binop
+constr 373:376 <> Plus
+constr 382:384 <> Sub
+constr 390:392 <> Mul
+constr 398:400 <> Div
+def 481:489 <> binopToOp
+R497:501 Cpp2C.Syntax <> binop ind
+binder 492:493 <> bo:7
+R508:511 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R507:507 Coq.Numbers.BinNums <> Z ind
+R513:516 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R512:512 Coq.Numbers.BinNums <> Z ind
+R517:517 Coq.Numbers.BinNums <> Z ind
+R531:532 Cpp2C.Syntax <> bo:7 var
+R543:546 Cpp2C.Syntax <> Plus constr
+R551:555 Coq.ZArith.BinInt <> Zplus syndef
+R561:563 Cpp2C.Syntax <> Sub constr
+R568:573 Coq.ZArith.BinInt <> Zminus syndef
+R579:581 Cpp2C.Syntax <> Mul constr
+R586:590 Coq.ZArith.BinInt <> Zmult syndef
+R596:598 Cpp2C.Syntax <> Div constr
+R603:607 Coq.ZArith.BinInt Z div def
+ind 737:746 <> const_expr
+constr 762:769 <> ConstNum
+constr 783:796 <> ConstParenExpr
+constr 820:830 <> ConstUnExpr
+constr 866:877 <> ConstBinExpr
+R776:776 Coq.Numbers.BinNums <> Z ind
+binder 772:772 <> z:11
+R804:813 Cpp2C.Syntax <> const_expr:9 ind
+binder 799:800 <> ce:12
+R838:841 Cpp2C.Syntax <> unop ind
+binder 833:834 <> uo:13
+R850:859 Cpp2C.Syntax <> const_expr:9 ind
+binder 845:846 <> ce:14
+R885:889 Cpp2C.Syntax <> binop ind
+binder 880:881 <> bo:15
+R903:912 Cpp2C.Syntax <> const_expr:9 ind
+binder 893:895 <> ce1:16
+binder 897:899 <> ce2:17
+ind 1114:1117 <> expr
+constr 1133:1135 <> Num
+constr 1149:1149 <> X
+constr 1168:1176 <> ParenExpr
+constr 1194:1199 <> UnExpr
+constr 1229:1235 <> BinExpr
+constr 1269:1274 <> Assign
+constr 1304:1319 <> CallOrInvocation
+R1142:1142 Coq.Numbers.BinNums <> Z ind
+binder 1138:1138 <> z:20
+R1156:1161 Coq.Strings.String <> string ind
+binder 1152:1152 <> x:21
+R1184:1187 Cpp2C.Syntax <> expr:18 ind
+binder 1179:1180 <> e0:22
+R1207:1210 Cpp2C.Syntax <> unop ind
+binder 1202:1203 <> uo:23
+R1219:1222 Cpp2C.Syntax <> expr:18 ind
+binder 1214:1215 <> e0:24
+R1243:1247 Cpp2C.Syntax <> binop ind
+binder 1238:1239 <> bo:25
+R1259:1262 Cpp2C.Syntax <> expr:18 ind
+binder 1251:1252 <> e1:26
+binder 1254:1255 <> e2:27
+R1280:1285 Coq.Strings.String <> string ind
+binder 1277:1277 <> x:28
+R1294:1297 Cpp2C.Syntax <> expr:18 ind
+binder 1289:1290 <> e0:29
+R1326:1331 Coq.Strings.String <> string ind
+binder 1322:1322 <> x:30
+ind 1346:1349 <> stmt
+constr 1480:1483 <> Skip
+constr 1489:1496 <> ExprStmt
+constr 1513:1524 <> CompoundStmt
+constr 1549:1554 <> IfStmt
+constr 1585:1594 <> IfElseStmt
+constr 1627:1635 <> WhileStmt
+R1503:1506 Cpp2C.Syntax <> expr ind
+binder 1499:1499 <> e:33
+R1534:1537 Coq.Init.Datatypes <> list ind
+R1539:1542 Cpp2C.Syntax <> stmt:31 ind
+binder 1527:1531 <> stmts:34
+R1563:1566 Cpp2C.Syntax <> expr ind
+binder 1557:1560 <> cond:35
+R1575:1578 Cpp2C.Syntax <> stmt:31 ind
+binder 1570:1571 <> s0:36
+R1603:1606 Cpp2C.Syntax <> expr ind
+binder 1597:1600 <> cond:37
+R1617:1620 Cpp2C.Syntax <> stmt:31 ind
+binder 1610:1611 <> s0:38
+binder 1613:1614 <> s1:39
+R1644:1647 Cpp2C.Syntax <> expr ind
+binder 1638:1641 <> cond:40
+R1656:1659 Cpp2C.Syntax <> stmt:31 ind
+binder 1651:1652 <> s0:41
+ind 1800:1803 <> decl
+constr 1819:1827 <> LocalDecl
+constr 1853:1862 <> GlobalDecl
+R1832:1837 Coq.Strings.String <> string ind
+binder 1830:1830 <> x:44
+R1843:1846 Cpp2C.Syntax <> expr ind
+binder 1841:1841 <> e:45
+R1867:1872 Coq.Strings.String <> string ind
+binder 1865:1865 <> x:46
+R1879:1888 Cpp2C.Syntax <> const_expr ind
+binder 1876:1877 <> ce:47
