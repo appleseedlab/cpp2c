@@ -49,6 +49,7 @@ Inductive expr : Type :=
   | Assign (x: string) (e0 : expr)
   | CallOrInvocation (x : string).
 
+
 Inductive stmt : Type :=
   (* We may not need this, I added it to make the evaluation rule
      for compound statements easier to define *)

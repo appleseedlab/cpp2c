@@ -38,7 +38,110 @@ Admitted.
           (newF, newM, newe::lastList).
  *)
 
+(* Transforms the function definitions list of a program whose
+   CPP usage is being converted to C. *)
+Fixpoint transform_macros_F
+  (F: func_definitions) (M: macro_definitions) (e: expr) :
+  (func_definitions) :=
+  match e with
+  | Num z => F
+  | X x => F
+  | ParenExpr e0 => transform_macros_F F M e0
+  | UnExpr uo e0 => transform_macros_F F M e0
+  | BinExpr bo e1 e2 =>
+    (* Here's a potential issue: How to handle recursive
+       transformations in expressions with more than one operand?
+       This is currently causing a problem in the soundness proof.
+       I think the best solution would be to transform F using e1,
+       transform F using e2, then join the two definition lists.
+       Is that sound though; and how to prove that it is? *)
+    app (transform_macros_F F M e1) (transform_macros_F F M e2)
+  | Assign x e0 => transform_macros_F F M e0
+  | CallOrInvocation x =>
+    match definition x F with
+    | Some def => F
+    | None =>
+      match invocation x M with
+      | None => F
+      | Some mexpr =>
+        match existsb has_side_effects nil with
+        | false =>
+          match has_side_effects mexpr with
+          | false =>
+            match get_dynamic_vars mexpr with
+            (* Don't recursively transform macro bodies *)
+            | nil => (x ++ "__as_function", (Skip, mexpr))::F
+            | dyn_vars => F (* FIXME *)
+            end
+          | true =>
+            match get_dynamic_vars mexpr with
+            | nil => F (* FIXME *)
+            | dyn_vars => F (* FIXME *)
+            end
+          end
+        | true => F
+        end
+      end
+    end
+  end.
 
+(* Transforms the macro definitions list of a program whose
+   CPP usage is being converted to C. Currently we don't
+   actually alter this. *)
+Definition transform_macros_M
+  (F: func_definitions) (M: macro_definitions) (e: expr) :
+  (macro_definitions) := M.
+
+(* Transforms the expressions of a program whose
+   CPP usage is being converted to C. Not all transformations are
+   supported yet. *)
+Fixpoint transform_macros_e
+  (F: func_definitions) (M: macro_definitions) (e: expr) :
+  (expr) :=
+  match e with
+  | Num z => e
+  | X x => e
+  | ParenExpr e0 => ParenExpr (transform_macros_e F M e0)
+  | UnExpr uo e0 => UnExpr uo (transform_macros_e F M e0)
+  | BinExpr bo e1 e2 =>
+    (* Again: How to handle this? Currently this is not
+      technically correct, since we should be feeding the transformed
+      F from the first operand to the transformation for the second
+      operand. Or is this correct, and we should perform operand's 
+      transformation using the original F? *)
+    BinExpr bo (transform_macros_e F M e1) (transform_macros_e F M e2)
+  | Assign x e0 => Assign x (transform_macros_e F M e0)
+  | CallOrInvocation x =>
+    match definition x F with
+    | Some def => e
+    | None =>
+      match invocation x M with
+      | None => e
+      | Some mexpr =>
+        match existsb has_side_effects nil with
+        | false =>
+          match has_side_effects mexpr with
+          | false =>
+            match get_dynamic_vars mexpr with
+            (* Don't recursively transform macro bodies *)
+            | nil => CallOrInvocation (x ++ "__as_function")
+            | dyn_vars => e (* FIXME *)
+            end
+          | true =>
+            match get_dynamic_vars mexpr with
+            | nil => e (* FIXME *)
+            | dyn_vars => e (* FIXME *)
+            end
+          end
+        | true => e
+        end
+      end
+    end
+  end.
+
+
+(* Transforms function definitions, macro definitions, and expressions
+   simultaneously. Is a bit difficult to work with in proofs *)
 Fixpoint transform_macros
   (F: func_definitions) (M: macro_definitions) (e:expr) :
   (func_definitions * macro_definitions * expr) :=
