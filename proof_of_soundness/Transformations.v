@@ -8,7 +8,6 @@ From Cpp2C Require Import Syntax.
 From Cpp2C Require Import ConfigVars.
 From Cpp2C Require Import EvalRules.
 
-Open Scope string_scope.
 
 (* Returns true if an expression has side-effects, false otherwise *)
 Definition has_side_effects (e : expr) : bool.
@@ -37,6 +36,7 @@ Admitted.
         (transform_function lastF lastM cur_e) in
           (newF, newM, newe::lastList).
  *)
+
 
 (* Transforms the function definitions list of a program whose
    CPP usage is being converted to C. *)
@@ -70,7 +70,7 @@ Fixpoint transform_macros_F
           | false =>
             match get_dynamic_vars mexpr with
             (* Don't recursively transform macro bodies *)
-            | nil => (x ++ "__as_function", (Skip, mexpr))::F
+            | nil => ((x ++ "__as_function")%string, (Skip, mexpr))::F
             | dyn_vars => F (* FIXME *)
             end
           | true =>
@@ -85,12 +85,14 @@ Fixpoint transform_macros_F
     end
   end.
 
+
 (* Transforms the macro definitions list of a program whose
    CPP usage is being converted to C. Currently we don't
    actually alter this. *)
 Definition transform_macros_M
   (F: func_definitions) (M: macro_definitions) (e: expr) :
   (macro_definitions) := M.
+
 
 (* Transforms the expressions of a program whose
    CPP usage is being converted to C. Not all transformations are
@@ -109,7 +111,8 @@ Fixpoint transform_macros_e
       F from the first operand to the transformation for the second
       operand. Or is this correct, and we should perform operand's 
       transformation using the original F? *)
-    BinExpr bo (transform_macros_e F M e1) (transform_macros_e F M e2)
+    let F' := (transform_macros_F F M e1) ++ (transform_macros_F F M e2) in
+      BinExpr bo (transform_macros_e F' M e1) (transform_macros_e F' M e2)
   | Assign x e0 => Assign x (transform_macros_e F M e0)
   | CallOrInvocation x =>
     match definition x F with
@@ -195,7 +198,7 @@ Fixpoint transform_macros
             | nil =>
               (* Don't remove from M; copy a new definition
                  to just F *)
-              let fname := x ++ "__as_function" in
+              let fname := (x ++ "__as_function")%string in
                 (* And recursively transform the invocation arguments *)
                 let F' := (fname, (Skip, mexpr))::F in
                   (F', M, CallOrInvocation fname)
@@ -294,5 +297,3 @@ Fixpoint transform_id
   | Assign x e0 => Assign x (transform_id e0)
   | CallOrInvocation x => CallOrInvocation x
   end.
-
-Close Scope string_scope.

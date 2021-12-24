@@ -9,8 +9,6 @@ From Cpp2C Require Import ConfigVars.
 From Cpp2C Require Import EvalRules.
 From Cpp2C Require Import Transformations.
 
-Open Scope string_scope.
-
 (* A constant macro is the same as a constant function with the same return
    expression *)
 Lemma constant_function_macro_eq_to_function :
@@ -68,7 +66,28 @@ Qed.
 Lemma eval_same_under_unique_names :
   forall S E F M v S' x mexpr,
   exprevalR S E F M mexpr v S' ->
-  exprevalR S E ((x ++ "__as_function", (Skip, mexpr)) :: F) M mexpr v S'.
+  exprevalR S E (((x ++ "__as_function")%string, (Skip, mexpr)) :: F) M mexpr v S'.
+Admitted.
+
+(* This lemma asserts that if two operands of a binary expression can
+   be successfully transformed, then their transformed function
+   definition lists can be unioned and the evaluation of the operands
+   will still be sound. Similar to above, intuitively this makes sense
+   because the function names we generate will all be unique, but we
+   need this lemma to assist in the Coq proof. *)
+Lemma eval_same_under_joined_Fs :
+  forall S E F M S' bo e1 e2 v1 v2 S'',
+  exprevalR S E (transform_macros_F F M e1) M (transform_macros_e F M e1) v1 S' ->
+  exprevalR S' E (transform_macros_F F M e2) M (transform_macros_e F M e2) v2 S'' ->
+  (exprevalR S E (transform_macros_F F M (BinExpr bo e1 e2)) M
+  (transform_macros_e
+    (transform_macros_F F M e1 ++ transform_macros_F F M e2) M e1)
+  v1 S') /\
+  (exprevalR S' E (transform_macros_F F M (BinExpr bo e1 e2)) M
+  (transform_macros_e
+    (transform_macros_F F M e1 ++ transform_macros_F F M e2) M e2)
+  v2 S'').
+Proof.
 Admitted.
 
 
@@ -90,9 +109,16 @@ Proof.
   - (* UnExpr uo e *)
     apply E_UnExpr. apply IHexprevalR.
   - (* BinExpr bo e1 e2 *)
-    apply E_BinExpr with (S:=S) (S':=S').
-    + fold transform_macros_e. admit.
-    + fold transform_macros_e. admit.
+    apply E_BinExpr with (S:=S) (S':=S'); fold transform_macros_e.
+      (* We use an admitted lemma here to assert that if the operands
+         of a binary expression can be transformed soundly, then
+         the entire binary expression can be transformed soundly.
+         This is to get around some issues with the uniqueness of
+         function names. *)
+    + eapply eval_same_under_joined_Fs.
+      apply IHexprevalR1. apply IHexprevalR2.
+    + eapply eval_same_under_joined_Fs.
+      apply IHexprevalR1. apply IHexprevalR2.
   - (* Assign x e *)
     apply E_Assign_Success. apply IHexprevalR. apply H0.
   - (* CallOrInvocation x (function call) *)
@@ -131,7 +157,7 @@ Proof.
            ++ apply eval_same_under_unique_names. apply H0.
            (* x shares variables with the caller environment *)
         -- apply E_MacroInvocation with mexpr. apply H. apply H0.
-Admitted.
+Qed.
 
 
 (* Expression evaluation does not change under the ID transformation *)
@@ -174,5 +200,3 @@ Qed.
    that the other two transformations are sound
 *)
 
-
-Close Scope string_scope.
