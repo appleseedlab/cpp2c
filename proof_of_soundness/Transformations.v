@@ -52,10 +52,14 @@ Fixpoint transform_macros_F
     (* Here's a potential issue: How to handle recursive
        transformations in expressions with more than one operand?
        This is currently causing a problem in the soundness proof.
-       I think the best solution would be to transform F using e1,
-       transform F using e2, then join the two definition lists.
-       Is that sound though; and how to prove that it is? *)
-    app (transform_macros_F F M e1) (transform_macros_F F M e2)
+       I think the best solution would be to transform F using e2, and
+       feed the result into the function definition list transformation
+       using e2. This would be the same as doing a right fold of the
+       F transformation function over a list of two expressions.
+       Is that sound though; and if so, how to prove that it is? *)
+    let F' := transform_macros_F F M e2 in
+      transform_macros_F F' M e1
+    (* app (transform_macros_F F M e1) (transform_macros_F F M e2) *)
   | Assign x e0 => transform_macros_F F M e0
   | CallOrInvocation x =>
     match definition x F with
@@ -111,8 +115,7 @@ Fixpoint transform_macros_e
       F from the first operand to the transformation for the second
       operand. Or is this correct, and we should perform operand's 
       transformation using the original F? *)
-    let F' := (transform_macros_F F M e1) ++ (transform_macros_F F M e2) in
-      BinExpr bo (transform_macros_e F' M e1) (transform_macros_e F' M e2)
+    BinExpr bo (transform_macros_e F M e1) (transform_macros_e F M e2)
   | Assign x e0 => Assign x (transform_macros_e F M e0)
   | CallOrInvocation x =>
     match definition x F with

@@ -79,14 +79,11 @@ Lemma eval_same_under_joined_Fs :
   forall S E F M S' bo e1 e2 v1 v2 S'',
   exprevalR S E (transform_macros_F F M e1) M (transform_macros_e F M e1) v1 S' ->
   exprevalR S' E (transform_macros_F F M e2) M (transform_macros_e F M e2) v2 S'' ->
-  (exprevalR S E (transform_macros_F F M (BinExpr bo e1 e2)) M
-  (transform_macros_e
-    (transform_macros_F F M e1 ++ transform_macros_F F M e2) M e1)
-  v1 S') /\
-  (exprevalR S' E (transform_macros_F F M (BinExpr bo e1 e2)) M
-  (transform_macros_e
-    (transform_macros_F F M e1 ++ transform_macros_F F M e2) M e2)
-  v2 S'').
+  exprevalR S E (transform_macros_F F M (BinExpr bo e1 e2)) M
+  (transform_macros_e F M e1) v1 S'
+  /\
+  exprevalR S' E (transform_macros_F F M (BinExpr bo e1 e2)) M
+  (transform_macros_e F M e2) v2 S''.
 Proof.
 Admitted.
 
@@ -115,7 +112,7 @@ Proof.
          the entire binary expression can be transformed soundly.
          This is to get around some issues with the uniqueness of
          function names. *)
-    + eapply eval_same_under_joined_Fs.
+    + apply eval_same_under_joined_Fs with (v2:=v2) (S'':=S'').
       apply IHexprevalR1. apply IHexprevalR2.
     + eapply eval_same_under_joined_Fs.
       apply IHexprevalR1. apply IHexprevalR2.
