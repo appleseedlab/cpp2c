@@ -47,12 +47,12 @@ Inductive expr : Type :=
   | UnExpr (uo : unop) (e0 : expr)
   | BinExpr (bo : binop) (e1 e2 : expr)
   | Assign (x: string) (e0 : expr)
-  | CallOrInvocation (x : string).
+  | CallOrInvocation (x : string) (es : list expr).
 
 
 Inductive stmt : Type :=
-  (* We may not need this, I added it to make the evaluation rule
-     for compound statements easier to define *)
+  (* We may not need Skip, I added it to make the evaluation rule
+     for compound statements easier to define. *)
   | Skip
   | ExprStmt (e : expr)
   | CompoundStmt (stmts: list stmt)

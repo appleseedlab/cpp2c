@@ -9,32 +9,13 @@ From Cpp2C Require Import ConfigVars.
 From Cpp2C Require Import EvalRules.
 From Cpp2C Require Import Transformations.
 
-(* A constant macro is the same as a constant function with the same return
-   expression *)
-Lemma constant_function_macro_eq_to_function :
-  forall i St E F M mname fname mexpr n,
-  i = S n ->
-  invocation mname M = Some mexpr ->
-  definition mname F = None ->
-  invocation fname M = None ->
-  definition fname F = Some (Skip, mexpr) ->
-  expreval i St E F M (CallOrInvocation fname) = 
-  expreval i St E F M (CallOrInvocation mname).
-Proof.
-  intros.
-  unfold expreval. rewrite H, H0, H1, H2, H3.
-  induction n.
-  - reflexivity.
-  - reflexivity.
-Qed.
-
 
 (* A call to a macro without side-effects is equivalent to a call
    to the transformed version of that macro as a function *)
 Lemma simple_macro_eq_func_call :
   forall (S S': state) (E : environment)
          (F F': func_definitions) (M M': macro_definitions)
-         (mexpr: expr) (x fname : string)
+         (mexpr: expr) (x fname : string) (es : list expr)
          (v : Z),
   definition x F = None ->
   invocation x M = Some mexpr ->
@@ -42,7 +23,7 @@ Lemma simple_macro_eq_func_call :
   invocation x M' = None ->
   exprevalR S E F M mexpr v S' ->
   exprevalR S E F' M' mexpr v S' ->
-  exprevalR S E F M (CallOrInvocation x) v S' <-> exprevalR S E F' M' (CallOrInvocation x) v S'.
+  exprevalR S E F M (CallOrInvocation x es) v S' <-> exprevalR S E F' M' (CallOrInvocation x es) v S'.
 Proof.
   intros.
   split.
@@ -77,24 +58,27 @@ Admitted.
    need this lemma to assist in the Coq proof. *)
 Lemma eval_same_under_joined_Fs :
   forall S E F M S' bo e1 e2 v1 v2 S'',
-  exprevalR S E (transform_macros_F F M e1) M (transform_macros_e F M e1) v1 S' ->
-  exprevalR S' E (transform_macros_F F M e2) M (transform_macros_e F M e2) v2 S'' ->
-  exprevalR S E (transform_macros_F F M (BinExpr bo e1 e2)) M
+  exprevalR S E (transform_macros_F_e F M e1) M (transform_macros_e F M e1) v1 S' ->
+  exprevalR S' E (transform_macros_F_e F M e2) M (transform_macros_e F M e2) v2 S'' ->
+  exprevalR S E (transform_macros_F_e F M (BinExpr bo e1 e2)) M
   (transform_macros_e F M e1) v1 S'
   /\
-  exprevalR S' E (transform_macros_F F M (BinExpr bo e1 e2)) M
+  exprevalR S' E (transform_macros_F_e F M (BinExpr bo e1 e2)) M
   (transform_macros_e F M e2) v2 S''.
-Proof.
 Admitted.
 
 
-Theorem transform_macros_sound :
+(* Transforming an expression involving macros to one in which
+   transformable macros have been converted to functions results
+   in an expression that evaluates to the same value and state; i.e.,
+   the transformation is sound. *)
+Theorem transform_macros_expressions_sound :
   forall S E F M e v S',
   exprevalR S E F M e v S' ->
-  exprevalR S E (transform_macros_F F M e) (transform_macros_M F M e) (transform_macros_e F M e) v S'.
+  exprevalR S E (transform_macros_F_e F M e) (transform_macros_M_e F M e) (transform_macros_e F M e) v S'.
 Proof.
   intros.
-  induction H; unfold transform_macros_M in *.
+  induction H; unfold transform_macros_M_e in *.
   - (* Num z *)
     apply E_Num.
   - (* X x *)
@@ -119,11 +103,11 @@ Proof.
   - (* Assign x e *)
     apply E_Assign_Success. apply IHexprevalR. apply H0.
   - (* CallOrInvocation x (function call) *)
-    unfold transform_macros_F. unfold transform_macros_e.
+    unfold transform_macros_F_e. unfold transform_macros_e.
     rewrite H. apply E_FunctionCall with (fstmt:=fstmt) (fexpr:=fexpr)
     (S':=S'). apply H. apply H0. apply H1.
   - (* CallOrInvocation x (macro invocation) *)
-    unfold transform_macros_F.
+    unfold transform_macros_F_e.
     unfold transform_macros_e.
     rewrite H.
     destruct (definition x F).
@@ -157,11 +141,95 @@ Proof.
 Qed.
 
 
+
+(* This lemma says that if a transformed compound statement can be
+   soundly evaluated, then each of its statements can be soundly
+   evaluated as well. *)
+(* This may need some work to be made more conservative *)
+Lemma compound_statement_transformation_sound :
+  forall S E F M s0 rst stmts S' S'',
+  stmtevalR S E (transform_macros_F_s F M s0)
+    (transform_macros_M_s F M s0)
+    (transform_macros_s F M s0) S' ->
+  stmtevalR S' E
+    (transform_macros_F_s F M (CompoundStmt rst))
+    (transform_macros_M_s F M (CompoundStmt rst))
+    (transform_macros_s F M (CompoundStmt rst)) S'' ->
+  stmtevalR S E (transform_macros_F_s F M (CompoundStmt stmts))
+  (transform_macros_M_s F M (CompoundStmt stmts))
+  (transform_macros_s F M s0) S'
+  /\
+  stmtevalR S' E (transform_macros_F_s F M (CompoundStmt stmts))
+  (transform_macros_M_s F M (CompoundStmt stmts))
+  (CompoundStmt (map (transform_macros_s F M) rst)) S''.
+Admitted.
+
+
+(* Transforming a statement involving macros to one in which
+   transformable macros have been converted to functions results
+   in a statement that evaluates to the same state; i.e.,
+   the transformation is sound. *)
+Theorem transform_macros_statements_sound :
+  forall S E F M s S',
+  stmtevalR S E F M s S' ->
+  stmtevalR S E (transform_macros_F_s F M s) (transform_macros_M_s F M s) (transform_macros_s F M s) S'.
+Proof.
+  intros.
+  induction H.
+  - (* Skip *)
+    apply E_Skip.
+  - (* ExprStmt e *)
+    apply E_ExprStmt with v.
+    apply transform_macros_expressions_sound. apply H.
+  - (* CompoundStmt nil *)
+    apply E_CompoundStatementEmpty.
+    (* The wrong s0 and rst are used here *)
+  - (* CompoundStmt es *)
+    apply E_CompoundStatementNotEmpty with
+      (s0 := transform_macros_s F M s0)
+        (rst := map (transform_macros_s F M) rst) (S' := S').
+    + fold transform_macros_s. induction stmts.
+      * discriminate.
+      * simpl. inversion H. reflexivity.
+    + fold transform_macros_s. induction stmts.
+      * discriminate.
+      * simpl in H0. rewrite H0. reflexivity.
+    + apply compound_statement_transformation_sound with rst S''.
+      * apply IHstmtevalR1.
+      * apply IHstmtevalR2.
+    + eapply compound_statement_transformation_sound.
+      * apply IHstmtevalR1.
+      * apply IHstmtevalR2.
+  - (* IfStmt e s0 (false) *)
+    apply E_IfFalse. admit.
+  - (* IfStmt e s) (true) *)
+    apply E_IfTrue with v S'.
+    + apply H.
+    + admit.
+    + fold transform_macros_s. admit.
+  - (* IfElseStmt e s0 s1 (false) *)
+    apply E_IfElseFalse with S'.
+    + admit.
+    + fold transform_macros_s. admit.
+  - (* IfElseStmt e s0 s1 (true) *)
+    apply E_IfElseFalse with S'.
+    + admit.
+    + fold transform_macros_s. admit.
+  - (* WhileStmt e s0 (false) *)
+    apply E_WhileFalse. admit.
+  - (* WhileStmt e s0 (true) *)
+    apply E_WhileTrue with v S' S''.
+    + apply H.
+    + admit.
+    + fold transform_macros_s. admit.
+    + fold transform_macros_s. apply IHstmtevalR2.
+Admitted.
+
 (* Expression evaluation does not change under the ID transformation *)
-Theorem transform_id_sound :
+Theorem transform_id_e_sound :
   forall S E F M e v S',
   exprevalR S E F M e v S' ->
-  exprevalR S E F M (transform_id e) v S'.
+  exprevalR S E F M (transform_id_e e) v S'.
 Proof.
   intros.
   induction H.
@@ -178,22 +246,82 @@ Proof.
     apply IHexprevalR1. apply IHexprevalR2.
   - (* Assign x e *)
     constructor. apply IHexprevalR. apply H0.
-  - (* CallOrInvocation x (function call) *)
+  - (* CallOrInvocation x es (function call) *)
     apply E_FunctionCall with (fstmt:=fstmt) (fexpr:=fexpr) (S':=S').
     apply H. apply H0. apply H1.
-  - (* CallOrInvocation x (macro invocation) *)
+  - (* CallOrInvocation x es (macro invocation) *)
    apply E_MacroInvocation with mexpr. apply H. apply H0.
 Qed.
 
 
+(* Statement evaluation does not change under the ID transformation *)
+Theorem transform_id_s_sound :
+  forall S E F M s S',
+  stmtevalR S E F M s S' ->
+  stmtevalR S E F M (transform_id_s s) S'.
+Proof.
+  intros.
+  induction H.
+  - (* Skip *)
+    apply E_Skip.
+  - (* ExprStmt e *)
+    apply E_ExprStmt with v.
+    apply transform_id_e_sound.
+    apply H.
+  - (* CompoundStmt nil *)
+    apply E_CompoundStatementEmpty.
+  - (* CompoundStmt stmts *)
+    apply E_CompoundStatementNotEmpty with
+      (s0 := transform_id_s s0)
+        (rst := map transform_id_s rst) (S' := S').
+    + fold transform_id_s. induction stmts.
+      * discriminate.
+      * fold transform_id_s in *. simpl. simpl in H. inversion H.
+        reflexivity.
+    + fold transform_id_s. induction stmts.
+      * discriminate.
+      * simpl. simpl in H0. rewrite H0. reflexivity.
+    + apply IHstmtevalR1.
+    + apply IHstmtevalR2.
+  - (* IfStmt e s0 (false) *)
+    apply E_IfFalse. apply transform_id_e_sound. apply H.
+  - (* IfStmt e s0 (true) *)
+    apply E_IfTrue with v S'.
+    + apply H.
+    + apply transform_id_e_sound. apply H0.
+    + fold transform_id_s. apply IHstmtevalR.
+  - (* IfElseStmt e s0 s1 (false) *)
+    apply E_IfElseFalse with S'.
+    + apply transform_id_e_sound. apply H.
+    + fold transform_id_s. apply IHstmtevalR.
+  - (* IfElseStmt e S0 s1 (true) *)
+    apply E_IfElseTrue with v S'.
+    + apply H.
+    + apply transform_id_e_sound. apply H0.
+    + fold transform_id_s. apply IHstmtevalR.
+  - (* WhileStmt e s0 (false) *)
+    apply E_WhileFalse.
+    + apply transform_id_e_sound. apply H.
+  - (* WhileStmt e s0 (true) *)
+    apply E_WhileTrue with v S' S''.
+    + apply H.
+    + apply transform_id_e_sound. apply H0.
+    + fold transform_id_s. apply IHstmtevalR1.
+    + fold transform_id_s. simpl in IHstmtevalR2.
+      apply IHstmtevalR2.
+Qed.
+
+(* TODO: It may be useful to write a theorem stating that program
+   evaluation is sound under just function definition list
+   transformation. This should be easy to prove once we have a way
+   of ensuring that all new function names will be unique. This
+   would make the proofs of all terms which have nested statements
+   or expressions much easier. *)
+
+(* TODO: Create a transform_id function for statements and prove
+   that that transformation is sound before trying to prove the
+   macro transformation for statements is sound. *)
+
+
 (* NOTE: May want to note in paper that we have to transform
          function and macro arguments recursively *)
-
-(* We may need three separate theorems, proving
-   1) Equivalence under expression transformation
-   2) Equivalence function definitions transformation
-   3) Equivalence under macro definitions transformation
-   For proving 2 & 3, we can add to the premises of the proof
-   that the other two transformations are sound
-*)
-

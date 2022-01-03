@@ -8,123 +8,6 @@ Section EvalRules.
 
 Open Scope Z_scope.
 
-(* Here is an attempt to define evaluation using a function.
-   This does not work because evaluation is inherently
-   nondeterministic, but could work if we added a "step"
-   variable to force evaluation to eventually terminate *)
-Fixpoint expreval
-  (i : nat)
-  (S : state) (E : environment)
-  (F : func_definitions) (M : macro_definitions)
-  (e : expr) : option (Z * state) :=
-  match i with
-  | O => None
-  | S i' =>
-    match e with
-    | Num z => Some (z, S)
-    | X x =>
-      match lookupE x E with
-      | None => None
-      | Some l =>
-        match lookupS l S with
-        | None => None
-        | Some v => Some (v, S)
-        end
-      end
-    | ParenExpr e0 => expreval i' S E F M e0
-    | UnExpr uo e0 =>
-      match expreval i' S E F M e0 with
-      | None => None
-      | Some (v, S') => Some((unopToOp uo) v, S')
-      end
-    | BinExpr bo e1 e2 =>
-      match expreval i' S E F M e1 with
-      | None => None
-      | Some (v1, S') =>
-        match expreval i' S' E F M e2 with
-        | None => None
-        | Some (v2, S'') => Some ((binopToOp bo) v1 v2, S'')
-        end
-      end
-    | Assign x e0 =>
-      match expreval i' S E F M e0 with
-      | None => None
-      | Some (v, S') =>
-        match lookupE x E with
-        | None => None
-        | Some l =>
-          match lookupS l S' with
-          | None => None
-          | Some _ => Some (v, (l, v)::S')
-          end
-        end
-      end
-    | CallOrInvocation x =>
-      match definition x F with
-      | None =>
-        match invocation x M with
-        | None => None
-        | Some mexpr =>
-          expreval i' S E F M mexpr
-        end
-      | Some (fstmt, fexpr) =>
-        match stmteval i' S E F M fstmt with
-        | None => None
-        | Some S' =>
-          expreval i' S' E F M fexpr
-        end
-      end
-    end
-  end
-with stmteval
-  (i : nat)
-  (S : state) (E : environment)
-  (F : func_definitions) (M : macro_definitions)
-  (s : stmt) : option state :=
-  match i with
-  | O => None
-  | S i' =>
-    match s with
-    | Skip => Some S
-    | ExprStmt e =>
-      match expreval i' S E F M e with
-      | None => None
-      | Some (_, S') => Some S'
-      end
-    | CompoundStmt stmts =>
-      match stmts with
-      | nil => Some S
-      | cons s0 rst =>
-        match stmteval i' S E F M s0 with
-        | None => None
-        | Some S' =>
-          match stmteval i' S' E F M (CompoundStmt rst) with
-          | None => None
-          | Some S'' => Some S''
-          end
-        end
-      end
-    | IfStmt cond s0 =>
-      match expreval i' S E F M cond with
-      | None => None
-      | Some (0, S') => Some S'
-      | Some (_, S') => stmteval i' S' E F M s0
-      end
-    | IfElseStmt cond s0 s1 =>
-      match expreval i' S E F M cond with
-      | None => None
-      | Some (0, S') => stmteval i' S' E F M s0
-      | Some (_, S') => stmteval i' S' E F M s1
-      end
-    | WhileStmt cond s0 =>
-      match expreval i' S E F M cond with
-      | None => None
-      | Some (0, S') => Some S'
-      | Some (_, S') => stmteval i' S' E F M (WhileStmt cond s0)
-      end
-    end
-  end.
-
 
 (* Right now, a term that fails to evaluate will simply get "stuck";
    i.e. it will fail to be reduced further.
@@ -177,17 +60,17 @@ Inductive exprevalR :
   (* For function calls, each of the function call's arguments are
      evaluated, then the function call itself is evaluated, and finally
      the result of the call is returned along with the ultimate state. *)
-  | E_FunctionCall: forall S E F M x fstmt fexpr S' v S'',
+  | E_FunctionCall: forall S E F M x es fstmt fexpr S' v S'',
     definition x F = Some (fstmt, fexpr) ->
     {S, E, F, M =[ fstmt ]=> S'} ->
     [S, E, F, M |- fexpr => v, S''] ->
-    [S, E, F, M |- (CallOrInvocation x) => v, S'']
+    [S, E, F, M |- (CallOrInvocation x es) => v, S'']
   (* Macro invocation*)
   (* FIXME *)
-  | E_MacroInvocation : forall S E F M x mexpr v S',
+  | E_MacroInvocation : forall S E F M x es mexpr v S',
     invocation x M = Some mexpr ->
     [S, E, F, M |- mexpr => v, S'] ->
-    [S, E, F, M |- (CallOrInvocation x) => v, S']
+    [S, E, F, M |- (CallOrInvocation x es) => v, S']
   where "[ S , E , F , M '|-' e '=>' v , S' ]" := (exprevalR S E F M e v S')
 (* Define the evaluation rule for statements as a
    relation instead of an inductive type to permite the non-

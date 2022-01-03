@@ -29,7 +29,7 @@ Definition lookupS (l:nat) (S:state) : option Z :=
    2: Return expression *)
 (* TODO: Eventually we may want to swap the environment out for a
          parameter list and operate on that instead *)
-Definition func_definition : Set := (stmt * expr).
+Definition func_definition : Set := ((stmt) * expr).
 Definition func_definitions : Set := @list (string * func_definition).
 
 (* Macro definitions are serialized as a two-tuple containing

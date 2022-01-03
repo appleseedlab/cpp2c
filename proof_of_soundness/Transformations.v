@@ -38,30 +38,30 @@ Admitted.
  *)
 
 
-(* Transforms the function definitions list of a program whose
+(* Transforms the function definitions list of an expression whose
    CPP usage is being converted to C. *)
-Fixpoint transform_macros_F
-  (F: func_definitions) (M: macro_definitions) (e: expr) :
+Fixpoint transform_macros_F_e
+  (F: func_definitions) (M: macro_definitions) (e : expr) :
   (func_definitions) :=
   match e with
   | Num z => F
   | X x => F
-  | ParenExpr e0 => transform_macros_F F M e0
-  | UnExpr uo e0 => transform_macros_F F M e0
+  | ParenExpr e0 => transform_macros_F_e F M e0
+  | UnExpr uo e0 => transform_macros_F_e F M e0
   | BinExpr bo e1 e2 =>
     (* Here's a potential issue: How to handle recursive
        transformations in expressions with more than one operand?
        This is currently causing a problem in the soundness proof.
        I think the best solution would be to transform F using e2, and
        feed the result into the function definition list transformation
-       using e2. This would be the same as doing a right fold of the
+       using e2. This would be the same as doing a left fold of the
        F transformation function over a list of two expressions.
        Is that sound though; and if so, how to prove that it is? *)
-    let F' := transform_macros_F F M e2 in
-      transform_macros_F F' M e1
+    let F' := transform_macros_F_e F M e1 in
+      transform_macros_F_e F' M e2
     (* app (transform_macros_F F M e1) (transform_macros_F F M e2) *)
-  | Assign x e0 => transform_macros_F F M e0
-  | CallOrInvocation x =>
+  | Assign x e0 => transform_macros_F_e F M e0
+  | CallOrInvocation x es =>
     match definition x F with
     | Some def => F
     | None =>
@@ -90,17 +90,15 @@ Fixpoint transform_macros_F
   end.
 
 
-(* Transforms the macro definitions list of a program whose
+(* Transforms the macro definitions list of an expression whose
    CPP usage is being converted to C. Currently we don't
    actually alter this. *)
-Definition transform_macros_M
+Definition transform_macros_M_e
   (F: func_definitions) (M: macro_definitions) (e: expr) :
   (macro_definitions) := M.
 
-
-(* Transforms the expressions of a program whose
-   CPP usage is being converted to C. Not all transformations are
-   supported yet. *)
+(* Transforms an expression whose CPP usage is being converted to C.
+   Not all transformations are supported yet. *)
 Fixpoint transform_macros_e
   (F: func_definitions) (M: macro_definitions) (e: expr) :
   (expr) :=
@@ -113,12 +111,14 @@ Fixpoint transform_macros_e
     (* Again: How to handle this? Currently this is not
       technically correct, since we should be feeding the transformed
       F from the first operand to the transformation for the second
-      operand. Or is this correct, and we should perform operand's 
-      transformation using the original F? *)
+      operand. Or is this correct, and we should perform both operands'
+      transformations using the original F? *)
     BinExpr bo (transform_macros_e F M e1) (transform_macros_e F M e2)
   | Assign x e0 => Assign x (transform_macros_e F M e0)
-  | CallOrInvocation x =>
+  | CallOrInvocation x es =>
     match definition x F with
+    (* Where should we call transform_macros_s to transform the
+       statements in function bodies? *)
     | Some def => e
     | None =>
       match invocation x M with
@@ -130,7 +130,7 @@ Fixpoint transform_macros_e
           | false =>
             match get_dynamic_vars mexpr with
             (* Don't recursively transform macro bodies *)
-            | nil => CallOrInvocation (x ++ "__as_function")
+            | nil => CallOrInvocation (x ++ "__as_function") es
             | dyn_vars => e (* FIXME *)
             end
           | true =>
@@ -146,157 +146,85 @@ Fixpoint transform_macros_e
   end.
 
 
-(* Transforms function definitions, macro definitions, and expressions
-   simultaneously. Is a bit difficult to work with in proofs *)
-Fixpoint transform_macros
-  (F: func_definitions) (M: macro_definitions) (e:expr) :
-  (func_definitions * macro_definitions * expr) :=
-  match e with
-  (* Don't transform a numeral *)
-  | Num z => (F, M, Num z)
-  (* Don't transform a variable *)
-  | X x => (F, M, X x)
-  (* Transform the inner expression of a parenthesized expression *)
-  | ParenExpr e =>
-    let '(F', M', e') := (transform_macros F M e) in
-      (F', M', ParenExpr e')
-  (* Transform the operand of a unary expression *)
-  | UnExpr uo e =>
-    let '(F', M', e') := (transform_macros F M e) in
-      (F', M', UnExpr uo e')
-  (* Transform the operands of a binary expression *)
-  | BinExpr bo e1 e2 =>
-    let '(F', M', e1') := transform_macros F M e1 in
-      let '(F'', M'', e2') := (transform_macros F' M' e2) in
-        (F'', M'', BinExpr bo e1' e2')
-  (* Transform the expression of an assignment *)
-  (* (this will have to change if L-value evaluation is added *)
-  | Assign x e =>
-    let '(F', M', e') := (transform_macros F M e) in
-      (F', M', Assign x e')
-  (* Transformation here varies whether a function or macro invocation
-     is being called *)
-  | CallOrInvocation x =>
-    match definition x F with
-    (* If this identifier maps to a function definition,
-       then don't transform it *)
-    | Some def => (F, M, CallOrInvocation x)
-    | None =>
-      (* Otherwise it may be a macro, and the transformation will
-         depend upon other conditions *)
-      match invocation x M with
-      | Some mexpr =>
-        (* add guard clauses for different transformations *)
-        (* need a way of generating a fresh name *)
-        (* Do any of the the macro arguments have side_effects? *)
-        match existsb has_side_effects nil with
-        (* If not, then proceed with other checks *)
-        | false =>
-          (* Does the macro body have side-effects? *)
-          match has_side_effects mexpr with
-          | false =>
-            (* Does the macro use dynamic scoping? *)
-            match get_dynamic_vars mexpr with
-            (* No, so just transform the macro to a function *)
-            | nil =>
-              (* Don't remove from M; copy a new definition
-                 to just F *)
-              let fname := (x ++ "__as_function")%string in
-                (* And recursively transform the invocation arguments *)
-                let F' := (fname, (Skip, mexpr))::F in
-                  (F', M, CallOrInvocation fname)
-            (* Yes, so add the dynamic variables to the transformed
-             function's parameter list *)
-            | dyn_vars => (F, M, e) (* FIXME *)
-            end
-          | true =>
-            (* Does the macro use dynamic scoping? *)
-            match get_dynamic_vars mexpr with
-            (* No, so just transform the macro to a function *)
-            | nil => (F, M, e) (* FIXME *)
-            (* Yes, so add the dynamic variables to the transformed
-               function's parameter list *)
-            | dyn_vars => (F, M, e) (* FIXME *)
-            end
-          end
-        (* If so, then don't transform the macro *)
-        | true => (F, M, e)
-        end
-      (* If a call can't be connected to a function or macro, then
-         it's erroneous anyway so leave it as-is *)
-      | None => (F, M, e)
-      end
-    end
+Check fold_left.
+
+(* Transforms the function definitions list of an expression whose
+   CPP usage is being converted to C. *)
+Fixpoint transform_macros_F_s
+  (F: func_definitions) (M: macro_definitions) (s: stmt) :
+  (func_definitions) :=
+  match s with
+  | Skip => F
+  | ExprStmt e => transform_macros_F_e F M e
+  | CompoundStmt stmts =>
+    fold_left
+    (fun (prev_F : func_definitions) (cur_s : stmt) =>
+      transform_macros_F_s prev_F M cur_s)
+    stmts F
+  | IfStmt cond s0 =>
+    transform_macros_F_s (transform_macros_F_e F M cond) M s0
+  | IfElseStmt cond s0 s1 =>
+    transform_macros_F_s
+      (transform_macros_F_s (transform_macros_F_e F M cond) M s0)
+      M s1
+  | WhileStmt cond s0 =>
+    transform_macros_F_s (transform_macros_F_e F M cond) M s0
   end.
 
 
-(* Transforms macros into functions, using the fixpoint evaluation function *)
-Fixpoint transform_macros_eval
-  (i : nat)
-  (S: state) (E: environment)
-  (F: func_definitions) (M: macro_definitions)
-  (e : expr) : option (Z*state) :=
-  match i with
-  | O => None
-  | S i' =>
-    match e with
-    | Num z => expreval i S E F M (Num z)
-    | X x => expreval i S E F M (X x)
-    | ParenExpr e0 => transform_macros_eval i' S E F M e0
-    | UnExpr uo e0 =>
-      match transform_macros_eval i' S E F M e0 with
-      | None => None
-      | Some (v', S') => Some ((unopToOp uo) v', S')
-      end
-    | BinExpr bo e1 e2 =>
-      match transform_macros_eval i' S E F M e1 with
-      | None => None
-      | Some (v1, S') =>
-        match transform_macros_eval i' S' E F M e2 with
-        | None => None
-        | Some (v2, S'') => Some ((binopToOp bo) v1 v2, S'')
-        end
-      end
-    | Assign x e0 =>
-      match transform_macros_eval i' S E F M e0 with
-      | None => None
-      | Some (v, S') =>
-        match lookupE x E with
-        | None => None
-        | Some l =>
-          match lookupS l S with
-          | None => None
-          | Some _ => Some (v, (l, v)::S')
-          end
-        end
-      end
-    | CallOrInvocation x =>
-      match definition x F with
-      | None =>
-        match invocation x M with
-        | None => None
-        | Some mexpr =>
-          transform_macros_eval i' S E ((x, (Skip, mexpr))::F) M (CallOrInvocation x)
-        end
-      | Some (fstmt, fexpr) =>
-        match stmteval i' S E F M fstmt with
-        | None => None
-        | Some S' => transform_macros_eval i' S' E F M fexpr
-        end
-      end
-    end
+(* Transforms the macro definitions list of a statement whose
+   CPP usage is being converted to C. Currently we don't
+   actually alter this. *)
+Definition transform_macros_M_s
+  (F: func_definitions) (M: macro_definitions) (s: stmt) :
+  (macro_definitions) := M.
+
+
+(* Transforms a statement whose CPP usage is being converted to C. *)
+Fixpoint transform_macros_s
+  (F: func_definitions) (M: macro_definitions) (s: stmt) :
+  (stmt) :=
+  match s with
+  (* I don't think this isn't entirely right...
+     For instance, for IfStmt, should we transform s0 using the
+     original F, or the updated F from transforming cond? *)
+  | Skip => Skip
+  | ExprStmt e => ExprStmt (transform_macros_e F M e)
+  | CompoundStmt stmts =>
+    CompoundStmt (map (transform_macros_s F M) stmts)
+  | IfStmt cond s0 =>
+    IfStmt (transform_macros_e F M cond) (transform_macros_s F M s0)
+  | IfElseStmt cond s0 s1 =>
+    IfElseStmt (transform_macros_e F M cond)
+      (transform_macros_s F M s0) (transform_macros_s F M s1)
+  | WhileStmt cond s0 =>
+    WhileStmt (transform_macros_e F M cond) (transform_macros_s F M s0)
   end.
 
 
 (* ID transformation - this transformation basically does nothing *)
-Fixpoint transform_id
-  (e:expr) : expr :=
+Fixpoint transform_id_e (e: expr) : expr :=
   match e with
   | Num z => Num z
   | X x => X x
-  | ParenExpr e0 => ParenExpr (transform_id e0)
-  | UnExpr uo e0 => UnExpr uo (transform_id e0)
-  | BinExpr bo e1 e2 => BinExpr bo (transform_id e1) (transform_id e2)
-  | Assign x e0 => Assign x (transform_id e0)
-  | CallOrInvocation x => CallOrInvocation x
+  | ParenExpr e0 => ParenExpr (transform_id_e e0)
+  | UnExpr uo e0 => UnExpr uo (transform_id_e e0)
+  | BinExpr bo e1 e2 => BinExpr bo (transform_id_e e1) (transform_id_e e2)
+  | Assign x e0 => Assign x (transform_id_e e0)
+  | CallOrInvocation x es => CallOrInvocation x (map transform_id_e es)
+  end.
+
+(* ID transformation - this transformation basically does nothing *)
+Fixpoint transform_id_s (s: stmt) : stmt :=
+  match s with
+  | Skip => Skip
+  | ExprStmt e => ExprStmt (transform_id_e e)
+  | CompoundStmt stmts => CompoundStmt (map transform_id_s stmts)
+  | IfStmt cond s0 =>
+    IfStmt (transform_id_e cond) (transform_id_s s0)
+  | IfElseStmt cond s0 s1 =>
+    IfElseStmt (transform_id_e cond)
+      (transform_id_s s0) (transform_id_s s1)
+  | WhileStmt cond s0 =>
+    WhileStmt (transform_id_e cond) (transform_id_s s0)
   end.
