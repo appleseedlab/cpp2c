@@ -47,12 +47,12 @@ Definition macro_definitions : Set := @list (string * macro_definition).
    the corresponding definition wrapped in an option type if found;
    otherwise returns None *)
 Definition definition
-  (x:string) (defs:func_definitions) : option func_definition :=
+  (defs:func_definitions) (x:string) : option func_definition :=
   option_map snd (find (fun pair => String.eqb (fst pair) x) defs).
 
 (* Looks up a macro name in the function defintion list and returns
    the corresponding definition wrapped in an option type if found;
    otherwise returns None *)
 Definition invocation
-  (x:string) (defs:macro_definitions) : option macro_definition :=
+  (defs:macro_definitions) (x:string) : option macro_definition :=
   option_map snd (find (fun pair => String.eqb (fst pair) x) defs).
