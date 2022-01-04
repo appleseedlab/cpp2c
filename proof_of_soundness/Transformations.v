@@ -62,10 +62,10 @@ Fixpoint transform_macros_F_e
     (* app (transform_macros_F F M e1) (transform_macros_F F M e2) *)
   | Assign x e0 => transform_macros_F_e F M e0
   | CallOrInvocation x es =>
-    match definition x F with
+    match definition F x with
     | Some def => F
     | None =>
-      match invocation x M with
+      match invocation M x with
       | None => F
       | Some mexpr =>
         match existsb has_side_effects nil with
@@ -116,12 +116,12 @@ Fixpoint transform_macros_e
     BinExpr bo (transform_macros_e F M e1) (transform_macros_e F M e2)
   | Assign x e0 => Assign x (transform_macros_e F M e0)
   | CallOrInvocation x es =>
-    match definition x F with
+    match definition F x with
     (* Where should we call transform_macros_s to transform the
        statements in function bodies? *)
     | Some def => e
     | None =>
-      match invocation x M with
+      match invocation M x with
       | None => e
       | Some mexpr =>
         match existsb has_side_effects nil with
