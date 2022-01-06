@@ -73,9 +73,25 @@ Inductive exprevalR :
      5) Return the return value and store *)
   | E_FunctionCall: forall S E G F M x es params fstmt fexpr S' v S'',
     (* How to express argument evaluation? *)
+    (* Define separate relation for evaluating a *list* of expressions.
+       Input: es (list of expressions)
+              S (store)
+       Output : vs (list of values that each e evaluates to)
+                S' (final store)
+       Next create the environment for function
+       Input: vs (list of values)
+              params (list of parameters (strings))
+              S'  (store after first algorithm)
+       Output: E (a new environment in which each param is mapped to
+                  a *fresh* l-value not already present in S')
+               S'' (a new store in which each fresh l-value is mapped
+                   to the v corresponding to its param in E)
+       Finally evaluate the function's statement and expression under
+       the new E and S
+    *)
     definition F x = Some (params, fstmt, fexpr) ->
-    {S, E, G, F, M =[ fstmt ]=> S'} ->
-    [S', E, G, F, M |- fexpr => v, S''] ->
+    {S, nil, G, F, M =[ fstmt ]=> S'} ->
+    [S', nil, G, F, M |- fexpr => v, S''] ->
     [S, E, G, F, M |- (CallOrInvocation x es) => v, S'']
   (* Macro invocation*)
   (* How to handle macro function name shadowing? *)

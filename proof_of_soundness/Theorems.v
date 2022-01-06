@@ -41,6 +41,15 @@ Lemma eval_same_under_joined_Fs :
   (transform_macros_e F M e2) v2 S''.
 Admitted.
 
+
+Lemma eval_same_under_empty_E_if_no_dyn_vars :
+  forall S E F G M v S' params mexpr,
+  get_dynamic_vars (params, mexpr) = nil ->
+  exprevalR S E F G M mexpr v S' ->
+  exprevalR S nil F G M mexpr v S'.
+Admitted.
+
+
 (* Transforming an expression involving macros to one in which
    transformable macros have been converted to functions results
    in an expression that evaluates to the same value and state; i.e.,
@@ -111,7 +120,7 @@ Proof.
         -- apply E_MacroInvocation with params mexpr.
            ++ apply H.
            ++ apply H0.
-      * destruct (get_dynamic_vars (params, mexpr)).
+      * destruct (get_dynamic_vars (params, mexpr)) eqn: NoDynVars.
            (* x does not share variables with the caller environment.
               Here is where we perform the simplest transformation. *)
         -- apply E_FunctionCall with
@@ -127,13 +136,15 @@ Proof.
                  unique, and we will only add names, never remove any. *)
            ++ apply expr_eval_same_under_unique_names.
               ** apply H.
-              ** apply H0.
+              ** apply eval_same_under_empty_E_if_no_dyn_vars
+                with E params.
+                --- apply NoDynVars.
+                --- apply H0.
            (* x shares variables with the caller environment *)
         -- apply E_MacroInvocation with params mexpr.
            ++ apply H.
            ++ apply H0.
 Qed.
-
 
 
 (* This lemma says that if a transformed compound statement can be

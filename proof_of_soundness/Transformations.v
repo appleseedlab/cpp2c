@@ -37,6 +37,23 @@ From Cpp2C Require Import EvalRules.
   identical function.
 *)
 
+(*
+(* TODO *)
+Definition unify_Fs
+  (F1 : func_definitions)
+  (F2 : func_definitions) :
+  (func_definitions * (list (string * list string)) ) :=
+  let F3 := F1 in
+    let Fr := map  F3 in
+        fold_left
+          (fun pair : (func_definitions * list (string * list string)
+               fdef : func_definition =>
+            if find same_func_def F
+          F2 (F3, Fr)
+where get_fname (fun pair : (string * func_definition) =>
+      (fst pair, nil)):= 
+*)
+
 
 (* Clang has a function for doing this, though it is conservative *)
 (* Returns true if an expression has side-effects, false otherwise *)
