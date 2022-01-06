@@ -126,9 +126,9 @@ Proof.
     + apply H0.
     + apply H1.
   - (* ParenExpr e *)
-    apply E_ParenExpr. apply IHexprevalR.
+    apply E_ParenExpr. fold transform_macros_e. apply IHexprevalR.
   - (* UnExpr uo e *)
-    apply E_UnExpr. apply IHexprevalR.
+    apply E_UnExpr. fold transform_macros_e. apply IHexprevalR.
   - (* BinExpr bo e1 e2 *)
     apply E_BinExpr with (S:=S) (S':=S'); fold transform_macros_e.
       (* We use an admitted lemma here to assert that if the operands
@@ -141,7 +141,8 @@ Proof.
     + eapply eval_same_under_joined_Fs.
       apply IHexprevalR1. apply IHexprevalR2.
   - (* Assign x e *)
-    apply E_Assign_Success. apply IHexprevalR. apply H0.
+    apply E_Assign_Success. fold transform_macros_e.
+    apply IHexprevalR. apply H0.
   - (* CallOrInvocation x (function call) *)
     unfold transform_macros_F_e. unfold transform_macros_e.
     rewrite H. apply E_FunctionCall with (fstmt:=fstmt) (fexpr:=fexpr)
@@ -150,9 +151,10 @@ Proof.
     unfold transform_macros_F_e.
     unfold transform_macros_e.
     rewrite H.
+    simpl.
     destruct (definition F x).
-    + (* x is defined as a function
-      (shouldn't happen so just use E_MacroInvocation *)
+    + (* x is defined as a function (this will happen if there are
+         name space clashes) *)
       apply E_MacroInvocation with mexpr. apply H. apply H0.
     + (* x is not defined as a function *)
       destruct (has_side_effects mexpr).
@@ -167,7 +169,7 @@ Proof.
               Here is where we perform the simplest transformation. *)
         -- apply E_FunctionCall with (fstmt:=Skip) (fexpr:=mexpr) (S':=S).
            ++ unfold definition. unfold find.
-              simpl. rewrite eqb_refl. auto.
+              simpl. rewrite eqb_refl. simpl. reflexivity.
            ++ apply E_Skip.
               (* Here is where we need a lemma stating that
                  under the new function list, the evaluation of the
