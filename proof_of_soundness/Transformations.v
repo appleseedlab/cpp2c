@@ -9,11 +9,39 @@ From Cpp2C Require Import ConfigVars.
 From Cpp2C Require Import EvalRules.
 
 
+(* TODO? We need a function "unify" the results of transformation
+   when transforming the F of expressions that contain nested
+   expressions / statements. Here's an informal description:
+   Input:  F1 and F2, the Fs to unify. It is assumed that all
+           functions in these two Fs are uniquely defined.
+   Output: Two things: F3, an F containing all the definitions in
+           F1 and F2, in which functions with the same body have
+           been deduplicated; and a mapping of the type
+           string * (list string) in which names of the functions
+           in F3 are mapped to names of functions in F2 that have
+           the same definition as them.
+   Steps:
+           1) Create a new F, F3, and a string * (list string)
+              mapping Fr.
+           2) Add all the functions in F1 into F3, and all
+              the function names in F1 to the domain of Fr.
+           3) For each function in F2, check if a function with
+              the same body exists in F3. If false, then add the
+              function from F2. If true, then add the name of the
+              F2 function to the list of names that the F3 function
+              name is mapped to in Fr.
+           4) Return F3 and Fr.
+  The reason we return Fr is so that after unifying the Fs, we can
+  traverse the AST and replace calls to functions from F2 for which
+  an identically-defined function in F3 exists with a call to the
+  identical function.
+*)
+
+
 (* Clang has a function for doing this, though it is conservative *)
 (* Returns true if an expression has side-effects, false otherwise *)
 Definition has_side_effects (e : expr) : bool.
 Admitted.
-
 
 (* Returns the list of dynamic variables used within
    a macro definition *)
@@ -24,20 +52,6 @@ Admitted.
    used *)
 Definition get_dynamic_vars (md : macro_definition) : list string.
 Admitted.
-
-
-(* Definition transform_args
-  (transform_function :
-    func_definitions -> macro_definitions -> expr ->
-    (func_definitions*macro_definitions*expr))
-  (cur_e : expr)
-  (acc : (func_definitions*macro_definitions*(list expr)))
-  : (func_definitions*macro_definitions*(list expr)) :=
-    let '(lastF, lastM, lastList) := acc in
-      let '(newF, newM, newe) :=
-        (transform_function lastF lastM cur_e) in
-          (newF, newM, newe::lastList).
- *)
 
 
 (* Transforms the function definitions list of an expression whose
@@ -71,18 +85,18 @@ Fixpoint transform_macros_F_e
     | None =>
       match invocation M x with
       | None => F
-      | Some mexpr =>
+      | Some (params, mexpr) =>
         match existsb has_side_effects nil with
         | false =>
           match has_side_effects mexpr with
           | false =>
-            match get_dynamic_vars mexpr with
+            match get_dynamic_vars (params, mexpr) with
             (* Don't recursively transform macro bodies *)
-            | nil => ((x ++ "__as_function")%string, (Skip, mexpr))::F
+            | nil => ((x ++ "__as_function")%string, (params, Skip, mexpr))::F
             | dyn_vars => F (* FIXME *)
             end
           | true =>
-            match get_dynamic_vars mexpr with
+            match get_dynamic_vars (params, mexpr) with
             | nil => F (* FIXME *)
             | dyn_vars => F (* FIXME *)
             end
@@ -100,6 +114,7 @@ Fixpoint transform_macros_F_e
 Definition transform_macros_M_e
   (F: func_definitions) (M: macro_definitions) (e: expr) :
   (macro_definitions) := M.
+
 
 (* Transforms an expression whose CPP usage is being converted to C.
    Not all transformations are supported yet. *)
@@ -129,18 +144,18 @@ Fixpoint transform_macros_e
     | None =>
       match invocation M x with
       | None => e
-      | Some mexpr =>
+      | Some (params, mexpr) =>
         match existsb has_side_effects nil with
         | false =>
           match has_side_effects mexpr with
           | false =>
-            match get_dynamic_vars mexpr with
+            match get_dynamic_vars (params, mexpr) with
             (* Don't recursively transform macro bodies *)
             | nil => CallOrInvocation (x ++ "__as_function") es
             | dyn_vars => e (* FIXME *)
             end
           | true =>
-            match get_dynamic_vars mexpr with
+            match get_dynamic_vars (params, mexpr) with
             | nil => e (* FIXME *)
             | dyn_vars => e (* FIXME *)
             end
@@ -152,27 +167,32 @@ Fixpoint transform_macros_e
   end.
 
 
-Check fold_left.
-
 (* Transforms the function definitions list of an expression whose
    CPP usage is being converted to C. *)
 Fixpoint transform_macros_F_s
   (F: func_definitions) (M: macro_definitions) (s: stmt) :
   (func_definitions) :=
   match s with
+  (* Nothing changes *)
   | Skip => F
+  (* Transform the inner expression's function list *)
   | ExprStmt e => transform_macros_F_e F M e
+  (* Transform each inner statements' F and unify results *)
   | CompoundStmt stmts =>
     fold_left
     (fun (prev_F : func_definitions) (cur_s : stmt) =>
       transform_macros_F_s prev_F M cur_s)
     stmts F
+  (* Transform the condition and true branch's F and unify results *)
   | IfStmt cond s0 =>
     transform_macros_F_s (transform_macros_F_e F M cond) M s0
+  (* Transform the condition and branchs' F and unify results *)
   | IfElseStmt cond s0 s1 =>
     transform_macros_F_s
       (transform_macros_F_s (transform_macros_F_e F M cond) M s0)
       M s1
+  (* Transform the condition and inner statement's F and
+     unify results *)
   | WhileStmt cond s0 =>
     transform_macros_F_s (transform_macros_F_e F M cond) M s0
   end.
@@ -186,51 +206,26 @@ Definition transform_macros_M_s
   (macro_definitions) := M.
 
 
-(* Transforms a statement whose CPP usage is being converted to C. *)
+(* Transforms a statement whose CPP usage is being converted to C *)
 Fixpoint transform_macros_s
   (F: func_definitions) (M: macro_definitions) (s: stmt) :
   (stmt) :=
   match s with
-  (* I don't think this isn't entirely right...
-     For instance, for IfStmt, should we transform s0 using the
-     original F, or the updated F from transforming cond? *)
+  (* Nothing changes *)
   | Skip => Skip
+  (* Transform the inner expression *)
   | ExprStmt e => ExprStmt (transform_macros_e F M e)
+  (* Transform each inner statement *)
   | CompoundStmt stmts =>
     CompoundStmt (map (transform_macros_s F M) stmts)
+  (* Transform the condition and true branch *)
   | IfStmt cond s0 =>
     IfStmt (transform_macros_e F M cond) (transform_macros_s F M s0)
+  (* Transform the condition and branches *)
   | IfElseStmt cond s0 s1 =>
     IfElseStmt (transform_macros_e F M cond)
       (transform_macros_s F M s0) (transform_macros_s F M s1)
+  (* Transform the condition and inner statement *)
   | WhileStmt cond s0 =>
     WhileStmt (transform_macros_e F M cond) (transform_macros_s F M s0)
-  end.
-
-
-(* ID transformation - this transformation basically does nothing *)
-Fixpoint transform_id_e (e: expr) : expr :=
-  match e with
-  | Num z => Num z
-  | X x => X x
-  | ParenExpr e0 => ParenExpr (transform_id_e e0)
-  | UnExpr uo e0 => UnExpr uo (transform_id_e e0)
-  | BinExpr bo e1 e2 => BinExpr bo (transform_id_e e1) (transform_id_e e2)
-  | Assign x e0 => Assign x (transform_id_e e0)
-  | CallOrInvocation x es => CallOrInvocation x (map transform_id_e es)
-  end.
-
-(* ID transformation - this transformation basically does nothing *)
-Fixpoint transform_id_s (s: stmt) : stmt :=
-  match s with
-  | Skip => Skip
-  | ExprStmt e => ExprStmt (transform_id_e e)
-  | CompoundStmt stmts => CompoundStmt (map transform_id_s stmts)
-  | IfStmt cond s0 =>
-    IfStmt (transform_id_e cond) (transform_id_s s0)
-  | IfElseStmt cond s0 s1 =>
-    IfElseStmt (transform_id_e cond)
-      (transform_id_s s0) (transform_id_s s1)
-  | WhileStmt cond s0 =>
-    WhileStmt (transform_id_e cond) (transform_id_s s0)
   end.

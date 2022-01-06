@@ -17,72 +17,10 @@ From Cpp2C Require Import Transformations.
    the implementation since we will guarantee that all the function
    names will be unique, but we need this for the proof. *)
 Lemma expr_eval_same_under_unique_names :
-  forall S E G F M v S' x mexpr,
+  forall S E G F M v S' x params mexpr,
+  invocation M x = Some (params, mexpr) ->
   exprevalR S E G F M mexpr v S' ->
-  exprevalR S E G (((x ++ "__as_function")%string, (Skip, mexpr)) :: F) M mexpr v S'.
-Admitted.
-
-
-(* An expression will evaluate to the same value and store
-   after function definition list transformation.
-   This makes sense because the F transformation only adds function
-   definitions, and does not remove or overwrite any of them. *)
-Theorem expr_eval_eq_under_f_transformation :
-  forall S E G F M e v S',
-  exprevalR S E G F M e v S' ->
-    exprevalR S E G (transform_macros_F_e F M e) M e v S'.
-Proof.
-  intros.
-  induction H.
-  + (* Num z *)
-    apply E_Num.
-  + (* X x (local var) *)
-    apply E_X_Local with l.
-    * apply H.
-    * apply H0.
-  + (* X x (global var) *)
-    apply E_X_Global with l.
-    * apply H.
-    * apply H0.
-    * apply H1.
-  + (* ParenExpr e *)
-    apply E_ParenExpr.
-    simpl. apply IHexprevalR.
-  + (* UnExpr uo e *)
-    apply E_UnExpr.
-    simpl. apply IHexprevalR.
-  + (* BinExpr bo e1 e2 *)
-    apply E_BinExpr with S S'.
-    1, 2: simpl.
-    (* Here's the tricky part... *)
-    * admit.
-    * admit.
-  + (* Assign x e *)
-    apply E_Assign_Success.
-    * simpl. apply IHexprevalR.
-    * apply H0.
-  + (* CallOrInvocation x es (function call) *)
-    apply E_FunctionCall with fstmt fexpr S'.
-    * simpl. rewrite H. apply H.
-    * admit.
-    * admit.
-  + (* CallOrInvocation x es (macro invocation ) *)
-    apply E_MacroInvocation with mexpr.
-    * apply H.
-    * simpl. destruct (definition F x).
-      - apply H0.
-      - rewrite H.
-        destruct (has_side_effects mexpr).
-        ++ destruct (get_dynamic_vars mexpr).
-           ** apply H0.
-           ** apply H0.
-        ++ destruct (has_side_effects mexpr).
-          ** destruct (get_dynamic_vars mexpr).
-            -- apply expr_eval_same_under_unique_names. apply H0.
-            -- apply H0.
-          ** destruct (get_dynamic_vars mexpr).
-            -- apply expr_eval_same_under_unique_names. apply H0.
-            -- apply H0.
+  exprevalR S E G (((x ++ "__as_function")%string, (params, Skip, mexpr)) :: F) M mexpr v S'.
 Admitted.
 
 
@@ -145,8 +83,11 @@ Proof.
     apply IHexprevalR. apply H0.
   - (* CallOrInvocation x (function call) *)
     unfold transform_macros_F_e. unfold transform_macros_e.
-    rewrite H. apply E_FunctionCall with (fstmt:=fstmt) (fexpr:=fexpr)
-    (S':=S'). apply H. apply H0. apply H1.
+    rewrite H. apply E_FunctionCall with
+      (params:=params) (fstmt:=fstmt) (fexpr:=fexpr) (S':=S').
+      * apply H.
+      * apply H0.
+      * apply H1.
   - (* CallOrInvocation x (macro invocation) *)
     unfold transform_macros_F_e.
     unfold transform_macros_e.
@@ -155,19 +96,26 @@ Proof.
     destruct (definition F x).
     + (* x is defined as a function (this will happen if there are
          name space clashes) *)
-      apply E_MacroInvocation with mexpr. apply H. apply H0.
+      apply E_MacroInvocation with params mexpr.
+      * apply H.
+      * apply H0.
     + (* x is not defined as a function *)
       destruct (has_side_effects mexpr).
       * (* x's body has side-effects *)
-        destruct (get_dynamic_vars mexpr).
+        destruct (get_dynamic_vars (params, mexpr)).
            (* x does not have side-effects (does nothing) *)
-        -- apply E_MacroInvocation with mexpr. apply H. apply H0.
+        -- apply E_MacroInvocation with params mexpr.
+           ++ apply H.
+           ++ apply H0.
            (* x  has side-effects (does nothing) *)
-        -- apply E_MacroInvocation with mexpr. apply H. apply H0.
-      * destruct (get_dynamic_vars mexpr).
+        -- apply E_MacroInvocation with params mexpr.
+           ++ apply H.
+           ++ apply H0.
+      * destruct (get_dynamic_vars (params, mexpr)).
            (* x does not share variables with the caller environment.
               Here is where we perform the simplest transformation. *)
-        -- apply E_FunctionCall with (fstmt:=Skip) (fexpr:=mexpr) (S':=S).
+        -- apply E_FunctionCall with
+          (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (S':=S).
            ++ unfold definition. unfold find.
               simpl. rewrite eqb_refl. simpl. reflexivity.
            ++ apply E_Skip.
@@ -177,9 +125,13 @@ Proof.
                  Intuitively we know this will be true since all
                  the names in the transformed function list will be
                  unique, and we will only add names, never remove any. *)
-           ++ apply expr_eval_same_under_unique_names. apply H0.
+           ++ apply expr_eval_same_under_unique_names.
+              ** apply H.
+              ** apply H0.
            (* x shares variables with the caller environment *)
-        -- apply E_MacroInvocation with mexpr. apply H. apply H0.
+        -- apply E_MacroInvocation with params mexpr.
+           ++ apply H.
+           ++ apply H0.
 Qed.
 
 
@@ -266,106 +218,6 @@ Proof.
     + fold transform_macros_s. admit.
     + fold transform_macros_s. apply IHstmtevalR2.
 Admitted.
-
-(* Expression evaluation does not change under the ID transformation *)
-Theorem transform_id_e_sound :
-  forall S E G F M e v S',
-  exprevalR S E G F M e v S' ->
-  exprevalR S E G F M (transform_id_e e) v S'.
-Proof.
-  intros.
-  induction H.
-  - (* Num z *)
-    apply E_Num.
-  - (* X x (local var) *)
-    apply E_X_Local with l. apply H. apply H0.
-  - (* X x (global var) *)
-    apply E_X_Global with l. apply H. apply H0. apply H1.
-  - (* ParenExpr e *)
-    constructor. apply IHexprevalR.
-  - (* UnExpr uo e *)
-    constructor. apply IHexprevalR.
-  - (* BinExpr bo e1 e2 *)
-    apply E_BinExpr with (S:=S) (S':=S').
-    apply IHexprevalR1. apply IHexprevalR2.
-  - (* Assign x e *)
-    constructor. apply IHexprevalR. apply H0.
-  - (* CallOrInvocation x es (function call) *)
-    apply E_FunctionCall with (fstmt:=fstmt) (fexpr:=fexpr) (S':=S').
-    apply H. apply H0. apply H1.
-  - (* CallOrInvocation x es (macro invocation) *)
-   apply E_MacroInvocation with mexpr. apply H. apply H0.
-Qed.
-
-
-(* Statement evaluation does not change under the ID transformation *)
-Theorem transform_id_s_sound :
-  forall S E G F M s S',
-  stmtevalR S E G F M s S' ->
-  stmtevalR S E G F M (transform_id_s s) S'.
-Proof.
-  intros.
-  induction H.
-  - (* Skip *)
-    apply E_Skip.
-  - (* ExprStmt e *)
-    apply E_ExprStmt with v.
-    apply transform_id_e_sound.
-    apply H.
-  - (* CompoundStmt nil *)
-    apply E_CompoundStatementEmpty.
-  - (* CompoundStmt stmts *)
-    apply E_CompoundStatementNotEmpty with
-      (s0 := transform_id_s s0)
-        (rst := map transform_id_s rst) (S' := S').
-    + fold transform_id_s. induction stmts.
-      * discriminate.
-      * fold transform_id_s in *. simpl. simpl in H. inversion H.
-        reflexivity.
-    + fold transform_id_s. induction stmts.
-      * discriminate.
-      * simpl. simpl in H0. rewrite H0. reflexivity.
-    + apply IHstmtevalR1.
-    + apply IHstmtevalR2.
-  - (* IfStmt e s0 (false) *)
-    apply E_IfFalse. apply transform_id_e_sound. apply H.
-  - (* IfStmt e s0 (true) *)
-    apply E_IfTrue with v S'.
-    + apply H.
-    + apply transform_id_e_sound. apply H0.
-    + fold transform_id_s. apply IHstmtevalR.
-  - (* IfElseStmt e s0 s1 (false) *)
-    apply E_IfElseFalse with S'.
-    + apply transform_id_e_sound. apply H.
-    + fold transform_id_s. apply IHstmtevalR.
-  - (* IfElseStmt e S0 s1 (true) *)
-    apply E_IfElseTrue with v S'.
-    + apply H.
-    + apply transform_id_e_sound. apply H0.
-    + fold transform_id_s. apply IHstmtevalR.
-  - (* WhileStmt e s0 (false) *)
-    apply E_WhileFalse.
-    + apply transform_id_e_sound. apply H.
-  - (* WhileStmt e s0 (true) *)
-    apply E_WhileTrue with v S' S''.
-    + apply H.
-    + apply transform_id_e_sound. apply H0.
-    + fold transform_id_s. apply IHstmtevalR1.
-    + fold transform_id_s. simpl in IHstmtevalR2.
-      apply IHstmtevalR2.
-Qed.
-
-(* TODO: It may be useful to write a theorem stating that program
-   evaluation is sound under just function definition list
-   transformation. This should be easy to prove once we have a way
-   of ensuring that all new function names will be unique. This
-   would make the proofs of all terms which have nested statements
-   or expressions much easier. *)
-
-(* TODO: Create a transform_id function for statements and prove
-   that that transformation is sound before trying to prove the
-   macro transformation for statements is sound. *)
-
 
 (* NOTE: May want to note in paper that we have to transform
          function and macro arguments recursively *)

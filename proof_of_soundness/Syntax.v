@@ -1,10 +1,12 @@
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.Strings.String.
 
+
 (* Unary operators *)
 Inductive unop : Type :=
   | Positive
   | Negative.
+
 
 (* Converts a unop type to its corresponding unary operation *)
 Definition unopToOp (uo : unop) : (Z -> Z) :=
@@ -13,12 +15,14 @@ Definition unopToOp (uo : unop) : (Z -> Z) :=
   | Negative => Z.opp
   end.
 
+
 (* Binary operators *)
 Inductive binop : Type :=
   | Plus
   | Sub
   | Mul
   | Div.
+
 
 (* Converts a binop type to its corresponding binary operation *)
 Definition binopToOp (bo : binop) : (Z -> Z -> Z) :=
@@ -29,6 +33,7 @@ Definition binopToOp (bo : binop) : (Z -> Z -> Z) :=
   | Div => Z.div
   end.
 
+
 (* Syntax for constant expressions, i.e., ones that don't involve
    variables and don't have side-effects *)
 Inductive const_expr : Type :=
@@ -37,7 +42,7 @@ Inductive const_expr : Type :=
   | ConstUnExpr (uo : unop) (ce : const_expr)
   | ConstBinExpr (bo : binop) (ce1 ce2 : const_expr).
 
-(* TODO: Add arguments to calls and invocations*)
+
 (* TODO: Currently we can only assign from strings to R-values.
    This need to be fixed so that LHS of assignments can be an L-value *)
 Inductive expr : Type :=
@@ -59,6 +64,7 @@ Inductive stmt : Type :=
   | IfStmt (cond: expr) (s0 : stmt)
   | IfElseStmt (cond: expr) (s0 s1: stmt)
   | WhileStmt (cond: expr) (s0 : stmt).
+
 
 (* Maybe these should be split up into two separate types?
    See the definition of func_definition for an explanation why *)

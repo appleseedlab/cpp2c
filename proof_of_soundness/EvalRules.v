@@ -11,8 +11,8 @@ Open Scope Z_scope.
 
 (* Right now, a term that fails to evaluate will simply get "stuck";
    i.e. it will fail to be reduced further.
-   We do not provide any error messages, but I think we could add this
-   later using a sum type. *)
+   We do not provide any error messages, but I think we could add
+   this later using a sum type. *)
 Reserved Notation
   "[ S , E , G , F , M '|-' e '=>' v , S' ]"
   (at level 90, left associativity).
@@ -33,6 +33,8 @@ Inductive exprevalR :
     lookupE x E = Some l ->
     lookupS l S = Some v ->
     [S, E, G, F, M |- (X x) => v, S]
+  (* Local variables shadow global variables, so only if a local
+     variable lookup fails do we check the global environment *)
   | E_X_Global : forall S E G F M x l v,
     lookupE x E = None ->
     lookupE x G = Some l ->
@@ -53,7 +55,8 @@ Inductive exprevalR :
   | E_BinExpr : forall S E G F M bo e1 e2 S' v1 S'' v2 S''',
     [S, E, G, F, M |- e1 => v1, S'] ->
     [S', E, G, F, M |- e2 => v2, S''] ->
-    [S'', E, G, F, M |- (BinExpr bo e1 e2) => (((binopToOp bo) v1 v2)), S''']
+    [S'', E, G, F, M |- (BinExpr bo e1 e2) =>
+      (((binopToOp bo) v1 v2)), S''']
   (* Variable assignments update the store by adding a new L-value to
      R-value mapping or by overriding an existing one.
      The R-value is returned along with the updated state *)
@@ -61,22 +64,30 @@ Inductive exprevalR :
     [S, E, G, F, M |- e => v, S'] ->
     lookupE x E = Some l ->
     [S, E, G, F, M |- (Assign x e) => v, (l,v)::S']
-  (* For function calls, each of the function call's arguments are
-     evaluated, then the function call itself is evaluated, and finally
-     the result of the call is returned along with the ultimate state. *)
-  | E_FunctionCall: forall S E G F M x es fstmt fexpr S' v S'',
-    (* TODO: invocation M x = None -> *)
-    definition F x = Some (fstmt, fexpr) ->
+  (* For function calls, we perform the following steps:
+     1) Evaluate arguments
+     2) Map parameters to arguments in function local environment,
+        which is based on the global environment
+     3) Evaluate the function's statement
+     4) Evaluate the function's return expression
+     5) Return the return value and store *)
+  | E_FunctionCall: forall S E G F M x es params fstmt fexpr S' v S'',
+    (* How to express argument evaluation? *)
+    definition F x = Some (params, fstmt, fexpr) ->
     {S, E, G, F, M =[ fstmt ]=> S'} ->
     [S', E, G, F, M |- fexpr => v, S''] ->
     [S, E, G, F, M |- (CallOrInvocation x es) => v, S'']
   (* Macro invocation*)
-  (* FIXME *)
-  | E_MacroInvocation : forall S E G F M x es mexpr v S',
-    invocation M x = Some mexpr ->
+  (* How to handle macro function name shadowing? *)
+  (* How to handle nested macros? *)
+  (* How to implement call-by-name? Could use thunks, but
+     that would require pointers and could get messy... *)
+  | E_MacroInvocation : forall S E G F M x es params mexpr v S',
+    invocation M x = Some (params, mexpr) ->
     [S, E, G, F, M |- mexpr => v, S'] ->
     [S, E, G, F, M |- (CallOrInvocation x es) => v, S']
-  where "[ S , E , G , F , M '|-' e '=>' v , S' ]" := (exprevalR S E G F M e v S')
+  where "[ S , E , G , F , M '|-' e '=>' v , S' ]" :=
+    (exprevalR S E G F M e v S')
 (* Define the evaluation rule for statements as a
    relation instead of an inductive type to permite the non-
    determinism introduced by while loops *)
@@ -130,15 +141,16 @@ with stmtevalR :
   | E_WhileFalse: forall S E G F M e s0 S',
     [S, E, G, F, M |- e => 0, S'] ->
     {S, E, G, F, M =[ WhileStmt e s0 ]=> S'}
-  (* A while statement whose condition evaluates to false must be run
-     again after evaluating its body *)
+  (* A while statement whose condition evaluates to false must be
+     run again after evaluating its body *)
   | E_WhileTrue: forall S E G F M e s0 v S' S'' S''',
     v <> 0 ->
     [S, E, G, F, M |- e => v, S'] ->
     {S', E, G, F, M =[ s0 ]=> S''} ->
     {S'', E, G, F, M =[ WhileStmt e s0 ]=> S'''} ->
     {S, E, G, F, M =[ WhileStmt e s0 ]=> S'''}
-  where "{ S , E , G , F , M '=[' s ']=>' S' }" := (stmtevalR S E G F M s S').
+  where "{ S , E , G , F , M '=[' s ']=>' S' }" :=
+    (stmtevalR S E G F M s S').
 
 Close Scope Z_scope.
 
