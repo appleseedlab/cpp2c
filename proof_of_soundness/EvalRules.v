@@ -65,6 +65,7 @@ Inductive exprevalR :
      evaluated, then the function call itself is evaluated, and finally
      the result of the call is returned along with the ultimate state. *)
   | E_FunctionCall: forall S E G F M x es fstmt fexpr S' v S'',
+    (* TODO: invocation M x = None -> *)
     definition F x = Some (fstmt, fexpr) ->
     {S, E, G, F, M =[ fstmt ]=> S'} ->
     [S', E, G, F, M |- fexpr => v, S''] ->
