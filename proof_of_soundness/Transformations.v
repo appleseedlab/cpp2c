@@ -9,9 +9,11 @@ From Cpp2C Require Import ConfigVars.
 From Cpp2C Require Import EvalRules.
 
 
+(* Clang has a function for doing this, though it is conservative *)
 (* Returns true if an expression has side-effects, false otherwise *)
 Definition has_side_effects (e : expr) : bool.
 Admitted.
+
 
 (* Returns the list of dynamic variables used within
    a macro definition *)
@@ -63,6 +65,8 @@ Fixpoint transform_macros_F_e
   | Assign x e0 => transform_macros_F_e F M e0
   | CallOrInvocation x es =>
     match definition F x with
+    (* Do we transform macros that do macro shadowing?
+       Or do we leave them as-is? This currently does the latter. *)
     | Some def => F
     | None =>
       match invocation M x with
@@ -119,6 +123,8 @@ Fixpoint transform_macros_e
     match definition F x with
     (* Where should we call transform_macros_s to transform the
        statements in function bodies? *)
+    (* Do we transform macros that do macro shadowing?
+       Or do we leave them as-is? This currently does the latter. *)
     | Some def => e
     | None =>
       match invocation M x with
