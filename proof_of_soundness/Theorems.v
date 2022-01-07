@@ -43,10 +43,10 @@ Admitted.
 
 
 Lemma eval_same_under_empty_E_if_no_dyn_vars :
-  forall S E F G M v S' params mexpr,
+  forall S E1 E2 F G M v S' params mexpr,
   get_dynamic_vars (params, mexpr) = nil ->
-  exprevalR S E F G M mexpr v S' ->
-  exprevalR S nil F G M mexpr v S'.
+  exprevalR S E1 F G M mexpr v S' ->
+  exprevalR S E2 F G M mexpr v S'.
 Admitted.
 
 
@@ -93,10 +93,12 @@ Proof.
   - (* CallOrInvocation x (function call) *)
     unfold transform_macros_F_e. unfold transform_macros_e.
     rewrite H. apply E_FunctionCall with
-      (params:=params) (fstmt:=fstmt) (fexpr:=fexpr) (S':=S').
+      params fstmt fexpr S' S'' vs ls Ef.
       * apply H.
       * apply H0.
       * apply H1.
+      * apply H2.
+      * apply H3.
   - (* CallOrInvocation x (macro invocation) *)
     unfold transform_macros_F_e.
     unfold transform_macros_e.
@@ -106,27 +108,42 @@ Proof.
     + (* x is defined as a function (this will happen if there are
          name space clashes) *)
       apply E_MacroInvocation with params mexpr.
-      * apply H.
+      * reflexivity.
       * apply H0.
-    + (* x is not defined as a function *)
+      * apply H1.
+      * apply H2.
+    + rewrite H1.
+      (* x is not defined as a function *)
       destruct (has_side_effects mexpr).
       * (* x's body has side-effects *)
         destruct (get_dynamic_vars (params, mexpr)).
-           (* x does not have side-effects (does nothing) *)
+           (* x has dynamic variables (does nothing) *)
         -- apply E_MacroInvocation with params mexpr.
-           ++ apply H.
+           ++ reflexivity.
            ++ apply H0.
-           (* x  has side-effects (does nothing) *)
+           ++ apply H1.
+           ++ apply H2.
+           (* x  does not have dynamic variables (does nothing) *)
         -- apply E_MacroInvocation with params mexpr.
-           ++ apply H.
+           ++ reflexivity.
            ++ apply H0.
-      * destruct (get_dynamic_vars (params, mexpr)) eqn: NoDynVars.
+           ++ apply H1.
+           ++ apply H2.
+      * (* x's body does not have side-effects *)
+        destruct (get_dynamic_vars (params, mexpr)) eqn: NoDynVars.
            (* x does not share variables with the caller environment.
               Here is where we perform the simplest transformation. *)
         -- apply E_FunctionCall with
-          (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (S':=S).
+           (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (S':=S)
+           (S'':=S) (vs:=nil) (ls:=nil) (Ef := E).
            ++ unfold definition. unfold find.
               simpl. rewrite eqb_refl. simpl. reflexivity.
+              (* For now we don't actually evaluate macro arguments,
+                 so they may as well be empty *)
+           ++ apply E_ArgListEmpty.
+           ++ (* Again, let params be empty since they are unused *)
+              rewrite H0.
+              apply E_FEnvEmpty.
            ++ apply E_Skip.
               (* Here is where we need a lemma stating that
                  under the new function list, the evaluation of the
@@ -135,15 +152,17 @@ Proof.
                  the names in the transformed function list will be
                  unique, and we will only add names, never remove any. *)
            ++ apply expr_eval_same_under_unique_names.
-              ** apply H.
+              ** apply H1.
               ** apply eval_same_under_empty_E_if_no_dyn_vars
                 with E params.
                 --- apply NoDynVars.
-                --- apply H0.
+                --- apply H2.
            (* x shares variables with the caller environment *)
         -- apply E_MacroInvocation with params mexpr.
-           ++ apply H.
+           ++ reflexivity.
            ++ apply H0.
+           ++ apply H1.
+           ++ apply H2.
 Qed.
 
 
