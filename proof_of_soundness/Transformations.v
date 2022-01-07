@@ -9,19 +9,19 @@ From Cpp2C Require Import ConfigVars.
 From Cpp2C Require Import EvalRules.
 
 
-(* TODO? We need a function "unify" the results of transformation
+(* We need a function "unify" the results of transformation
    when transforming the F of expressions that contain nested
    expressions / statements. Here's an informal description:
    Input:  F1 and F2, the Fs to unify. It is assumed that all
            functions in these two Fs are uniquely defined.
    Output: Two things: F3, an F containing all the definitions in
            F1 and F2, in which functions with the same body have
-           been deduplicated; and a mapping of the type
-           string * (list string) in which names of the functions
+           been deduplicated; and a mapping of strings to lists
+           of strings in which names of the functions
            in F3 are mapped to names of functions in F2 that have
            the same definition as them.
    Steps:
-           1) Create a new F, F3, and a string * (list string)
+           1) Create a new F, F3, and a string to list of string
               mapping Fr.
            2) Add all the functions in F1 into F3, and all
               the function names in F1 to the domain of Fr.
@@ -35,23 +35,8 @@ From Cpp2C Require Import EvalRules.
   traverse the AST and replace calls to functions from F2 for which
   an identically-defined function in F3 exists with a call to the
   identical function.
-*)
-
-(*
-(* TODO *)
-Definition unify_Fs
-  (F1 : func_definitions)
-  (F2 : func_definitions) :
-  (func_definitions * (list (string * list string)) ) :=
-  let F3 := F1 in
-    let Fr := map  F3 in
-        fold_left
-          (fun pair : (func_definitions * list (string * list string)
-               fdef : func_definition =>
-            if find same_func_def F
-          F2 (F3, Fr)
-where get_fname (fun pair : (string * func_definition) =>
-      (fst pair, nil)):= 
+  We shouldn't implement this in Coq but we will need this when
+  we go to implement the actual transformation tool.
 *)
 
 
