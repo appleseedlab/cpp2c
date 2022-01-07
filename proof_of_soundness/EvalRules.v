@@ -1,5 +1,6 @@
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.Lists.List.
+Require Import Coq.Strings.String.
 
 From Cpp2C Require Import Syntax.
 From Cpp2C Require Import ConfigVars.
@@ -7,7 +8,6 @@ From Cpp2C Require Import ConfigVars.
 Section EvalRules.
 
 Open Scope Z_scope.
-
 
 (* Right now, a term that fails to evaluate will simply get "stuck";
    i.e. it will fail to be reduced further.
@@ -74,17 +74,19 @@ Inductive exprevalR :
   | E_FunctionCall: forall S E G F M x es params fstmt fexpr S' v S'',
     (* How to express argument evaluation? *)
     (* Define separate relation for evaluating a *list* of expressions.
-       Input: es (list of expressions)
-              S (store)
-       Output : vs (list of values that each e evaluates to)
-                S' (final store)
-       Next create the environment for function
-       Input: vs (list of values)
-              params (list of parameters (strings))
-              S'  (store after first algorithm)
-       Output: E (a new environment in which each param is mapped to
-                  a *fresh* l-value not already present in S')
-               S'' (a new store in which each fresh l-value is mapped
+       New inputs:  es (list of expressions)
+                    vs (list of values evaluated so far)
+                    ls (list of l-values created so far)
+       Output:  vs (list of values that each e evaluates to)
+                ls (list of l values that each v will map to)
+       Next create the environment for function evaluation
+       New inputs:  vs (list of values)
+                    ls (list of l values)
+                    params (list of parameters (strings))
+       Output:  E (a new environment in which each param is mapped to
+                  a *fresh* l-value from ls, each of which are
+                  not already present in S')
+                S' (a new store in which each fresh l-value is mapped
                    to the v corresponding to its param in E)
        Finally evaluate the function's statement and expression under
        the new E and S
@@ -104,9 +106,32 @@ Inductive exprevalR :
     [S, E, G, F, M |- (CallOrInvocation x es) => v, S']
   where "[ S , E , G , F , M '|-' e '=>' v , S' ]" :=
     (exprevalR S E G F M e v S')
-(* Define the evaluation rule for statements as a
-   relation instead of an inductive type to permite the non-
-   determinism introduced by while loops *)
+with arglistevalR :
+  state -> environment -> environment -> func_definitions -> macro_definitions ->
+  list expr -> list Z -> list nat ->
+  list Z -> list nat -> Prop :=
+  (* End of an argument list.
+     We don't need to evaluate any more arguments or create any more
+     l-value mappings for them *)
+  | E_ArgListEmpty : forall S E G F M vs ls,
+    arglistevalR S E G F M nil vs ls vs ls
+  (* Non-empty expression list.
+     We need evaluate the given argument and add the result and a new
+     l-value mapping to the output. *)
+  | E_ArgListNotEmpty :
+    forall S E G F M (es: list expr)
+           v l e erst vs vs' vs'' ls ls' ls'' S',
+    es = (e::erst) ->
+    (* Evaluate the argument *)
+    [S, E, G, F, M |- e => v, S'] ->
+    (* Create a fresh l-value. We assert that the l-value is not
+       already in the list we are constructing; later we assert that
+       none of these l-values are used in the store. *)
+    nodup eq_nat_dec (l::ls) = (l::ls) ->
+    ls' = (l::ls) ->
+    vs' = (v::vs) ->
+    arglistevalR S' E G F M erst vs' ls' vs'' ls'' ->
+    arglistevalR S E G F M es vs ls vs'' ls''
 with stmtevalR :
   state -> environment -> environment -> func_definitions -> macro_definitions ->
   stmt ->
@@ -125,8 +150,7 @@ with stmtevalR :
   (* A non-empty compound statement evaluates its first statement and
      then the following statements *)
   | E_CompoundStatementNotEmpty : forall S E G F M stmts s0 rst S' S'',
-    head stmts = Some s0 ->
-    tail stmts = rst ->
+    stmts = (s0::rst) ->
     {S, E, G, F, M =[ s0 ]=> S'} ->
     {S', E, G, F, M =[ CompoundStmt rst ]=> S''} ->
     {S, E, G, F, M =[ CompoundStmt stmts ]=> S''}
