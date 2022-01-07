@@ -18,7 +18,6 @@ From Cpp2C Require Import Transformations.
    names will be unique, but we need this for the proof. *)
 Lemma expr_eval_same_under_unique_names :
   forall S E G F M v S' x params mexpr,
-  invocation M x = Some (params, mexpr) ->
   exprevalR S E G F M mexpr v S' ->
   exprevalR S E G (((x ++ "__as_function")%string, (params, Skip, mexpr)) :: F) M mexpr v S'.
 Admitted.
@@ -57,7 +56,10 @@ Admitted.
 Theorem transform_macros_expressions_sound :
   forall S E G F M e v S',
   exprevalR S E G F M e v S' ->
-  exprevalR S E G (transform_macros_F_e F M e) (transform_macros_M_e F M e) (transform_macros_e F M e) v S'.
+  exprevalR S E G
+    (transform_macros_F_e F M e)
+    (transform_macros_M_e F M e)
+    (transform_macros_e F M e) v S'.
 Proof.
   intros.
   induction H; unfold transform_macros_M_e in *.
@@ -90,7 +92,7 @@ Proof.
   - (* Assign x e *)
     apply E_Assign_Success. fold transform_macros_e.
     apply IHexprevalR. apply H0.
-  - (* CallOrInvocation x (function call) *)
+  - (* CallOrInvocation x es (function call) *)
     unfold transform_macros_F_e. unfold transform_macros_e.
     rewrite H. apply E_FunctionCall with
       params fstmt fexpr S' S'' vs ls Ef.
@@ -99,33 +101,32 @@ Proof.
       * apply H1.
       * apply H2.
       * apply H3.
-  - (* CallOrInvocation x (macro invocation) *)
+  - (* CallOrInvocation x es (macro invocation) *)
     unfold transform_macros_F_e.
     unfold transform_macros_e.
-    rewrite H.
+    rewrite H1.
     simpl.
     destruct (definition F x).
     + (* x is defined as a function (this will happen if there are
          name space clashes) *)
       apply E_MacroInvocation with params mexpr.
-      * reflexivity.
+      * apply H.
       * apply H0.
       * apply H1.
       * apply H2.
-    + rewrite H1.
-      (* x is not defined as a function *)
+    + (* x is not defined as a function *)
       destruct (has_side_effects mexpr).
       * (* x's body has side-effects *)
         destruct (get_dynamic_vars (params, mexpr)).
            (* x has dynamic variables (does nothing) *)
         -- apply E_MacroInvocation with params mexpr.
-           ++ reflexivity.
+           ++ apply H.
            ++ apply H0.
            ++ apply H1.
            ++ apply H2.
            (* x  does not have dynamic variables (does nothing) *)
         -- apply E_MacroInvocation with params mexpr.
-           ++ reflexivity.
+           ++ apply H.
            ++ apply H0.
            ++ apply H1.
            ++ apply H2.
@@ -140,10 +141,9 @@ Proof.
               simpl. rewrite eqb_refl. simpl. reflexivity.
               (* For now we don't actually evaluate macro arguments,
                  so they may as well be empty *)
-           ++ apply E_ArgListEmpty.
+           ++ rewrite H. apply E_ArgListEmpty.
            ++ (* Again, let params be empty since they are unused *)
-              rewrite H0.
-              apply E_FEnvEmpty.
+              rewrite H0. apply E_FEnvEmpty.
            ++ apply E_Skip.
               (* Here is where we need a lemma stating that
                  under the new function list, the evaluation of the
@@ -152,14 +152,13 @@ Proof.
                  the names in the transformed function list will be
                  unique, and we will only add names, never remove any. *)
            ++ apply expr_eval_same_under_unique_names.
-              ** apply H1.
               ** apply eval_same_under_empty_E_if_no_dyn_vars
                 with E params.
                 --- apply NoDynVars.
                 --- apply H2.
            (* x shares variables with the caller environment *)
         -- apply E_MacroInvocation with params mexpr.
-           ++ reflexivity.
+           ++ apply H.
            ++ apply H0.
            ++ apply H1.
            ++ apply H2.
