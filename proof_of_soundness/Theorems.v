@@ -196,9 +196,6 @@ Proof.
     + fold transform_macros_s. induction stmts.
       * discriminate.
       * simpl. inversion H. reflexivity.
-    + fold transform_macros_s. induction stmts.
-      * discriminate.
-      * simpl in H0. rewrite H0. reflexivity.
     + apply compound_statement_transformation_sound with rst S''.
       * apply IHstmtevalR1.
       * apply IHstmtevalR2.
