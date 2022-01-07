@@ -9,6 +9,8 @@ Section EvalRules.
 
 Open Scope Z_scope.
 
+Check NoDup (1::2::nil).
+
 (* Right now, a term that fails to evaluate will simply get "stuck";
    i.e. it will fail to be reduced further.
    We do not provide any error messages, but I think we could add
@@ -71,7 +73,8 @@ Inductive exprevalR :
      3) Evaluate the function's statement
      4) Evaluate the function's return expression
      5) Return the return value and store *)
-  | E_FunctionCall: forall S E G F M x es params fstmt fexpr S' v S'',
+  | E_FunctionCall:
+    forall S E G F M x es params fstmt fexpr S' v S'' vs ls Ef S''',
     (* How to express argument evaluation? *)
     (* Define separate relation for evaluating a *list* of expressions.
        New inputs:  es (list of expressions)
@@ -80,9 +83,9 @@ Inductive exprevalR :
        Output:  vs (list of values that each e evaluates to)
                 ls (list of l values that each v will map to)
        Next create the environment for function evaluation
-       New inputs:  vs (list of values)
-                    ls (list of l values)
-                    params (list of parameters (strings))
+       Inputs:  vs (list of values)
+                ls (list of l values)
+                params (list of parameters (strings))
        Output:  E (a new environment in which each param is mapped to
                   a *fresh* l-value from ls, each of which are
                   not already present in S')
@@ -92,15 +95,20 @@ Inductive exprevalR :
        the new E and S
     *)
     definition F x = Some (params, fstmt, fexpr) ->
-    {S, nil, G, F, M =[ fstmt ]=> S'} ->
-    [S', nil, G, F, M |- fexpr => v, S''] ->
-    [S, E, G, F, M |- (CallOrInvocation x es) => v, S'']
+    arglistevalR S nil G F M es nil nil vs ls ->
+    fenvevalR S E vs ls params Ef S' ->
+    {S', Ef, G, F, M =[ fstmt ]=> S''} ->
+    [S'', Ef, G, F, M |- fexpr => v, S'''] ->
+    [S, E, G, F, M |- (CallOrInvocation x es) => v, S''']
   (* Macro invocation*)
   (* How to handle macro function name shadowing? *)
   (* How to handle nested macros? *)
   (* How to implement call-by-name? Could use thunks, but
      that would require pointers and could get messy... *)
   | E_MacroInvocation : forall S E G F M x es params mexpr v S',
+    (* For now assume that macros have no args/parameters *)
+    es = nil ->
+    params = nil ->
     invocation M x = Some (params, mexpr) ->
     [S, E, G, F, M |- mexpr => v, S'] ->
     [S, E, G, F, M |- (CallOrInvocation x es) => v, S']
@@ -127,11 +135,34 @@ with arglistevalR :
     (* Create a fresh l-value. We assert that the l-value is not
        already in the list we are constructing; later we assert that
        none of these l-values are used in the store. *)
-    nodup eq_nat_dec (l::ls) = (l::ls) ->
+    NoDup ls ->
+    NoDup (l::ls) ->
     ls' = (l::ls) ->
     vs' = (v::vs) ->
     arglistevalR S' E G F M erst vs' ls' vs'' ls'' ->
     arglistevalR S E G F M es vs ls vs'' ls''
+with fenvevalR :
+  state -> environment -> list Z -> list nat -> list string ->
+  environment -> state -> Prop :=
+  (* End of evaluated arguments.
+     No more changes to the environment or store are necessary. *)
+  | E_FEnvEmpty : forall S E,
+    fenvevalR S E nil nil nil E S
+  (* There are values left that need mapping.
+     First map the param to the l-value in the environment,
+     then the l-value to the r-value in the store. *)
+  | E_FEnvNotEmpty :
+    forall S E vs v vrst ls l lrst ps p prst Sls E' S' E'' S'',
+    vs = v::vrst ->
+    ls = l::lrst ->
+    ps = p::prst ->
+    Sls = map fst S ->
+    (* Here we assert that all the l values to add to S are fresh *)
+    NoDup (ls ++ Sls) ->
+    E' = (p, l)::E ->
+    S' = (l, v)::S ->
+    fenvevalR S' E' vrst lrst prst E'' S'' ->
+    fenvevalR S E vs ls ps E'' S''
 with stmtevalR :
   state -> environment -> environment -> func_definitions -> macro_definitions ->
   stmt ->
