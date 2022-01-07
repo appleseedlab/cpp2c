@@ -9,8 +9,6 @@ Section EvalRules.
 
 Open Scope Z_scope.
 
-Check NoDup (1::2::nil).
-
 (* Right now, a term that fails to evaluate will simply get "stuck";
    i.e. it will fail to be reduced further.
    We do not provide any error messages, but I think we could add
