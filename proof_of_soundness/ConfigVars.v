@@ -13,14 +13,14 @@ Definition state : Set := @list (nat * Z).
 (* Looks up a variable name in the environment and returns
    the corresponding L-value wrapped in an option type if found;
    otherwise returns None *)
-Definition lookupE (x:string) (E:environment) : option nat :=
+Definition lookupE (x: string) (E: environment) : option nat :=
   option_map snd (find (fun pair => String.eqb (fst pair) x) E).
 
 
 (* Looks up an L-value in the store and returns
    the corresponding R-value wrapped in an option type if found;
    otherwise returns None                              *)
-Definition lookupS (l:nat) (S:state) : option Z :=
+Definition lookupS (l: nat) (S: state) : option Z :=
   option_map snd (find (fun pair => Nat.eqb (fst pair) l) S).
 
 
@@ -43,13 +43,21 @@ Definition macro_definitions : Set := @list (string * macro_definition).
    the corresponding definition wrapped in an option type if found;
    otherwise returns None *)
 Definition definition
-  (defs:func_definitions) (x:string) : option func_definition :=
-  option_map snd (find (fun pair => String.eqb (fst pair) x) defs).
+  (F: func_definitions) (x: string) : option func_definition :=
+  option_map snd (find (fun pair => String.eqb (fst pair) x) F).
 
 
 (* Looks up a macro name in the function defintion list and returns
    the corresponding definition wrapped in an option type if found;
    otherwise returns None *)
 Definition invocation
-  (defs:macro_definitions) (x:string) : option macro_definition :=
-  option_map snd (find (fun pair => String.eqb (fst pair) x) defs).
+  (M: macro_definitions) (x: string) : option macro_definition :=
+  option_map snd (find (fun pair => String.eqb (fst pair) x) M).
+
+(* Macro parameters are stored as a mapping from strings
+   to expressions. This allows us to implement call-by-name when
+   invoking macros. *)
+Definition macro_parameters : Set := list (string * expr).
+Definition lookupMP
+  (MP: macro_parameters) (x: string) : option expr :=
+  option_map snd (find (fun pair => String.eqb (fst pair) x) MP).
