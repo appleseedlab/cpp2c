@@ -45,6 +45,7 @@ Inductive const_expr : Type :=
 
 (* TODO: Currently we can only assign from strings to R-values.
    This need to be fixed so that LHS of assignments can be an L-value *)
+(* This would necessitate an evaluation rule for L-values as well *)
 Inductive expr : Type :=
   | Num (z : Z)
   | X (x : string)
