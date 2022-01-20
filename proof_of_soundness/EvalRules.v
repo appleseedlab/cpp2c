@@ -1,226 +1,247 @@
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.Lists.List.
-Require Import Coq.Strings.String.
+Require Import
+  Coq.Lists.List
+  Coq.Strings.String
+  Coq.ZArith.ZArith.
 
-From Cpp2C Require Import Syntax.
-From Cpp2C Require Import ConfigVars.
+From Cpp2C Require Import
+  ConfigVars
+  Syntax.
 
-Section EvalRules.
 
-Open Scope Z_scope.
+Theorem demorgan : forall A B,
+  ~ (A \/ B) <-> ~A /\ ~B.
+Proof.
+  intros. tauto.
+Qed.
+
+(* Macro substitution.
+   Check this for details on nested calls to macros:
+   https://gcc.gnu.org/onlinedocs/cpp/Argument-Prescan.html
+   Currently we don't supported macro calls in macro arguments.
+ *)
+Fixpoint msub
+  (MP : macro_parameters) (mexpr : expr) : expr :=
+  match mexpr with
+  | Num z => Num z
+  | Var x =>
+    match lookup_macro_parameter MP x with
+    | Some pe => snd pe
+    | None => Var x
+    end
+  | ParenExpr e0 => ParenExpr (msub MP e0)
+  | UnExpr uo e0 => UnExpr uo (msub MP e0)
+  | BinExpr bo e1 e2 => BinExpr bo (msub MP e1) (msub MP e2)
+    (* TODO: Fix these two once we add pointers *)
+  | Assign x e0 => match lookup_macro_parameter MP x with
+    (* Right now we only substitute the LHS of assignments if
+       the expression to plug in is also simply a variable *)
+    | Some pe => match snd pe with
+      | (Var y) => Assign y (msub MP e0)
+      | _ => Assign x (msub MP e0)
+      end
+    | _ => Assign x (msub MP e0)
+    end
+  (* FIXME: This doesn't match the actual semantics of macro expansion
+            See the Google Doc *)
+  | CallOrInvocation x es => CallOrInvocation x es
+end.
+
+
+Fixpoint expr_has_side_effects (e: expr) : bool :=
+  match e with
+  | Num z => false
+  | Var x => false
+  | ParenExpr e0 => expr_has_side_effects e0
+  | UnExpr uo e0 => expr_has_side_effects e0
+  | BinExpr bo e1 e2 =>
+    orb (expr_has_side_effects e1) (expr_has_side_effects e2)
+  (* This is conservative, but matches the behaviour of Clang *)
+  | Assign x e0 => true
+  | CallOrInvocation x es => true
+end.
+
+
+Fixpoint ExprHasSideEffects (e : expr) : Prop :=
+  match e with
+  | Num z => False
+  | Var x => False
+  | ParenExpr e0 => ExprHasSideEffects e0
+  | UnExpr uo e0 => ExprHasSideEffects e0
+  | BinExpr bo e1 e2 =>
+    (ExprHasSideEffects e1) \/ (ExprHasSideEffects e2)
+  (* This is conservative, but matches the behaviour of Clang *)
+  | Assign x e0 => True
+  | CallOrInvocation x es => True
+end.
+
+
+Theorem expr_has_side_effects_ExprHasSideEffects : forall e,
+  expr_has_side_effects e = true <-> ExprHasSideEffects e.
+Proof.
+  split; induction e; intros; simpl in *;
+    try discriminate; try (apply IHe; apply H);
+    try apply I; try contradiction; try reflexivity.
+  - apply Bool.orb_prop in H. tauto.
+  - apply Bool.orb_true_iff. tauto.
+Qed.
+
+
+Theorem neg_expr_side_effects_NotExprHasSideEffects : forall e,
+  expr_has_side_effects e = false <-> ~ ExprHasSideEffects e.
+Proof.
+  split; induction e; intros; simpl in *;
+  try discriminate; try (apply IHe; apply H);
+  try apply I; try contradiction; try reflexivity; try auto.
+  - rewrite Bool.orb_false_iff in H. apply demorgan. split.
+    + apply IHe1. apply H.
+    + apply IHe2. apply H.
+  - apply demorgan in H. apply Bool.orb_false_iff. split.
+    + apply IHe1. apply H.
+    + apply IHe2. apply H.
+Qed.
 
 (* Right now, a term that fails to evaluate will simply get "stuck";
    i.e. it will fail to be reduced further.
    We do not provide any error messages, but I think we could add
    this later using a sum type. *)
-Reserved Notation
-  "[ S , E , G , F , M '|-' e '=>' v , S' ]"
-  (at level 90, left associativity).
-Reserved Notation
-  "{ S , E , G , F , M '=[' s ']=>' S' }"
-  (at level 91, left associativity).
-Inductive exprevalR :
-  state -> environment -> environment -> func_definitions -> macro_definitions ->
+Inductive ExprEval:
+  store -> environment -> environment ->
+  function_table -> macro_table ->
   expr ->
-  Z -> state -> Prop :=
+  Z -> store -> Prop :=
   (* Numerals evaluate to their integer representation and do not
-     change the state *)
+     change the store *)
   | E_Num : forall S E G F M z,
-    [S, E, G, F, M |- (Num z) => z, S]
-  (* Variable lookup returns the variable's R-value
-     and does not change the state *)
-  | E_X_Local : forall S E G F M x l v,
-    lookupE x E = Some l ->
-    lookupS l S = Some v ->
-    [S, E, G, F, M |- (X x) => v, S]
+    ExprEval S E G F M (Num z) z S
+  (* Variable lookup occurs iff a macro parameter is not found. *)
+  | E_LocalVar : forall S E G F M x l v,
+    StringMap.MapsTo x l E ->
+    NatMap.MapsTo l v S ->
+    ExprEval S E G F M (Var x) v S
   (* Local variables shadow global variables, so only if a local
-     variable lookup fails do we check the global environment *)
-  | E_X_Global : forall S E G F M x l v,
-    lookupE x E = None ->
-    lookupE x G = Some l ->
-    lookupS l S = Some v ->
-    [S, E, G, F, M |- (X x) => v, S]
-  (* Parenthesized expressions evaluate to themselves *)
-  | E_ParenExpr : forall S E G F M e v S',
-    [S, E, G, F, M |- e => v, S'] ->
-    [S, E, G, F, M |- (ParenExpr e) => v, S']
+     variable lookup fails do we check the global environment. *)
+  | E_GlobalVar : forall S E G F M x l v,
+    ~ StringMap.In x E->
+    StringMap.MapsTo x l G ->
+    NatMap.MapsTo l v S ->
+    ExprEval S E G F M (Var x) v S
+  (* Parenthesized expressions evaluate to themselves. *)
+  | E_ParenExpr : forall S E G F M e0 v S',
+    ExprEval S E G F M e0 v S' ->
+    ExprEval S E G F M (ParenExpr e0) v S'
   (* Unary expressions *)
-  | E_UnExpr : forall S E G F M S' uo e v,
-    [S, E, G, F, M |- e => v, S'] ->
-    [S, E, G, F, M |- (UnExpr uo e) => ((unopToOp uo) v), S']
-  (* Binary expressions *)
+  | E_UnExpr : forall S E G F M S' uo e0 v,
+    ExprEval S E G F M e0 v S' ->
+    ExprEval S E G F M (UnExpr uo e0) ((unop_to_op uo) v) S'
+  (* Binary expressions. Left operands are evaluated first. *)
   (* NOTE: Evaluation rules do not handle operator precedence.
      The parser must use a concrete syntax to generate a parse tree
      with the appropriate precedence levels in it. *)
-  | E_BinExpr : forall S E G F M bo e1 e2 S' v1 S'' v2 S''',
-    [S, E, G, F, M |- e1 => v1, S'] ->
-    [S', E, G, F, M |- e2 => v2, S''] ->
-    [S'', E, G, F, M |- (BinExpr bo e1 e2) =>
-      (((binopToOp bo) v1 v2)), S''']
+  | E_BinExpr : forall S E G F M bo e1 e2 v1 v2 S' S'',
+    ExprEval S E G F M e1 v1 S' ->
+    ExprEval S' E G F M e2 v2 S'' ->
+    ExprEval S E G F M (BinExpr bo e1 e2) ((binop_to_op bo) v1 v2) S''
   (* Variable assignments update the store by adding a new L-value to
      R-value mapping or by overriding an existing one.
-     The R-value is returned along with the updated state *)
-  | E_Assign_Success : forall S E G F M l x e v S',
-    [S, E, G, F, M |- e => v, S'] ->
-    lookupE x E = Some l ->
-    [S, E, G, F, M |- (Assign x e) => v, (l,v)::S']
+     The R-value is returned along with the updated state.
+     For now we assume that there is no overlap between macro parameters
+     and variables that are assigned to (i.e., it is impossible for a
+     macro to have side-effects). *)
+  (* Local variable assignment overrides global variable assignment. *)
+  | E_Assign_Local : forall S E G F M l x e0 v S' S'',
+    StringMap.MapsTo x l E ->
+    ExprEval S E G F M e0 v S' ->
+    S'' = NatMapProperties.update S (NatMap.add l v (NatMap.empty Z)) ->
+    ExprEval S E G F M (Assign x e0) v S''
+  (* Global variable assignment *)
+  | E_Assign_Global : forall S E G F M l x e0 v S' S'',
+    ~ StringMap.In x E ->
+    StringMap.MapsTo x l G ->
+    ExprEval S E G F M e0 v S' ->
+    S'' = NatMapProperties.update S (NatMap.add l v (NatMap.empty Z)) ->
+    ExprEval S E G F M (Assign x e0) v S'
   (* For function calls, we perform the following steps:
      1) Evaluate arguments
      2) Map parameters to arguments in function local environment,
         which is based on the global environment
      3) Evaluate the function's statement
      4) Evaluate the function's return expression
+     4.5) Remove the mappings that were added to the store for the function
+          call
      5) Return the return value and store *)
   | E_FunctionCall:
-    forall S E G F M x es params fstmt fexpr S' v S'' vs ls Ef S''',
-    (* How to express argument evaluation? *)
-    (* Define separate relation for evaluating a *list* of expressions.
-       New inputs:  es (list of expressions)
-                    vs (list of values evaluated so far)
-                    ls (list of l-values created so far)
-       Output:  vs (list of values that each e evaluates to)
-                ls (list of l values that each v will map to)
-       Next create the environment for function evaluation
-       Inputs:  vs (list of values)
-                ls (list of l values)
-                params (list of parameters (strings))
-       Output:  E (a new environment in which each param is mapped to
-                  a *fresh* l-value from ls, each of which are
-                  not already present in S')
-                S' (a new store in which each fresh l-value is mapped
-                   to the v corresponding to its param in E)
-       Finally evaluate the function's statement and expression under
-       the new E and S
+    forall S E G F M x es params fstmt fexpr ls
+           Sargs S' S'' S''' Ef S'''' S''''' v vs,
+    (* TODO: Things to consider :
+       - Should all functions have unique names?
     *)
-    definition F x = Some (params, fstmt, fexpr) ->
-    arglistevalR S nil G F M es nil nil vs ls ->
-    fenvevalR S E vs ls params Ef S' ->
-    {S', Ef, G, F, M =[ fstmt ]=> S''} ->
-    [S'', Ef, G, F, M |- fexpr => v, S'''] ->
-    [S, E, G, F, M |- (CallOrInvocation x es) => v, S''']
-  (* Macro invocation*)
-  (* How to handle macro function name shadowing? *)
-  (* How to handle nested macros? *)
-  (* How to implement call-by-name? Could use thunks, but
-     that would require pointers and could get messy... *)
-  | E_MacroInvocation : forall S E G F M x es params mexpr v S',
-    (* For now assume that macros have no args/parameters *)
-    es = nil ->
-    params = nil ->
-    invocation M x = Some (params, mexpr) ->
-    [S, E, G, F, M |- mexpr => v, S'] ->
-    [S, E, G, F, M |- (CallOrInvocation x es) => v, S']
-  where "[ S , E , G , F , M '|-' e '=>' v , S' ]" :=
-    (exprevalR S E G F M e v S')
-with arglistevalR :
-  state -> environment -> environment -> func_definitions -> macro_definitions ->
-  list expr -> list Z -> list nat ->
-  list Z -> list nat -> Prop :=
-  (* End of an argument list.
-     We don't need to evaluate any more arguments or create any more
-     l-value mappings for them *)
-  | E_ArgListEmpty : forall S E G F M vs ls,
-    arglistevalR S E G F M nil vs ls vs ls
-  (* Non-empty expression list.
-     We need evaluate the given argument and add the result and a new
-     l-value mapping to the output. *)
-  | E_ArgListNotEmpty :
-    forall S E G F M (es: list expr)
-           v l e erst vs vs' vs'' ls ls' ls'' S',
-    es = (e::erst) ->
-    (* Evaluate the argument *)
-    [S, E, G, F, M |- e => v, S'] ->
-    (* Create a fresh l-value. We assert that the l-value is not
-       already in the list we are constructing; later we assert that
-       none of these l-values are used in the store. *)
-    NoDup ls ->
-    NoDup (l::ls) ->
-    ls' = (l::ls) ->
-    vs' = (v::vs) ->
-    arglistevalR S' E G F M erst vs' ls' vs'' ls'' ->
-    arglistevalR S E G F M es vs ls vs'' ls''
-with fenvevalR :
-  state -> environment -> list Z -> list nat -> list string ->
-  environment -> state -> Prop :=
-  (* End of evaluated arguments.
-     No more changes to the environment or store are necessary. *)
-  | E_FEnvEmpty : forall S E,
-    fenvevalR S E nil nil nil E S
-  (* There are values left that need mapping.
-     First map the param to the l-value in the environment,
-     then the l-value to the r-value in the store. *)
-  | E_FEnvNotEmpty :
-    forall S E vs v vrst ls l lrst ps p prst Sls E' S' E'' S'',
-    vs = v::vrst ->
-    ls = l::lrst ->
-    ps = p::prst ->
-    Sls = map fst S ->
-    (* Here we assert that all the l values to add to S are fresh *)
-    NoDup (ls ++ Sls) ->
-    E' = (p, l)::E ->
-    S' = (l, v)::S ->
-    fenvevalR S' E' vrst lrst prst E'' S'' ->
-    fenvevalR S E vs ls ps E'' S''
-with stmtevalR :
-  state -> environment -> environment -> func_definitions -> macro_definitions ->
+    (* Macro definitions shadow function definitions, so function calls
+       only occur if a macro definition is not found *)
+    ~ StringMap.In x M ->
+    (* Function name maps to some function *)
+    StringMap.MapsTo x (params, fstmt, fexpr) F ->
+    (* Parameters should all be unique *)
+    NoDup params ->
+    (* Evaluate the function's arguments *)
+
+    EvalArgs S E G F M es vs S' ->
+    (* Create the function environment *)
+    StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) ->
+    (* Create a store for mapping L-values to the arguments to in the store *)
+    NatMap.Equal Sargs (NatMapProperties.of_list (combine ls vs)) ->
+    (* All the L-values used in the argument store do not appear in the original store *)
+    NatMapProperties.Disjoint S' Sargs ->
+    (* Combine the argument store into the original store *)
+    NatMap.Equal S'' (NatMapProperties.update S' Sargs) ->
+    (* Evaluate the function's body *)
+    StmtEval S'' Ef G F M fstmt S''' ->
+    ExprEval S''' Ef G F M fexpr v S'''' ->
+    (* Only keep in the store the L-value mappings that were there when
+       the function was called; i.e., remove from the store all mappings
+       whose L-value is in Ef/Sargs. *)
+    NatMap.Equal S''''' (NatMapProperties.restrict S'''' S) ->
+    ExprEval S E G F M (CallOrInvocation x es) v S'''''
+  (* Macro invocation *)
+  | E_MacroInvocation :
+    forall S E G F M x params es mexpr M' MP ef S' v,
+    (* TODO: Things to consider:
+     - How to handle nested macros?
+     - |params| == |es|?
+     - Should all macros have unique names?
+     *)
+    (* Macro definitions shadow function definitions, so if a macro
+       definition is found, we don't even check the function list.
+       However, when we execute the macro's body, we need to remove
+       the current macro definition from the list of macro definitions
+       to avoid nested macros from being expanded. *)
+    StringMap.MapsTo x (params, mexpr) M ->
+    M' = StringMap.remove x M ->
+    NoDup params ->
+    (* Create the MP for evaluating the macro expression in *)
+    MP = combine params es ->
+    ef = msub MP mexpr ->
+    ExprEval S E G F M' ef v S' ->
+    ExprEval S E G F M' (CallOrInvocation x es) v S'
+with EvalArgs :
+  store -> environment -> environment -> function_table -> macro_table ->
+  list expr -> list Z -> store ->
+  Prop :=
+  (* End of arguments *)
+  | E_EmptyArgs : forall Sprev Ecaller G F M vs (Snext : store),
+    EvalArgs Sprev Ecaller G F M nil vs Sprev
+  (* There are arguments left to evaluate *)
+  | E_NonEmptyArgs : forall Sprev Ecaller G F M e v Snext es vs Sfinal,
+    (* Evaluate the first expression using the caller's *)
+    ExprEval Sprev Ecaller G F M e v Snext ->
+    (* Evaluate the remaining expressions *)
+    EvalArgs Snext Ecaller G F M es vs Sfinal ->
+    (* Return the final environment *)
+    EvalArgs Sprev Ecaller G F M (e::es) (v::vs) Sfinal
+with StmtEval :
+  store -> environment -> environment ->
+  function_table -> macro_table ->
   stmt ->
-  state -> Prop :=
+  store -> Prop :=
   (* A skip statement does not change the state *)
   | E_Skip : forall S E G F M,
-    {S, E, G, F, M =[ Skip ]=> S}
-  (* An expression statement evaluates its expression and returns 
-     the resulting state *)
-  | E_ExprStmt : forall S E G F M e v S',
-    [S, E, G, F, M |- e => v, S'] ->
-    {S, E, G, F, M =[ ExprStmt e ]=> S'}
-  (* An empty compound statement evaluates to its initial state *)
-  | E_CompoundStatementEmpty : forall S E G F M,
-    {S, E, G, F, M =[ CompoundStmt nil ]=> S}
-  (* A non-empty compound statement evaluates its first statement and
-     then the following statements *)
-  | E_CompoundStatementNotEmpty : forall S E G F M stmts s0 rst S' S'',
-    stmts = (s0::rst) ->
-    {S, E, G, F, M =[ s0 ]=> S'} ->
-    {S', E, G, F, M =[ CompoundStmt rst ]=> S''} ->
-    {S, E, G, F, M =[ CompoundStmt stmts ]=> S''}
-  (* An if statement whose condition evaluates to false only carries
-     over the side-effects induced by evaluating its condition *)
-  | E_IfFalse: forall S E G F M e s0 S',
-    [S, E, G, F, M |- e => 0, S'] ->
-    {S, E, G, F, M =[ IfStmt e s0 ]=> S'}
-  (* An if statement whose condition evaluates to true carries over
-     the side-effects from evaluating its condition and its statement *)
-  | E_IfTrue: forall S E G F M e s0 v S' S'',
-    v <> 0 ->
-    [S, E, G, F, M |- e => v, S'] ->
-    {S',E, G, F, M =[ s0 ]=> S''} ->
-    {S, E, G, F, M =[ IfStmt e s0 ]=> S''}
-  (* Side-effects from condition and false branch *)
-  | E_IfElseFalse: forall S E G F M e s0 s1 S' S'',
-    [S, E, G, F, M |- e => 0, S'] ->
-    {S',E, G, F, M =[ s1 ]=> S''} ->
-    {S, E, G, F, M =[ IfElseStmt e s0 s1 ]=> S''}
-  (* Side-effects from condition and true branch *)
-  | E_IfElseTrue: forall S E G F M e s0 s1 v S' S'',
-    v <> 0 ->
-    [S, E, G, F, M |- e => v, S'] ->
-    {S', E, G, F, M =[ s0 ]=> S''} ->
-    {S, E, G, F, M =[ IfElseStmt e s0 s1 ]=> S''}
-  (* Similar to E_IfFalse *)
-  | E_WhileFalse: forall S E G F M e s0 S',
-    [S, E, G, F, M |- e => 0, S'] ->
-    {S, E, G, F, M =[ WhileStmt e s0 ]=> S'}
-  (* A while statement whose condition evaluates to false must be
-     run again after evaluating its body *)
-  | E_WhileTrue: forall S E G F M e s0 v S' S'' S''',
-    v <> 0 ->
-    [S, E, G, F, M |- e => v, S'] ->
-    {S', E, G, F, M =[ s0 ]=> S''} ->
-    {S'', E, G, F, M =[ WhileStmt e s0 ]=> S'''} ->
-    {S, E, G, F, M =[ WhileStmt e s0 ]=> S'''}
-  where "{ S , E , G , F , M '=[' s ']=>' S' }" :=
-    (stmtevalR S E G F M s S').
-
-Close Scope Z_scope.
-
-End EvalRules.
+    StmtEval S E G F M Skip S.
