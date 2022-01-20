@@ -1,5 +1,6 @@
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.Strings.String.
+Require Import
+  Coq.Strings.String
+  Coq.ZArith.ZArith.
 
 
 (* Unary operators *)
@@ -9,7 +10,7 @@ Inductive unop : Type :=
 
 
 (* Converts a unop type to its corresponding unary operation *)
-Definition unopToOp (uo : unop) : (Z -> Z) :=
+Definition unop_to_op (uo : unop) : (Z -> Z) :=
   match uo with
   | Positive => id
   | Negative => Z.opp
@@ -25,7 +26,7 @@ Inductive binop : Type :=
 
 
 (* Converts a binop type to its corresponding binary operation *)
-Definition binopToOp (bo : binop) : (Z -> Z -> Z) :=
+Definition binop_to_op (bo : binop) : (Z -> Z -> Z) :=
   match bo with
   | Plus => Zplus
   | Sub => Zminus
@@ -34,21 +35,12 @@ Definition binopToOp (bo : binop) : (Z -> Z -> Z) :=
   end.
 
 
-(* Syntax for constant expressions, i.e., ones that don't involve
-   variables and don't have side-effects *)
-Inductive const_expr : Type :=
-  | ConstNum (z : Z)
-  | ConstParenExpr (ce : const_expr)
-  | ConstUnExpr (uo : unop) (ce : const_expr)
-  | ConstBinExpr (bo : binop) (ce1 ce2 : const_expr).
-
-
 (* TODO: Currently we can only assign from strings to R-values.
    This need to be fixed so that LHS of assignments can be an L-value *)
 (* This would necessitate an evaluation rule for L-values as well *)
 Inductive expr : Type :=
   | Num (z : Z)
-  | X (x : string)
+  | Var (x : string)
   | ParenExpr (e0 : expr)
   | UnExpr (uo : unop) (e0 : expr)
   | BinExpr (bo : binop) (e1 e2 : expr)
@@ -59,16 +51,4 @@ Inductive expr : Type :=
 Inductive stmt : Type :=
   (* We may not need Skip, I added it to make the evaluation rule
      for compound statements easier to define. *)
-  | Skip
-  | ExprStmt (e : expr)
-  | CompoundStmt (stmts: list stmt)
-  | IfStmt (cond: expr) (s0 : stmt)
-  | IfElseStmt (cond: expr) (s0 s1: stmt)
-  | WhileStmt (cond: expr) (s0 : stmt).
-
-
-(* Maybe these should be split up into two separate types?
-   See the definition of func_definition for an explanation why *)
-Inductive decl : Type :=
-  | LocalDecl (x:string) (e:expr)
-  | GlobalDecl (x:string) (ce:const_expr).
+  | Skip.
