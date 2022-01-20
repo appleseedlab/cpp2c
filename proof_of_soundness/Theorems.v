@@ -294,7 +294,7 @@ Theorem side_effect_free_macro_no_side_effects :
   MP = combine params es ->
   ef = msub MP mexpr ->
   ExprEval S E G F M' ef v S' ->
-  ExprEval S E G F M' (CallOrInvocation x es) v S' ->
+  ExprEval S E G F M (CallOrInvocation x es) v S' ->
   NatMap.Equal S S'.
 Proof.
   intros.
@@ -319,7 +319,7 @@ Example transform_side_effect_free_macro_sound :
   MP = combine params es ->
   ef = msub MP mexpr ->
   ExprEval S E G F M' ef v S0' ->
-  ExprEval S E G F M' (CallOrInvocation x es) v S0' ->
+  ExprEval S E G F M (CallOrInvocation x es) v S0' ->
 
   Forall (fun e => ~ ExprHasSideEffects e) es ->
   ~ ExprHasSideEffects mexpr ->
@@ -351,7 +351,8 @@ Example transform_side_effect_free_macro_sound :
 Proof.
   intros.
   apply side_effect_free_macro_no_side_effects
-    with (params:=params) (mexpr:=mexpr) (M:=M) (MP:=MP) (ef:=ef) in H7; try assumption.
+    with (params:=params) (mexpr:=mexpr) (M:=M) (M':=M') (MP:=MP) (ef:=ef) in H7;
+      try assumption.
   apply side_effect_free_function_no_side_effects with
     (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (ls:=ls) (Sargs:=Sargs) (S':=S')
     (S'':=S'') (S''':=S''') (Ef:=Ef) (S'''':=S'''') (vs:=vs) in H21;
@@ -360,42 +361,69 @@ Proof.
 Qed.
 
 
-(* Theorem transform_id_sound : forall S E G F M e v S',
-  ExprEval S E G F M e v S' ->
-  ExprEval S E G F M e v S'.
-Proof.
-  intros. induction H.
-  - apply E_Num. *)
-
-(* Theorem transform_expr_sound : forall S E G F M e v S' e' v' S'' F',
-  TransformExpr M F e F' e' ->
-  ExprEval S E G F M e v S' ->
-  ExprEval S E G F' M e' v' S'' ->
-  (NatMap.Equal S' S'') /\ v = v'.
-Proof.
-  intros S E G F M e v S' e' v' S'' F' H.
-  induction H; intros.
-  - inversion H. inversion H0. subst. split; reflexivity.
-  - inversion H0. inversion H1. subst. apply IHTransformExpr. assumption. assumption.
-  - inversion H. *)
-
-
-
-
 Theorem transform_expr_sound : forall M F e F' e',
   TransformExpr M F e F' e' ->
+  (* The proof will not work if these variables were introduced sooner.
+     Doing so wwould interfere with the induction hypothesis *)
   (forall S E G v S',
   ExprEval S E G F M e v S' ->
   ExprEval S E G F' M e' v S').
 Proof.
   intros M F e F' e' H. induction H.
   - intros. inversion H. inversion H0. subst. auto.
+  - intros. inversion H; subst; auto.
   - intros. inversion H0. subst. apply E_ParenExpr. apply IHTransformExpr. assumption.
   - intros. inversion H0. subst. apply E_UnExpr. apply IHTransformExpr. assumption.
   - intros. inversion H3. subst. apply E_BinExpr with S'0.
     + apply H1. apply IHTransformExpr1. apply H14.
     + apply H2. apply IHTransformExpr2. apply H15.
+  - intros. inversion H0; subst.
+    + apply E_Assign_Local with l S'0.
+      * assumption.
+      * apply IHTransformExpr. assumption.
+      * reflexivity.
+    + apply E_Assign_Global with l S'0.
+      * assumption.
+      * assumption.
+      * apply IHTransformExpr. assumption.
+      * reflexivity.
+  - intros. inversion H1.
+    + subst. apply E_FunctionCall
+      with params fstmt fexpr ls Sargs S'0 S'' S''' Ef S'''' vs; try assumption.
+    + subst. apply StringMap_mapsto_in in H4. contradiction.
+  - intros. inversion H7.
+    + contradiction.
+    + (* Here is where we perform the transformation. Right now we could "cheat"
+         through the proof and apply the macro call evaluation rules to prove this part,
+         but we could remove this exploit by forcing the function table and macro table
+         to be distinct *)
+      assert (EvalArgs S E G F' M es vs S' /\
+     StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) /\
+     NatMap.Equal Sargs (NatMapProperties.of_list (combine ls vs)) /\
+     NatMapProperties.Disjoint S' Sargs /\
+     NatMap.Equal S'' (NatMapProperties.update S' Sargs) /\
+     StmtEval S'' Ef G F' M Skip S''' /\
+     ExprEval S''' Ef G F' M mexpr v S'''' /\
+     NatMap.Equal S''''' (NatMapProperties.restrict S'''' S)).
+     { apply H6. }
+      apply H0 in H10. destruct H10. subst.
+      apply E_FunctionCall with
+        (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (ls:=ls) (Sargs:=Sargs) (S':=S')
+        (S'':=S'') (S''':=S''') (Ef:=Ef) (S'''':=S'''') (vs:=vs);
+        try assumption; try apply H23.
+        * rewrite H4. apply StringMapFacts.add_mapsto_iff. left. split; auto.
+        * destruct H23. destruct H9. destruct H10. destruct H11. destruct H13.
+          destruct H14. destruct H15.
+          apply no_side_effects_no_store_change_arg_eval in H8.
+          apply skip_no_side_effects in H14.
+          apply no_side_effects_no_store_change in H15.
+          rewrite H8. rewrite H13 in H14. rewrite <- H14 in H15.
+          rewrite <- H15. rewrite <- H8.
+          apply NatMap_disjoint_restrict_Equal. rewrite H8. apply H11.
+          -- assumption.
+          -- assumption.
 Qed.
+
 
 
 
