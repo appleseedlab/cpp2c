@@ -1,63 +1,96 @@
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.Strings.String.
-Require Import Coq.Lists.List.
+Require Import
+  Coq.FSets.FMapFacts
+  Coq.FSets.FMapList
+  Coq.Lists.List
+  Coq.Strings.String
+  Coq.Structures.OrderedTypeEx
+  Coq.Structures.OrdersEx
+  Coq.ZArith.ZArith.
 
 From Cpp2C Require Import Syntax.
 
+(* Mappings from natural numbers to a type *)
+Module Import NatMap := FMapList.Make(OrderedTypeEx.Nat_as_OT).
+Module NatMapProperties := WProperties_fun OrderedTypeEx.Nat_as_OT NatMap.
+Module NatMapFacts := NatMapProperties.F.
 
-(* Environment and store/state are implemented as associative arrays. *)
-Definition environment : Set := @list (string * nat).
-Definition state : Set := @list (nat * Z).
+(* Mappings from strings to a type *)
+Module Import StringMap := FMapList.Make(String_as_OT).
+Module StringMapProperties := WProperties_fun String_as_OT StringMap.
+Module StringMapFacts := StringMapProperties.F.
 
+(* Store is a mapping from l-values (memory addresses, represented as
+   natural numbers) to r-values (just integers in our case) *)
+Definition store : Type := NatMap.t Z.
 
-(* Looks up a variable name in the environment and returns
-   the corresponding L-value wrapped in an option type if found;
-   otherwise returns None *)
-Definition lookupE (x: string) (E: environment) : option nat :=
-  option_map snd (find (fun pair => String.eqb (fst pair) x) E).
+(* Environment is a mapping from symbols (strings) to l-values (memory
+   addresses; see above) *)
+Definition environment : Type := StringMap.t nat.
 
+(* A function is defined by a 3-tuple containing its parameters (strings),
+   body (a statement, which may be a compound statement), and
+   return expression *)
+Definition function_definition : Set := ((list string) * stmt * expr).
 
-(* Looks up an L-value in the store and returns
-   the corresponding R-value wrapped in an option type if found;
-   otherwise returns None                              *)
-Definition lookupS (l: nat) (S: state) : option Z :=
-  option_map snd (find (fun pair => Nat.eqb (fst pair) l) S).
+(* A function table is a mapping from function names (strings) to
+   function definitions *)
+Definition function_table : Type := StringMap.t function_definition.
 
+(* A macro is defined by a 2-tuple containing its parameters (strings),
+   and body (for now simply an expression *)
+Definition macro_definition : Set := ((list string) * expr).
 
-(* Mappings from function and macro names to their definitions *)
-(* Functions are defined as a 3-tuple:
-   0: Parameter names
-   1: Body that is a statement (could be a compound statement)
-   2: Return expression *)
-Definition func_definition : Set := ((list string) * stmt * expr).
-Definition func_definitions : Set := @list (string * func_definition).
+(* A macro table is a mapping from macro names (strings) to
+   macro definitions *)
+Definition macro_table : Type := StringMap.t macro_definition.
 
+(* A macro parameters is a mapping from macro parameters (strings) to
+   expressions *)
+(* Definition macro_parameters : Type := StringMap.t expr. *)
 
-(* Macro definitions are serialized as a two-tuple containing
-   the macros parameters and the macro body (a single expression) *)
-Definition macro_definition : Set := (list (string) * expr).
-Definition macro_definitions : Set := @list (string * macro_definition).
-
-
-(* Looks up a function name in the function defintion list and returns
-   the corresponding definition wrapped in an option type if found;
-   otherwise returns None *)
-Definition definition
-  (F: func_definitions) (x: string) : option func_definition :=
-  option_map snd (find (fun pair => String.eqb (fst pair) x) F).
-
-
-(* Looks up a macro name in the function defintion list and returns
-   the corresponding definition wrapped in an option type if found;
-   otherwise returns None *)
-Definition invocation
-  (M: macro_definitions) (x: string) : option macro_definition :=
-  option_map snd (find (fun pair => String.eqb (fst pair) x) M).
-
-(* Macro parameters are stored as a mapping from strings
-   to expressions. This allows us to implement call-by-name when
-   invoking macros. *)
+(* Macro parameters are defined this way to facilitate the proof.
+   Originally we defined them as a StringMap mapping to expressions,
+   but the problem with this is that it was difficult (maybe impossible?)
+   to prove that if the mappings was created from a set of keys ks combined
+   with a set of elements es, and a predicate holds for all the elements of es
+   originally, then it will hold for any elemnt that a key maps to in
+   the mapping. Unfortunately, Coq's FMap built-in lemmas aren't quite strong
+   enough to prove this, but its List lemmas are strong enough to prove a
+   similar lemma for associative arrays. Maybe in the future we can find an
+   external library that proves this for us; that would be ideal.
+*)
 Definition macro_parameters : Set := list (string * expr).
-Definition lookupMP
-  (MP: macro_parameters) (x: string) : option expr :=
-  option_map snd (find (fun pair => String.eqb (fst pair) x) MP).
+Definition lookup_macro_parameter
+  (MP : macro_parameters) (k : string) : option (string * expr) :=
+  List.find (fun pe => String.eqb (fst pe) k) MP.
+Fixpoint remove_macro_parameter
+  (l : macro_parameters) (k : string) : macro_parameters :=
+  match l with
+  | nil => nil
+  | cons x xs => if String.eqb (fst x) k then
+    remove_macro_parameter xs k else x :: (remove_macro_parameter xs k)
+  end.
+
+
+
+(* Coq map examples *)
+
+(* Compute StringMap.find "x"%string (StringMap.empty nat). *)
+
+Example no_mappings_in_empty_map : ~ MapsTo "x"%string 1 (empty nat).
+Proof.
+  intros. assert (Empty (empty nat)). apply is_empty_2. reflexivity.
+  apply H.
+Qed.
+
+(* Compute NatMapProperties.update (NatMap.empty nat) (NatMap.empty nat). *)
+
+Example no_mappings_in_empty_joined_map : forall x,
+~ NatMap.MapsTo x 1 (NatMapProperties.update (NatMap.empty nat) (NatMap.empty nat)).
+Proof.
+  intros. unfold not. intros. apply NatMapProperties.update_mapsto_iff in H.
+  destruct H.
+  - apply NatMapFacts.empty_mapsto_iff in H. apply H.
+  - destruct H. apply NatMapFacts.empty_mapsto_iff in H. apply H.
+Qed.
+
