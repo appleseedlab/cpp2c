@@ -1,12 +1,93 @@
-Require Import Coq.Strings.String.
-Require Import Coq.Lists.List.
-Require Import ZArith.
-Require Import Coq.FSets.FMapList.
-Require Import Coq.Strings.String.
+Require Import
+  Coq.FSets.FMapList
+  Coq.Lists.List
+  Coq.Strings.String
+  ZArith.
 
-From Cpp2C Require Import Syntax.
-From Cpp2C Require Import ConfigVars.
-From Cpp2C Require Import EvalRules.
+From Cpp2C Require Import
+  Syntax
+  ConfigVars
+  EvalRules.
+
+
+
+Inductive TransformExpr :
+  macro_table -> function_table -> expr ->
+  function_table -> expr -> Prop :=
+  | Transform_Num : forall M F z,
+    TransformExpr M F (Num z) F (Num z)
+  | Transform_ParenExpr : forall M F e0 F' e0',
+    TransformExpr M F e0 F' e0' ->
+    TransformExpr M F (ParenExpr e0) F' (ParenExpr e0')
+  | Transform_UnExpr : forall M F e0 F' e0' uo,
+    TransformExpr M F e0 F' e0' ->
+    TransformExpr M F (UnExpr uo e0) F' (UnExpr uo e0')
+  | Transform_BinExpr : forall M F e1 e2 F' F'' F''' e1' e2' bo,
+    TransformExpr M F e1 F' e1' ->
+    TransformExpr M F e2 F'' e2' ->
+    
+    (* Note that we don't explicity create F''' here. In the implementation, F''' will
+       be created as the the unification of F' and F''. *)
+    (* We need these extra theorems until we resolve the unique names problem, but
+       these should make sense for now*)
+    (* If we can evaluate the left expression under its F transformation, then we can
+       evaluate it under the unified F list *)
+    (forall S E G v S',
+      ExprEval S E G F' M e1' v S' -> ExprEval S E G F''' M e1' v S') ->
+    (* Similarly, if we can evaluate the right expression under its F transformation,
+       then we can evaluate it under the unified F list as well *)
+    (forall S'0 E G v2 S',
+      ExprEval S'0 E G F'' M e2' v2 S' -> ExprEval S'0 E G F''' M e2' v2 S') ->
+    TransformExpr M F (BinExpr bo e1 e2) F''' (BinExpr bo e1' e2').
+
+
+
+
+
+
+
+
+(* macro_table -> function_table -> expr ->
+function_table -> expr
+
+
+
+Prove:
+StringMap.MapsTo new_name definition (add new_name definition F) ->
+
+
+    | TransformMacrosNoSideEffects
+    Forall (fun e => ~ ExprHasSideEffects e) es ->
+    ~ ExprHasSideEffects mexpr ->
+    ~ StringMap.In new_name M ->
+    ~ StringMap.In new_name F ->
+    F' = StringMap.add new_name definition F ->
+    Transform M F (CallOrInvocation x es) F' (CallOrInvocation new_name es)
+
+forall S E G F M e v S' S'' v F' e',
+  H: Transform M F e F' e' ->
+  H0: ExprEval S E G F M e v S' ->
+  H1: ExprEval S E G F' M e' v' S'' ->
+  H2: StringMap.Equal S' S'' /\ v = v'
+
+induction H.
+  - apply E_MacroInvocation in H0.
+    apply E_FunctionCall in H1. *)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (* We need a function "unify" the results of transformation
@@ -38,34 +119,51 @@ From Cpp2C Require Import EvalRules.
   We shouldn't implement this in Coq but we will need this when
   we go to implement the actual transformation tool.
 *)
+(* 
 
+(* Returns the list of variables within a macro expression
+   that are referenced from the caller environment *)
+Fixpoint get_vars_in_caller_environment
+  (E: environment)
+  (e: expr) : list string :=
+  match e with
+  | Num z => nil
+  | X x => match lookupE E x with
+    | None => nil
+    | Some _ => x::nil
+    end
+  | ParenExpr e0 => get_vars_in_caller_environment E e0
+  | UnExpr uo e0 => get_vars_in_caller_environment E e0
+  | BinExpr bo e1 e2 =>
+    (get_vars_in_caller_environment E e1) ++
+    (get_vars_in_caller_environment E e2)
+  | Assign x e0 => match lookupE E x with
+    | None => (get_vars_in_caller_environment E e0)
+    | Some _ => x::(get_vars_in_caller_environment E e0)
+    end
+  | CallOrInvocation x es =>
+    let dyn_es := flat_map (get_vars_in_caller_environment E) es in
+    match lookupE E x with
+    | None => dyn_es
+    | Some _ => x::dyn_es
+    end
+end.
 
-(* Clang has a function for doing this, though it is conservative *)
-(* Returns true if an expression has side-effects, false otherwise *)
-Definition has_side_effects (e : expr) : bool.
-Admitted.
-
-(* Returns the list of dynamic variables used within
-   a macro definition *)
-(* TODO: Fix this to actually work. It will probably need the caller
-   environment added to its parameter list.
-   This will in turn necessitate adding the caller environment to
-   transform function below, since that is where this function is
-   used *)
-Definition get_dynamic_vars (md : macro_definition) : list string.
-Admitted.
 
 
 (* Transforms the function definitions list of an expression whose
    CPP usage is being converted to C. *)
 Fixpoint transform_macros_F_e
-  (F: func_definitions) (M: macro_definitions) (e : expr) :
+  (F: func_definitions)
+  (M: macro_definitions)
+  (E: environment)
+  (e: expr) :
   (func_definitions) :=
   match e with
   | Num z => F
   | X x => F
-  | ParenExpr e0 => transform_macros_F_e F M e0
-  | UnExpr uo e0 => transform_macros_F_e F M e0
+  | ParenExpr e0 => transform_macros_F_e F M E e0
+  | UnExpr uo e0 => transform_macros_F_e F M E e0
   | BinExpr bo e1 e2 =>
     (* Here's a potential issue: How to handle recursive
        transformations in expressions with more than one operand?
@@ -75,10 +173,10 @@ Fixpoint transform_macros_F_e
        using e2. This would be the same as doing a left fold of the
        F transformation function over a list of two expressions.
        Is that sound though; and if so, how to prove that it is? *)
-    let F' := transform_macros_F_e F M e1 in
-      transform_macros_F_e F' M e2
+    let F' := transform_macros_F_e F M E e1 in
+      transform_macros_F_e F' M E e2
     (* app (transform_macros_F F M e1) (transform_macros_F F M e2) *)
-  | Assign x e0 => transform_macros_F_e F M e0
+  | Assign x e0 => transform_macros_F_e F M E e0
   | CallOrInvocation x es =>
     match definition F x with
     (* Do we transform macros that do macro shadowing?
@@ -88,17 +186,17 @@ Fixpoint transform_macros_F_e
       match invocation M x with
       | None => F
       | Some (params, mexpr) =>
-        match existsb has_side_effects nil with
+        match existsb expr_has_side_effects es with
         | false =>
-          match has_side_effects mexpr with
+          match expr_has_side_effects mexpr with
           | false =>
-            match get_dynamic_vars (params, mexpr) with
+            match get_vars_in_caller_environment E mexpr with
             (* Don't recursively transform macro bodies *)
             | nil => ((x ++ "__as_function")%string, (params, Skip, mexpr))::F
             | dyn_vars => F (* FIXME *)
             end
           | true =>
-            match get_dynamic_vars (params, mexpr) with
+            match get_vars_in_caller_environment E mexpr with
             | nil => F (* FIXME *)
             | dyn_vars => F (* FIXME *)
             end
@@ -110,32 +208,27 @@ Fixpoint transform_macros_F_e
   end.
 
 
-(* Transforms the macro definitions list of an expression whose
-   CPP usage is being converted to C. Currently we don't
-   actually alter this. *)
-Definition transform_macros_M_e
-  (F: func_definitions) (M: macro_definitions) (e: expr) :
-  (macro_definitions) := M.
-
-
 (* Transforms an expression whose CPP usage is being converted to C.
    Not all transformations are supported yet. *)
 Fixpoint transform_macros_e
-  (F: func_definitions) (M: macro_definitions) (e: expr) :
+  (F: func_definitions)
+  (M: macro_definitions)
+  (E: environment)
+  (e: expr) :
   (expr) :=
   match e with
   | Num z => e
   | X x => e
-  | ParenExpr e0 => ParenExpr (transform_macros_e F M e0)
-  | UnExpr uo e0 => UnExpr uo (transform_macros_e F M e0)
+  | ParenExpr e0 => ParenExpr (transform_macros_e F M E e0)
+  | UnExpr uo e0 => UnExpr uo (transform_macros_e F M E e0)
   | BinExpr bo e1 e2 =>
     (* Again: How to handle this? Currently this is not
       technically correct, since we should be feeding the transformed
       F from the first operand to the transformation for the second
       operand. Or is this correct, and we should perform both operands'
       transformations using the original F? *)
-    BinExpr bo (transform_macros_e F M e1) (transform_macros_e F M e2)
-  | Assign x e0 => Assign x (transform_macros_e F M e0)
+    BinExpr bo (transform_macros_e F M E e1) (transform_macros_e F M E e2)
+  | Assign x e0 => Assign x (transform_macros_e F M E e0)
   | CallOrInvocation x es =>
     match definition F x with
     (* Where should we call transform_macros_s to transform the
@@ -147,17 +240,17 @@ Fixpoint transform_macros_e
       match invocation M x with
       | None => e
       | Some (params, mexpr) =>
-        match existsb has_side_effects nil with
+        match existsb expr_has_side_effects es with
         | false =>
-          match has_side_effects mexpr with
+          match expr_has_side_effects mexpr with
           | false =>
-            match get_dynamic_vars (params, mexpr) with
+            match get_vars_in_caller_environment E mexpr with
             (* Don't recursively transform macro bodies *)
             | nil => CallOrInvocation (x ++ "__as_function") es
             | dyn_vars => e (* FIXME *)
             end
           | true =>
-            match get_dynamic_vars (params, mexpr) with
+            match get_vars_in_caller_environment E mexpr with
             | nil => e (* FIXME *)
             | dyn_vars => e (* FIXME *)
             end
@@ -172,62 +265,61 @@ Fixpoint transform_macros_e
 (* Transforms the function definitions list of an expression whose
    CPP usage is being converted to C. *)
 Fixpoint transform_macros_F_s
-  (F: func_definitions) (M: macro_definitions) (s: stmt) :
+  (F: func_definitions)
+  (M: macro_definitions)
+  (E: environment)
+  (s: stmt) :
   (func_definitions) :=
   match s with
   (* Nothing changes *)
   | Skip => F
   (* Transform the inner expression's function list *)
-  | ExprStmt e => transform_macros_F_e F M e
+  | ExprStmt e => transform_macros_F_e F M E e
   (* Transform each inner statements' F and unify results *)
   | CompoundStmt stmts =>
     fold_left
     (fun (prev_F : func_definitions) (cur_s : stmt) =>
-      transform_macros_F_s prev_F M cur_s)
+      transform_macros_F_s prev_F M E cur_s)
     stmts F
   (* Transform the condition and true branch's F and unify results *)
   | IfStmt cond s0 =>
-    transform_macros_F_s (transform_macros_F_e F M cond) M s0
+    transform_macros_F_s (transform_macros_F_e F M E cond) M E s0
   (* Transform the condition and branchs' F and unify results *)
   | IfElseStmt cond s0 s1 =>
     transform_macros_F_s
-      (transform_macros_F_s (transform_macros_F_e F M cond) M s0)
-      M s1
+      (transform_macros_F_s (transform_macros_F_e F M E cond) M E s0)
+      M E s1
   (* Transform the condition and inner statement's F and
      unify results *)
   | WhileStmt cond s0 =>
-    transform_macros_F_s (transform_macros_F_e F M cond) M s0
+    transform_macros_F_s (transform_macros_F_e F M E cond) M E s0
   end.
-
-
-(* Transforms the macro definitions list of a statement whose
-   CPP usage is being converted to C. Currently we don't
-   actually alter this. *)
-Definition transform_macros_M_s
-  (F: func_definitions) (M: macro_definitions) (s: stmt) :
-  (macro_definitions) := M.
 
 
 (* Transforms a statement whose CPP usage is being converted to C *)
 Fixpoint transform_macros_s
-  (F: func_definitions) (M: macro_definitions) (s: stmt) :
+  (F: func_definitions)
+  (M: macro_definitions)
+  (E: environment)
+  (s: stmt) :
   (stmt) :=
   match s with
   (* Nothing changes *)
   | Skip => Skip
   (* Transform the inner expression *)
-  | ExprStmt e => ExprStmt (transform_macros_e F M e)
+  | ExprStmt e => ExprStmt (transform_macros_e F M E e)
   (* Transform each inner statement *)
   | CompoundStmt stmts =>
-    CompoundStmt (map (transform_macros_s F M) stmts)
+    CompoundStmt (map (transform_macros_s F M E)stmts)
   (* Transform the condition and true branch *)
   | IfStmt cond s0 =>
-    IfStmt (transform_macros_e F M cond) (transform_macros_s F M s0)
+    IfStmt (transform_macros_e F M E cond) (transform_macros_s F M E s0)
   (* Transform the condition and branches *)
   | IfElseStmt cond s0 s1 =>
-    IfElseStmt (transform_macros_e F M cond)
-      (transform_macros_s F M s0) (transform_macros_s F M s1)
+    IfElseStmt (transform_macros_e F M E cond)
+      (transform_macros_s F M E s0) (transform_macros_s F M E s1)
   (* Transform the condition and inner statement *)
   | WhileStmt cond s0 =>
-    WhileStmt (transform_macros_e F M cond) (transform_macros_s F M s0)
+    WhileStmt (transform_macros_e F M E cond) (transform_macros_s F M E s0)
   end.
+ *)
