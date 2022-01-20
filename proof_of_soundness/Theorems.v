@@ -1,249 +1,401 @@
-Require Import Coq.Strings.String.
-Require Import Coq.Lists.List.
-Require Import ZArith.
-Require Import Coq.FSets.FMapList.
-Require Import Coq.Strings.String.
+Require Import
+  Coq.FSets.FMapList
+  Coq.Lists.List
+  Coq.Strings.String
+  ZArith.
 
-From Cpp2C Require Import Syntax.
-From Cpp2C Require Import ConfigVars.
-From Cpp2C Require Import EvalRules.
-From Cpp2C Require Import Transformations.
-
-
-(* We currently need this theorem for the soundndess proof.
-   It basically says that if an expression could be evaluated under the
-   original function list, it can be evaluated correctly under the
-   transformed function list as well. We know this will be true in
-   the implementation since we will guarantee that all the function
-   names will be unique, but we need this for the proof. *)
-Lemma expr_eval_same_under_unique_names :
-  forall S E G F M v S' x params mexpr,
-  exprevalR S E G F M mexpr v S' ->
-  exprevalR S E G (((x ++ "__as_function")%string, (params, Skip, mexpr)) :: F) M mexpr v S'.
-Admitted.
+From Cpp2C Require Import
+  Syntax
+  ConfigVars
+  EvalRules
+  Transformations.
 
 
-(* This lemma asserts that if two operands of a binary expression can
-   be successfully transformed, then their transformed function
-   definition lists can be unioned and the evaluation of the operands
-   will still be sound. Similar to above, intuitively this makes sense
-   because the function names we generate will all be unique, but we
-   need this lemma to assist in the Coq proof. *)
-Lemma eval_same_under_joined_Fs :
-  forall S E G F M S' bo e1 e2 v1 v2 S'',
-  exprevalR S E G (transform_macros_F_e F M e1) M (transform_macros_e F M e1) v1 S' ->
-  exprevalR S' E G (transform_macros_F_e F M e2) M (transform_macros_e F M e2) v2 S'' ->
-  exprevalR S E G (transform_macros_F_e F M (BinExpr bo e1 e2)) M
-  (transform_macros_e F M e1) v1 S'
-  /\
-  exprevalR S' E G (transform_macros_F_e F M (BinExpr bo e1 e2)) M
-  (transform_macros_e F M e2) v2 S''.
-Admitted.
-
-
-Lemma eval_same_under_empty_E_if_no_dyn_vars :
-  forall S E1 E2 F G M v S' params mexpr,
-  get_dynamic_vars (params, mexpr) = nil ->
-  exprevalR S E1 F G M mexpr v S' ->
-  exprevalR S E2 F G M mexpr v S'.
-Admitted.
-
-
-(* Transforming an expression involving macros to one in which
-   transformable macros have been converted to functions results
-   in an expression that evaluates to the same value and state; i.e.,
-   the transformation is sound. *)
-Theorem transform_macros_expressions_sound :
-  forall S E G F M e v S',
-  exprevalR S E G F M e v S' ->
-  exprevalR S E G
-    (transform_macros_F_e F M e)
-    (transform_macros_M_e F M e)
-    (transform_macros_e F M e) v S'.
+Lemma NatMap_Empty_empty : forall (m : store),
+  NatMap.Empty (elt:=Z) m ->
+  NatMap.Equal m (NatMap.empty Z).
 Proof.
   intros.
-  induction H; unfold transform_macros_M_e in *.
-  - (* Num z *)
-    apply E_Num.
-  - (* X x (local var) *)
-    apply E_X_Local with l.
-    + apply H.
-    + apply H0.
-  - (* X x (global var) *)
-    apply E_X_Global with l.
-    + apply H.
-    + apply H0.
-    + apply H1.
-  - (* ParenExpr e *)
-    apply E_ParenExpr. fold transform_macros_e. apply IHexprevalR.
-  - (* UnExpr uo e *)
-    apply E_UnExpr. fold transform_macros_e. apply IHexprevalR.
-  - (* BinExpr bo e1 e2 *)
-    apply E_BinExpr with (S:=S) (S':=S'); fold transform_macros_e.
-      (* We use an admitted lemma here to assert that if the operands
-         of a binary expression can be transformed soundly, then
-         the entire binary expression can be transformed soundly.
-         This is to get around some issues with the uniqueness of
-         function names. *)
-    + apply eval_same_under_joined_Fs with (v2:=v2) (S'':=S'').
-      apply IHexprevalR1. apply IHexprevalR2.
-    + eapply eval_same_under_joined_Fs.
-      apply IHexprevalR1. apply IHexprevalR2.
-  - (* Assign x e *)
-    apply E_Assign_Success. fold transform_macros_e.
-    apply IHexprevalR. apply H0.
-  - (* CallOrInvocation x es (function call) *)
-    unfold transform_macros_F_e. unfold transform_macros_e.
-    rewrite H. apply E_FunctionCall with
-      params fstmt fexpr S' S'' vs ls Ef.
-      * apply H.
-      * apply H0.
-      * apply H1.
-      * apply H2.
-      * apply H3.
-  - (* CallOrInvocation x es (macro invocation) *)
-    unfold transform_macros_F_e.
-    unfold transform_macros_e.
-    rewrite H1.
-    simpl.
-    destruct (definition F x).
-    + (* x is defined as a function (this will happen if there are
-         name space clashes) *)
-      apply E_MacroInvocation with params mexpr.
-      * apply H.
-      * apply H0.
-      * apply H1.
-      * apply H2.
-    + (* x is not defined as a function *)
-      destruct (has_side_effects mexpr).
-      * (* x's body has side-effects *)
-        destruct (get_dynamic_vars (params, mexpr)).
-           (* x has dynamic variables (does nothing) *)
-        -- apply E_MacroInvocation with params mexpr.
-           ++ apply H.
-           ++ apply H0.
-           ++ apply H1.
-           ++ apply H2.
-           (* x  does not have dynamic variables (does nothing) *)
-        -- apply E_MacroInvocation with params mexpr.
-           ++ apply H.
-           ++ apply H0.
-           ++ apply H1.
-           ++ apply H2.
-      * (* x's body does not have side-effects *)
-        destruct (get_dynamic_vars (params, mexpr)) eqn: NoDynVars.
-           (* x does not share variables with the caller environment.
-              Here is where we perform the simplest transformation. *)
-        -- apply E_FunctionCall with
-           (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (S':=S)
-           (S'':=S) (vs:=nil) (ls:=nil) (Ef := E).
-           ++ unfold definition. unfold find.
-              simpl. rewrite eqb_refl. simpl. reflexivity.
-              (* For now we don't actually evaluate macro arguments,
-                 so they may as well be empty *)
-           ++ rewrite H. apply E_ArgListEmpty.
-           ++ (* Again, let params be empty since they are unused *)
-              rewrite H0. apply E_FEnvEmpty.
-           ++ apply E_Skip.
-              (* Here is where we need a lemma stating that
-                 under the new function list, the evaluation of the
-                 transformed macro body will be the same.
-                 Intuitively we know this will be true since all
-                 the names in the transformed function list will be
-                 unique, and we will only add names, never remove any. *)
-           ++ apply expr_eval_same_under_unique_names.
-              ** apply eval_same_under_empty_E_if_no_dyn_vars
-                with E params.
-                --- apply NoDynVars.
-                --- apply H2.
-           (* x shares variables with the caller environment *)
-        -- apply E_MacroInvocation with params mexpr.
-           ++ apply H.
-           ++ apply H0.
-           ++ apply H1.
-           ++ apply H2.
+  unfold NatMap.Empty in H.
+  apply NatMapProperties.elements_Empty in H.
+  unfold NatMap.Equal. intros.
+  rewrite NatMapFacts.elements_o. rewrite H. simpl.
+  rewrite NatMapFacts.empty_o. reflexivity.
 Qed.
 
 
-(* This lemma says that if a transformed compound statement can be
-   soundly evaluated, then each of its statements can be soundly
-   evaluated as well. *)
-(* This may need some work to be made more conservative *)
-Lemma compound_statement_transformation_sound :
-  forall S E G F M s0 rst stmts S' S'',
-  stmtevalR S E G (transform_macros_F_s F M s0)
-    (transform_macros_M_s F M s0)
-    (transform_macros_s F M s0) S' ->
-  stmtevalR S' E G
-    (transform_macros_F_s F M (CompoundStmt rst))
-    (transform_macros_M_s F M (CompoundStmt rst))
-    (transform_macros_s F M (CompoundStmt rst)) S'' ->
-  stmtevalR S E G (transform_macros_F_s F M (CompoundStmt stmts))
-  (transform_macros_M_s F M (CompoundStmt stmts))
-  (transform_macros_s F M s0) S'
-  /\
-  stmtevalR S' E G (transform_macros_F_s F M (CompoundStmt stmts))
-  (transform_macros_M_s F M (CompoundStmt stmts))
-  (CompoundStmt (map (transform_macros_s F M) rst)) S''.
-Admitted.
-
-
-(* Transforming a statement involving macros to one in which
-   transformable macros have been converted to functions results
-   in a statement that evaluates to the same state; i.e.,
-   the transformation is sound. *)
-Theorem transform_macros_statements_sound :
-  forall S E G F M s S',
-  stmtevalR S E G F M s S' ->
-  stmtevalR S E G (transform_macros_F_s F M s) (transform_macros_M_s F M s) (transform_macros_s F M s) S'.
+Lemma StringMap_Empty_empty : forall (t : Type) (m : StringMap.t t),
+  StringMap.Empty (elt:=_) m ->
+  StringMap.Equal m (StringMap.empty _).
 Proof.
   intros.
-  induction H.
-  - (* Skip *)
-    apply E_Skip.
-  - (* ExprStmt e *)
-    apply E_ExprStmt with v.
-    apply transform_macros_expressions_sound. apply H.
-  - (* CompoundStmt nil *)
-    apply E_CompoundStatementEmpty.
-    (* The wrong s0 and rst are used here *)
-  - (* CompoundStmt es *)
-    apply E_CompoundStatementNotEmpty with
-      (s0 := transform_macros_s F M s0)
-        (rst := map (transform_macros_s F M) rst) (S' := S').
-    + fold transform_macros_s. induction stmts.
-      * discriminate.
-      * simpl. inversion H. reflexivity.
-    + apply compound_statement_transformation_sound with rst S''.
-      * apply IHstmtevalR1.
-      * apply IHstmtevalR2.
-    + eapply compound_statement_transformation_sound.
-      * apply IHstmtevalR1.
-      * apply IHstmtevalR2.
-  - (* IfStmt e s0 (false) *)
-    apply E_IfFalse. admit.
-  - (* IfStmt e s) (true) *)
-    apply E_IfTrue with v S'.
-    + apply H.
-    + admit.
-    + fold transform_macros_s. admit.
-  - (* IfElseStmt e s0 s1 (false) *)
-    apply E_IfElseFalse with S'.
-    + admit.
-    + fold transform_macros_s. admit.
-  - (* IfElseStmt e s0 s1 (true) *)
-    apply E_IfElseFalse with S'.
-    + admit.
-    + fold transform_macros_s. admit.
-  - (* WhileStmt e s0 (false) *)
-    apply E_WhileFalse. admit.
-  - (* WhileStmt e s0 (true) *)
-    apply E_WhileTrue with v S' S''.
-    + apply H.
-    + admit.
-    + fold transform_macros_s. admit.
-    + fold transform_macros_s. apply IHstmtevalR2.
-Admitted.
+  unfold StringMap.Empty in H.
+  apply StringMapProperties.elements_Empty in H.
+  unfold StringMap.Equal. intros.
+  rewrite StringMapFacts.elements_o. rewrite H. simpl.
+  rewrite StringMapFacts.empty_o. reflexivity.
+Qed.
 
-(* NOTE: May want to note in paper that we have to transform
-         function and macro arguments recursively *)
+
+Lemma NatMap_restrict_refl: forall (S : store),
+  NatMap.Equal S (NatMapProperties.restrict S S).
+Proof.
+  intros. rewrite NatMapFacts.Equal_mapsto_iff.
+  intros. rewrite NatMapProperties.restrict_mapsto_iff.
+  split; intros.
+  - (* -> *)
+    split.
+    + apply H.
+    + apply NatMapFacts.find_mapsto_iff in H.
+      apply NatMapFacts.in_find_iff. unfold not.
+      intros. rewrite H0 in H. discriminate H.
+  - (* <- *)
+    apply H.
+Qed.
+
+
+Lemma no_side_effects_no_store_change : forall e,
+  ~ ExprHasSideEffects e ->
+  forall S E G F M v S',
+  ExprEval S E G F M e v S' ->
+  NatMap.Equal S S'.
+Proof.
+  intros e H S E G F M v S' E1.
+  induction E1.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - apply IHE1. apply H.
+  - apply IHE1. apply H.
+  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
+    apply demorgan in H.
+    rewrite <- IHE1_1 in IHE1_2.
+    apply IHE1_2.  apply H. apply H.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+Qed.
+
+
+Lemma NatMap_mapsto_in: forall (S : store) l v,
+  NatMap.MapsTo l v S -> NatMap.In l S.
+Proof.
+  intros.
+  apply NatMapFacts.find_mapsto_iff in H.
+  apply NatMapFacts.in_find_iff. unfold not. intros.
+  rewrite H0 in H. discriminate.
+Qed.
+
+
+Lemma StringMap_mapsto_in: forall (t : Type) (m : StringMap.t t) k e,
+  StringMap.MapsTo k e m -> StringMap.In k m.
+Proof.
+  intros.
+  apply StringMapFacts.find_mapsto_iff in H.
+  apply StringMapFacts.in_find_iff. unfold not. intros.
+  rewrite H0 in H. discriminate.
+Qed.
+
+
+Lemma NatMap_add_unique_then_restrict_no_change : forall (S : store) l v,
+  ~ NatMap.In l S ->
+  NatMap.Equal S (NatMapProperties.restrict (NatMapProperties.update S ( NatMap.add l v (NatMap.empty Z))) S).
+Proof.
+  intros. rewrite NatMapFacts.Equal_mapsto_iff.
+  split.
+  - intros. apply NatMapProperties.restrict_mapsto_iff. split.
+    + apply NatMapProperties.update_mapsto_iff. right. split.
+      * assumption.
+      * apply NatMapFacts.not_find_in_iff in H as HfindlinS.
+        unfold not. rewrite NatMapFacts.add_in_iff. intros.
+        destruct H1.
+        -- apply NatMapFacts.find_mapsto_iff in H0 as HfindkinS.
+           rewrite <- H1 in HfindkinS. rewrite HfindkinS in HfindlinS. discriminate.
+        -- apply NatMapFacts.empty_in_iff in H1. apply H1.
+    + apply NatMap_mapsto_in in H0. assumption.
+  - intros. apply NatMapProperties.restrict_mapsto_iff in H0.
+    destruct H0. apply NatMapProperties.update_mapsto_iff in H0.
+    destruct H0.
+    + apply NatMapFacts.add_mapsto_iff in H0.
+      * destruct H0.
+        -- destruct H0. rewrite <- H0 in H1. contradiction.
+        -- destruct H0. apply NatMapFacts.empty_mapsto_iff in H2. destruct H2.
+    + destruct H0. assumption.
+Qed.
+
+
+Theorem NatMap_disjoint_diff_Equal : forall (S1 : store) (S2 : store),
+  NatMapProperties.Disjoint S1 S2 ->
+  NatMap.Equal S1 (NatMapProperties.diff (NatMapProperties.update S1 S2) S2).
+Proof.
+  intros. apply NatMapFacts.Equal_mapsto_iff. intros. split.
+  - intros. apply NatMapProperties.diff_mapsto_iff. split.
+    + apply NatMapProperties.update_mapsto_iff. right. split.
+      * assumption.
+      * unfold NatMapProperties.Disjoint in H.
+        apply NatMap_mapsto_in in H0. unfold not. intros. unfold not in H.
+        apply H with k. split.
+        -- assumption.
+        -- assumption.
+    + unfold NatMapProperties.Disjoint in H.
+      apply NatMap_mapsto_in in H0. unfold not. intros. unfold not in H.
+      apply H with k. split.
+      * assumption.
+      * assumption.
+  - intros. apply NatMapProperties.diff_mapsto_iff in H0. destruct H0.
+    apply NatMapProperties.update_mapsto_iff in H0. destruct H0.
+    * apply NatMap_mapsto_in in H0. contradiction.
+    * destruct H0. apply H0.
+Qed.
+
+
+Theorem NatMap_disjoint_restrict_Equal : forall (S1 : store) (S2 : store),
+  NatMapProperties.Disjoint S1 S2 ->
+  NatMap.Equal S1 (NatMapProperties.restrict (NatMapProperties.update S1 S2) S1).
+Proof.
+  intros.
+  apply NatMapFacts.Equal_mapsto_iff. intros. split.
+  - intros. apply NatMapProperties.restrict_mapsto_iff. split.
+    + apply NatMapProperties.update_mapsto_iff. right. split.
+      * assumption.
+      * unfold NatMapProperties.Disjoint in H.
+        apply NatMap_mapsto_in in H0. unfold not. intros. unfold not in H.
+        apply H with k. split.
+        -- assumption.
+        -- assumption.
+    + apply NatMap_mapsto_in in H0. assumption.
+  - rewrite NatMapProperties.restrict_mapsto_iff.
+    rewrite NatMapProperties.update_mapsto_iff.
+    intros. destruct H0. destruct H0.
+    + exfalso. unfold NatMapProperties.Disjoint in H. unfold not in H.
+      apply H with k. split.
+      * assumption.
+      * apply NatMap_mapsto_in in H0. assumption.
+    + destruct H0. assumption.
+Qed.
+
+
+Theorem no_side_effects_no_store_change_arg_eval : forall S E G F M es S' vs,
+  Forall (fun e => ~ ExprHasSideEffects e ) es ->
+  EvalArgs S E G F M es vs S' ->
+  NatMap.Equal S S'.
+Proof.
+  intros. induction H0.
+  - reflexivity.
+  - inversion H. apply no_side_effects_no_store_change in H0.
+    rewrite H0. apply IHEvalArgs. assumption. assumption.
+Qed.
+
+
+Theorem skip_no_side_effects : forall S E G F M S',
+  StmtEval S E G F M Skip S' ->
+  NatMap.Equal S S'.
+Proof.
+  intros. induction H. reflexivity.
+Qed.
+
+
+Theorem side_effect_free_function_no_side_effects :
+  forall S E G F M x es params fstmt fexpr ls
+         Sargs S' S'' S''' Ef S'''' S''''' v vs,
+  Forall (fun e => ~ ExprHasSideEffects e) es ->
+  ~ ExprHasSideEffects fexpr ->
+  fstmt = Skip ->
+  ~ StringMap.In x M ->
+  (* Function name maps to some function *)
+  StringMap.MapsTo x (params, fstmt, fexpr) F ->
+  (* Parameters should all be unique *)
+  NoDup params ->
+  (* Evaluate the function's arguments *)
+  EvalArgs S E G F M es vs S' ->
+  (* Create the function environment *)
+  StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) ->
+  (* Create a store for mapping L-values to the arguments to in the store *)
+  NatMap.Equal Sargs (NatMapProperties.of_list (combine ls vs)) ->
+  (* All the L-values used in the argument store do not appear in the original store *)
+  NatMapProperties.Disjoint S' Sargs ->
+  (* Combine the argument store into the original store *)
+  NatMap.Equal S'' (NatMapProperties.update S' Sargs) ->
+  (* Evaluate the function's body *)
+  StmtEval S'' Ef G F M fstmt S''' ->
+  ExprEval S''' Ef G F M fexpr v S'''' ->
+  (* Only keep in the store the L-value mappings that were there when
+     the function was called; i.e., remove from the store all mappings
+     whose L-value is in Ef/Sargs. *)
+  NatMap.Equal S''''' (NatMapProperties.restrict S'''' S) ->
+  ExprEval S E G F M (CallOrInvocation x es) v S''''' ->
+  NatMap.Equal S''''' S.
+Proof.
+  intros. subst. apply no_side_effects_no_store_change_arg_eval in H5.
+  - apply skip_no_side_effects in H10. apply no_side_effects_no_store_change in H11.
+    + assert (HS: NatMap.Equal S
+                  (NatMapProperties.restrict (NatMapProperties.update S Sargs) S)).
+      { apply NatMap_disjoint_restrict_Equal. rewrite <- H5 in H8. assumption. }
+      rewrite <- H5 in H8. rewrite H9 in H10. rewrite <- H10 in H11.
+      rewrite <- H11 in H12. rewrite <- H5 in H12.
+      rewrite <- HS in H12. assumption.
+    + assumption.
+  - assumption.
+Qed.
+
+
+(* (* TODO: This will be very important, but I'm having a very hard time proving it *)
+Lemma StringMap_no_side_effects_es_mapsto_no_side_effects :
+  forall es (MP : macro_parameters) params,
+  Forall (fun e => ~ ExprHasSideEffects e) es ->
+  MP = StringMapProperties.of_list (combine params es) ->
+  (forall k e, StringMap.MapsTo k e MP -> ~ ExprHasSideEffects e).
+Admitted. *)
+
+
+Lemma forall_es_combine_forall_snd: forall A B P (ks : list A) (es : list B) pair,
+  Forall (fun e => ~ P e) es ->
+  In pair (combine ks es) ->
+  ~ P (snd pair).
+Proof.
+  intros.
+  assert (In (snd pair) (snd (split (combine ks es)))).
+  apply in_split_r. assumption. destruct pair.
+  apply in_combine_r in H0. simpl.
+  rewrite Forall_forall in H. apply H. assumption.
+Qed.
+
+
+Theorem no_side_effects_msub_no_side_effects : forall mexpr params es MP,
+  ~ ExprHasSideEffects mexpr ->
+  Forall (fun e => ~ ExprHasSideEffects e) es ->
+  MP = (combine params es) ->
+  ~ ExprHasSideEffects (msub MP mexpr).
+Proof.
+  intros.
+  induction mexpr; auto.
+  - simpl. destruct lookup_macro_parameter eqn: Hfind.
+    + unfold lookup_macro_parameter in Hfind.
+      apply List.find_some in Hfind.
+      apply forall_es_combine_forall_snd with (ks:=params) (es:=es).
+      assumption. rewrite H1 in Hfind. apply Hfind.
+    + auto.
+  - simpl in *. apply demorgan in H. destruct H.
+    apply demorgan. split.
+    + apply IHmexpr1. assumption.
+    + apply IHmexpr2. assumption.
+  - simpl in H. contradiction.
+Qed.
+
+
+Theorem side_effect_free_macro_no_side_effects :
+  forall S E G F M x params es mexpr M' MP ef S' v,
+  StringMap.MapsTo x (params, mexpr) M ->
+  ~ ExprHasSideEffects mexpr ->
+  M' = StringMap.remove x M ->
+  NoDup params ->
+  Forall (fun e => ~ExprHasSideEffects e) es ->
+  MP = combine params es ->
+  ef = msub MP mexpr ->
+  ExprEval S E G F M' ef v S' ->
+  ExprEval S E G F M' (CallOrInvocation x es) v S' ->
+  NatMap.Equal S S'.
+Proof.
+  intros.
+  apply no_side_effects_no_store_change in H6. assumption.
+  rewrite H5 in H6. apply no_side_effects_msub_no_side_effects
+    with (params:=params) (es:=es) (MP:=MP) in H0.
+  - rewrite <- H5 in H0. assumption.
+  - assumption.
+  - assumption.
+Qed.
+
+
+Example transform_side_effect_free_macro_sound :
+  forall S E G F F' M x y params es mexpr M' MP ef S0' S' (v : Z)
+         ls Sargs S'' S''' Ef S'''' S''''' v vs,
+  StringMap.MapsTo x (params, mexpr) M ->
+  ~ ExprHasSideEffects mexpr ->
+  M' = StringMap.remove x M ->
+  NoDup params ->
+
+  Forall (fun e => ~ExprHasSideEffects e) es ->
+  MP = combine params es ->
+  ef = msub MP mexpr ->
+  ExprEval S E G F M' ef v S0' ->
+  ExprEval S E G F M' (CallOrInvocation x es) v S0' ->
+
+  Forall (fun e => ~ ExprHasSideEffects e) es ->
+  ~ ExprHasSideEffects mexpr ->
+  ~ StringMap.In y M ->
+
+  (* Function name maps to some function *)
+  StringMap.MapsTo y (params, Skip, mexpr) F' ->
+  (* Parameters should all be unique *)
+  NoDup params ->
+  (* Evaluate the function's arguments *)
+  EvalArgs S E G F' M es vs S' ->
+  (* Create the function environment *)
+  StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) ->
+  (* Create a store for mapping L-values to the arguments to in the store *)
+  NatMap.Equal Sargs (NatMapProperties.of_list (combine ls vs)) ->
+  (* All the L-values used in the argument store do not appear in the original store *)
+  NatMapProperties.Disjoint S' Sargs ->
+  (* Combine the argument store into the original store *)
+  NatMap.Equal S'' (NatMapProperties.update S' Sargs) ->
+  (* Evaluate the function's body *)
+  StmtEval S'' Ef G F' M Skip S''' ->
+  ExprEval S''' Ef G F' M mexpr v S'''' ->
+  (* Only keep in the store the L-value mappings that were there when
+     the function was called; i.e., remove from the store all mappings
+     whose L-value is in Ef/Sargs. *)
+  NatMap.Equal S''''' (NatMapProperties.restrict S'''' S) ->
+  ExprEval S E G F' M (CallOrInvocation y es) v S''''' ->
+  NatMap.Equal S0' S'''''.
+Proof.
+  intros.
+  apply side_effect_free_macro_no_side_effects
+    with (params:=params) (mexpr:=mexpr) (M:=M) (MP:=MP) (ef:=ef) in H7; try assumption.
+  apply side_effect_free_function_no_side_effects with
+    (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (ls:=ls) (Sargs:=Sargs) (S':=S')
+    (S'':=S'') (S''':=S''') (Ef:=Ef) (S'''':=S'''') (vs:=vs) in H21;
+      try assumption; try reflexivity.
+  rewrite <- H7. rewrite H21. reflexivity.
+Qed.
+
+
+(* Theorem transform_id_sound : forall S E G F M e v S',
+  ExprEval S E G F M e v S' ->
+  ExprEval S E G F M e v S'.
+Proof.
+  intros. induction H.
+  - apply E_Num. *)
+
+(* Theorem transform_expr_sound : forall S E G F M e v S' e' v' S'' F',
+  TransformExpr M F e F' e' ->
+  ExprEval S E G F M e v S' ->
+  ExprEval S E G F' M e' v' S'' ->
+  (NatMap.Equal S' S'') /\ v = v'.
+Proof.
+  intros S E G F M e v S' e' v' S'' F' H.
+  induction H; intros.
+  - inversion H. inversion H0. subst. split; reflexivity.
+  - inversion H0. inversion H1. subst. apply IHTransformExpr. assumption. assumption.
+  - inversion H. *)
+
+
+
+
+Theorem transform_expr_sound : forall M F e F' e',
+  TransformExpr M F e F' e' ->
+  (forall S E G v S',
+  ExprEval S E G F M e v S' ->
+  ExprEval S E G F' M e' v S').
+Proof.
+  intros M F e F' e' H. induction H.
+  - intros. inversion H. inversion H0. subst. auto.
+  - intros. inversion H0. subst. apply E_ParenExpr. apply IHTransformExpr. assumption.
+  - intros. inversion H0. subst. apply E_UnExpr. apply IHTransformExpr. assumption.
+  - intros. inversion H3. subst. apply E_BinExpr with S'0.
+    + apply H1. apply IHTransformExpr1. apply H14.
+    + apply H2. apply IHTransformExpr2. apply H15.
+Qed.
+
+
+
