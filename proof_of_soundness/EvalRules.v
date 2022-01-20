@@ -159,7 +159,7 @@ Inductive ExprEval:
     StringMap.MapsTo x l G ->
     ExprEval S E G F M e0 v S' ->
     S'' = NatMapProperties.update S (NatMap.add l v (NatMap.empty Z)) ->
-    ExprEval S E G F M (Assign x e0) v S'
+    ExprEval S E G F M (Assign x e0) v S''
   (* For function calls, we perform the following steps:
      1) Evaluate arguments
      2) Map parameters to arguments in function local environment,
@@ -183,7 +183,6 @@ Inductive ExprEval:
     (* Parameters should all be unique *)
     NoDup params ->
     (* Evaluate the function's arguments *)
-
     EvalArgs S E G F M es vs S' ->
     (* Create the function environment *)
     StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) ->
@@ -221,7 +220,7 @@ Inductive ExprEval:
     MP = combine params es ->
     ef = msub MP mexpr ->
     ExprEval S E G F M' ef v S' ->
-    ExprEval S E G F M' (CallOrInvocation x es) v S'
+    ExprEval S E G F M (CallOrInvocation x es) v S'
 with EvalArgs :
   store -> environment -> environment -> function_table -> macro_table ->
   list expr -> list Z -> store ->
