@@ -1,3 +1,11 @@
+(* IDEA:
+   First practice JUST transforming the F by adding the new function definitions to it.
+   It may be better to instead of directly adding new definitions to F, to collect all
+   the new definitions into their own map, then update the current map with the map
+   of new function in the returned map. This would allow use to add assertions about the two
+   maps being disjoint, which would in turn allow us to prove the soundness of function
+   lookup. *)
+
 Require Import
   Coq.FSets.FMapList
   Coq.Lists.List
@@ -11,9 +19,9 @@ From Cpp2C Require Import
   Transformations.
 
 
-Lemma NatMap_Empty_empty : forall (m : store),
-  NatMap.Empty (elt:=Z) m ->
-  NatMap.Equal m (NatMap.empty Z).
+Lemma NatMap_Empty_empty : forall (t : Type) (m : NatMap.t t),
+  NatMap.Empty (elt:=_) m ->
+  NatMap.Equal m (NatMap.empty _).
 Proof.
   intros.
   unfold NatMap.Empty in H.
@@ -51,30 +59,6 @@ Proof.
       intros. rewrite H0 in H. discriminate H.
   - (* <- *)
     apply H.
-Qed.
-
-
-Lemma no_side_effects_no_store_change : forall e,
-  ~ ExprHasSideEffects e ->
-  forall S E G F M v S',
-  ExprEval S E G F M e v S' ->
-  NatMap.Equal S S'.
-Proof.
-  intros e H S E G F M v S' E1.
-  induction E1.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - apply IHE1. apply H.
-  - apply IHE1. apply H.
-  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
-    apply demorgan in H.
-    rewrite <- IHE1_1 in IHE1_2.
-    apply IHE1_2.  apply H. apply H.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
 Qed.
 
 
@@ -176,6 +160,80 @@ Proof.
 Qed.
 
 
+Lemma no_side_effects_no_store_change : forall e,
+  ~ ExprHasSideEffects e ->
+  forall S E G F M v S',
+  ExprEval S E G F M e v S' ->
+  NatMap.Equal S S'.
+Proof.
+  intros e H S E G F M v S' E1.
+  induction E1.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - apply IHE1. apply H.
+  - apply IHE1. apply H.
+  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
+    apply demorgan in H.
+    rewrite <- IHE1_1 in IHE1_2.
+    apply IHE1_2.  apply H. apply H.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+Qed.
+
+
+Lemma no_side_effects_no_store_change_eq : forall e,
+  ~ ExprHasSideEffects e ->
+  forall S E G F M v S',
+  ExprEval S E G F M e v S' ->
+  S = S'.
+Proof.
+  intros e H S E G F M v S' E1.
+  induction E1.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - apply IHE1. apply H.
+  - apply IHE1. apply H.
+  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
+    apply demorgan in H.
+    rewrite <- IHE1_1 in IHE1_2.
+    apply IHE1_2.  apply H. apply H.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+Qed.
+
+
+Lemma no_side_effects_expreval_expreval : forall e,
+  ~ ExprHasSideEffects e ->
+  forall S E G F M v S',
+  ExprEval S E G F M e v S' ->
+  ExprEval S E G F M e v S.
+Proof.
+  intros e H S E G F M v S' E1.
+  induction E1.
+  - apply E_Num.
+  - apply E_LocalVar with l; assumption.
+  - apply E_GlobalVar with l; assumption.
+  - apply E_ParenExpr. apply IHE1. assumption.
+  - apply E_UnExpr. apply IHE1. assumption.
+  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
+    apply demorgan in H. destruct H. apply E_BinExpr with S'.
+    + assumption.
+    + apply no_side_effects_no_store_change_eq in E1_1.
+      * subst. apply IHE1_2. assumption.
+      * assumption.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+  - unfold ExprHasSideEffects in H. contradiction.
+Qed.
+
+
 Theorem no_side_effects_no_store_change_arg_eval : forall S E G F M es S' vs,
   Forall (fun e => ~ ExprHasSideEffects e ) es ->
   EvalArgs S E G F M es vs S' ->
@@ -188,7 +246,34 @@ Proof.
 Qed.
 
 
-Theorem skip_no_side_effects : forall S E G F M S',
+Theorem no_side_effects_no_store_change_arg_eval_eq : forall S E G F M es S' vs,
+  Forall (fun e => ~ ExprHasSideEffects e ) es ->
+  EvalArgs S E G F M es vs S' ->
+  S = S'.
+Proof.
+  intros. induction H0.
+  - reflexivity.
+  - inversion H. apply no_side_effects_no_store_change_eq in H0.
+    rewrite H0. apply IHEvalArgs. assumption. assumption.
+Qed.
+
+
+Lemma no_side_effects_evalargs_evalargs: forall S E G F M es S' vs,
+  Forall (fun e => ~ ExprHasSideEffects e ) es ->
+  EvalArgs S E G F M es vs S' ->
+  EvalArgs S E G F M es vs S.
+Proof.
+  intros. induction H0.
+  - apply EvalArgs_nil. assumption.
+  - inversion H; subst. apply EvalArgs_cons with Snext.
+    + assumption.
+    + apply no_side_effects_no_store_change_eq in H0; subst.
+      * apply IHEvalArgs. assumption.
+      * assumption.
+Qed.
+
+
+Lemma skip_no_side_effects : forall S E G F M S',
   StmtEval S E G F M Skip S' ->
   NatMap.Equal S S'.
 Proof.
@@ -196,33 +281,101 @@ Proof.
 Qed.
 
 
+(* The following lemmas involve all parts of program evaluation
+   (e.g., expression, argument list, and statement evaluation).
+   Coq's built-in induction tactic is not powerful enough to provide
+   us with the induction hypotheses necessary to prove these lemmas, so
+   we must define our own induction schema for these proofs *)
+Scheme ExprEval_mut := Induction for ExprEval Sort Prop
+with StmtEval_mut := Induction for StmtEval Sort Prop
+with EvalArgs_mut := Induction for EvalArgs Sort Prop.
+
+
+Lemma stmteval_notin_F_add_stmteval : forall S E G F M stmt S',
+  StmtEval S E G F M stmt S' ->
+  forall x fdef,
+    ~ StringMap.In x F ->
+    StmtEval S E G (StringMap.add x fdef F) M stmt S'.
+Proof.
+(*
+  This proof could be solved instead with the following ltac code:
+    intros. induction H; try constructor.
+  Instead I have opted to use our custom schema here so that it may serve
+  as a simple demonstration of how to use schemas *)
+  intros. apply (
+    (* First we apply the appropriate schema like a tactic *)
+    StmtEval_mut
+      (* Then we have to define a custom inductive hypothesis for each Prop
+         that the one we are inducting over is mutually inductive with
+         (in this case just the StmtEval Prop since statement evaluation
+         currently only includes skip statements, which don't
+         involve expressions) *)
+      (fun S E G F M stmt S' (h : StmtEval S E G F M stmt S') =>
+        StmtEval S E G (StringMap.add x fdef F) M stmt S')
+  ); try constructor; auto.
+Qed.
+
+
+Lemma expreval_notin_F_add_expreval : forall S E G F M e v S',
+  ExprEval S E G F M e v S' ->
+  forall x fdef,
+    ~ StringMap.In x F ->
+    ExprEval S E G (StringMap.add x fdef F) M e v S'.
+Proof.
+  apply (
+    ExprEval_mut
+      (* ExprEval *)
+      (fun S E G F M e v S' (h : ExprEval S E G F M e v S' ) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        ExprEval S E G (StringMap.add x fdef F) M e v S' )
+      (* StmtEval *)
+      (fun S E G F M stmt S' (h : StmtEval S E G F M stmt S' ) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        StmtEval S E G (StringMap.add x fdef F) M stmt S' )
+      (* EvalArgs *)
+      (fun Sprev Ecaller G F M es vs Snext (h : EvalArgs Sprev Ecaller G F M es vs Snext) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        EvalArgs Sprev Ecaller G (StringMap.add x fdef F) M es vs Snext)
+    ); intros; try constructor; auto.
+  - apply E_LocalVar with l; auto.
+  - apply E_GlobalVar with l; auto.
+  - apply E_BinExpr with S'; auto.
+  - apply E_Assign_Local with l S'; auto.
+  - apply E_Assign_Global with l S'; auto.
+  - apply E_FunctionCall with
+      params fstmt fexpr ls Sargs S' S'' S''' Ef S'''' vs; auto.
+    + apply StringMapFacts.add_mapsto_iff. right. split.
+      * unfold not; intros. subst. apply StringMap_mapsto_in in m.
+        contradiction.
+      * auto.
+  - apply E_MacroInvocation with params mexpr M' MP ef; auto.
+  - apply EvalArgs_cons with Snext; auto.
+Qed.
+
+
+
+
+
 Theorem side_effect_free_function_no_side_effects :
   forall S E G F M x es params fstmt fexpr ls
          Sargs S' S'' S''' Ef S'''' S''''' v vs,
   Forall (fun e => ~ ExprHasSideEffects e) es ->
   ~ ExprHasSideEffects fexpr ->
+  
   fstmt = Skip ->
   ~ StringMap.In x M ->
-  (* Function name maps to some function *)
   StringMap.MapsTo x (params, fstmt, fexpr) F ->
-  (* Parameters should all be unique *)
   NoDup params ->
-  (* Evaluate the function's arguments *)
   EvalArgs S E G F M es vs S' ->
-  (* Create the function environment *)
   StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) ->
-  (* Create a store for mapping L-values to the arguments to in the store *)
   NatMap.Equal Sargs (NatMapProperties.of_list (combine ls vs)) ->
-  (* All the L-values used in the argument store do not appear in the original store *)
   NatMapProperties.Disjoint S' Sargs ->
-  (* Combine the argument store into the original store *)
   NatMap.Equal S'' (NatMapProperties.update S' Sargs) ->
-  (* Evaluate the function's body *)
   StmtEval S'' Ef G F M fstmt S''' ->
   ExprEval S''' Ef G F M fexpr v S'''' ->
-  (* Only keep in the store the L-value mappings that were there when
-     the function was called; i.e., remove from the store all mappings
-     whose L-value is in Ef/Sargs. *)
   NatMap.Equal S''''' (NatMapProperties.restrict S'''' S) ->
   ExprEval S E G F M (CallOrInvocation x es) v S''''' ->
   NatMap.Equal S''''' S.
@@ -238,15 +391,6 @@ Proof.
     + assumption.
   - assumption.
 Qed.
-
-
-(* (* TODO: This will be very important, but I'm having a very hard time proving it *)
-Lemma StringMap_no_side_effects_es_mapsto_no_side_effects :
-  forall es (MP : macro_parameters) params,
-  Forall (fun e => ~ ExprHasSideEffects e) es ->
-  MP = StringMapProperties.of_list (combine params es) ->
-  (forall k e, StringMap.MapsTo k e MP -> ~ ExprHasSideEffects e).
-Admitted. *)
 
 
 Lemma forall_es_combine_forall_snd: forall A B P (ks : list A) (es : list B) pair,
@@ -361,69 +505,132 @@ Proof.
 Qed.
 
 
-Theorem transform_expr_sound : forall M F e F' e',
-  TransformExpr M F e F' e' ->
-  (* The proof will not work if these variables were introduced sooner.
-     Doing so wwould interfere with the induction hypothesis *)
-  (forall S E G v S',
-  ExprEval S E G F M e v S' ->
-  ExprEval S E G F' M e' v S').
+(* This proof is easy right now because we only have Skip statements *)
+Lemma mapsto_transformstmt_mapsto : forall x fdef F M stmt F' stmt', 
+  StringMap.MapsTo x fdef F ->
+  TransformStmt M F stmt F' stmt' ->
+  StringMap.MapsTo x fdef F'.
 Proof.
-  intros M F e F' e' H. induction H.
-  - intros. inversion H. inversion H0. subst. auto.
-  - intros. inversion H; subst; auto.
-  - intros. inversion H0. subst. apply E_ParenExpr. apply IHTransformExpr. assumption.
-  - intros. inversion H0. subst. apply E_UnExpr. apply IHTransformExpr. assumption.
-  - intros. inversion H3. subst. apply E_BinExpr with S'0.
-    + apply H1. apply IHTransformExpr1. apply H14.
-    + apply H2. apply IHTransformExpr2. apply H15.
-  - intros. inversion H0; subst.
-    + apply E_Assign_Local with l S'0.
-      * assumption.
-      * apply IHTransformExpr. assumption.
-      * reflexivity.
-    + apply E_Assign_Global with l S'0.
-      * assumption.
-      * assumption.
-      * apply IHTransformExpr. assumption.
-      * reflexivity.
-  - intros. inversion H1.
-    + subst. apply E_FunctionCall
-      with params fstmt fexpr ls Sargs S'0 S'' S''' Ef S'''' vs; try assumption.
-    + subst. apply StringMap_mapsto_in in H4. contradiction.
-  - intros. inversion H7.
-    + contradiction.
-    + (* Here is where we perform the transformation. Right now we could "cheat"
-         through the proof and apply the macro call evaluation rules to prove this part,
-         but we could remove this exploit by forcing the function table and macro table
-         to be distinct *)
-      assert (EvalArgs S E G F' M es vs S' /\
-     StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) /\
-     NatMap.Equal Sargs (NatMapProperties.of_list (combine ls vs)) /\
-     NatMapProperties.Disjoint S' Sargs /\
-     NatMap.Equal S'' (NatMapProperties.update S' Sargs) /\
-     StmtEval S'' Ef G F' M Skip S''' /\
-     ExprEval S''' Ef G F' M mexpr v S'''' /\
-     NatMap.Equal S''''' (NatMapProperties.restrict S'''' S)).
-     { apply H6. }
-      apply H0 in H10. destruct H10. subst.
-      apply E_FunctionCall with
-        (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (ls:=ls) (Sargs:=Sargs) (S':=S')
-        (S'':=S'') (S''':=S''') (Ef:=Ef) (S'''':=S'''') (vs:=vs);
-        try assumption; try apply H23.
-        * rewrite H4. apply StringMapFacts.add_mapsto_iff. left. split; auto.
-        * destruct H23. destruct H9. destruct H10. destruct H11. destruct H13.
-          destruct H14. destruct H15.
-          apply no_side_effects_no_store_change_arg_eval in H8.
-          apply skip_no_side_effects in H14.
-          apply no_side_effects_no_store_change in H15.
-          rewrite H8. rewrite H13 in H14. rewrite <- H14 in H15.
-          rewrite <- H15. rewrite <- H8.
-          apply NatMap_disjoint_restrict_Equal. rewrite H8. apply H11.
-          -- assumption.
-          -- assumption.
+  intros. induction H0. assumption.
 Qed.
 
 
+(* This proof is easy right now because we only have Skip statements *)
+Lemma stmteval_transformargs_stmteval : forall S E G F M stmt S' F' stmt',
+  StmtEval S E G F M stmt S' ->
+  TransformStmt M F stmt F' stmt' ->
+  StmtEval S E G F' M stmt S'.
+Proof.
+  intros. induction H0. assumption.
+Qed.
 
 
+Scheme TransformExpr_mut := Induction for TransformExpr Sort Prop
+with TransformArgs_mut := Induction for TransformArgs Sort Prop
+with TransformStmt_mut := Induction for TransformStmt Sort Prop.
+
+
+
+(* Attempt 1: Induction over the transformation with schema *)
+Theorem transform_expr_sound : forall M F e F' e',
+  TransformExpr M F e F' e' ->
+  (* The proof will not work if these variables were introduced sooner.
+     Doing so would interfere with the induction hypothesis *)
+  forall S E G v S',
+    ExprEval S E G F M e v S' ->
+    ExprEval S E G F' M e' v S'.
+Proof.
+  intros M F e F' e' H. apply (TransformExpr_mut
+    (* TransformExpr *)
+    (fun M F e F' e' (h : TransformExpr M F e F' e') =>
+    forall S E G v S',
+    ExprEval S E G F M e v S' ->
+    ExprEval S E G F' M e' v S')
+    (* TransformArgs *)
+    (fun M F es F' es' (h : TransformArgs M F es F' es') =>
+    forall S E G v S',
+    ExprEval S E G F M e v S' ->
+    ExprEval S E G F' M e' v S')
+    (* TransformStmt *)
+    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
+    forall S E G v S',
+    ExprEval S E G F M e v S' ->
+    ExprEval S E G F' M e' v S')); auto.
+  - intros. inversion_clear H1. apply E_ParenExpr. apply H0; auto.
+  - intros. inversion_clear H1. apply E_UnExpr. apply H0; auto.
+  - intros. inversion_clear H2. apply E_BinExpr with S'0.
+Abort.
+
+
+(* Attempt 2: Induction over the evaluation *)
+Theorem expreval_transform_expreval : forall S E G F M e v S',
+  ExprEval S E G F M e v S' ->
+  forall F' e',
+    TransformExpr M F e F' e' ->
+    ExprEval S E G F' M e' v S'.
+Proof.
+  intros S E G F M e v S' H. induction H; try (intros F' e' H; inversion_clear H; econstructor; auto).
+  - intros. inversion_clear H1. apply E_LocalVar with l; auto.
+  - intros. inversion_clear H2. apply E_GlobalVar with l; auto.
+  - intros. inversion_clear H0. apply E_ParenExpr; auto.
+  - intros. inversion_clear H0. apply E_UnExpr; auto.
+  - intros. inversion_clear H1. apply E_BinExpr with S'.
+    + apply IHExprEval1.
+Abort.
+
+
+(* Attempt 3: Induction over the evaluation with schema *)
+Theorem expreval_transform_expreval : forall S E G F M e v S',
+  ExprEval S E G F M e v S' ->
+  forall F' e',
+    TransformExpr M F e F' e' ->
+    ExprEval S E G F' M e' v S'.
+Proof.
+  intros S E G F M e v S' H.
+  apply (
+    ExprEval_mut
+      (* ExprEval *)
+      (fun S E G F M e v S' (h : ExprEval S E G F M e v S' ) =>
+        forall F' e',
+          TransformExpr M F e F' e' ->
+          ExprEval S E G F' M e' v S')
+      (* StmtEval *)
+      (fun S E G F M stmt S' (h : StmtEval S E G F M stmt S' ) =>
+        forall F' stmt',
+          TransformStmt M F stmt F' stmt' ->
+          StmtEval S E G F' M stmt' S')
+      (* EvalArgs *)
+      (fun Sprev Ecaller G F M es vs Snext (h : EvalArgs Sprev Ecaller G F M es vs Snext) =>
+        forall F' es',
+          TransformArgs M F es F' es' ->
+          EvalArgs Sprev Ecaller G F' M es' vs Snext)
+    ); try (intros; econstructor; auto).
+  - intros. inversion_clear H0. constructor.
+  - intros. inversion_clear H0. apply E_LocalVar with l; auto.
+  - intros. inversion_clear H0. apply E_GlobalVar with l; auto.
+  - intros. inversion_clear H1. apply E_ParenExpr; auto.
+  - intros. inversion_clear H1. apply E_UnExpr; auto.
+  - intros. inversion_clear H2. apply E_BinExpr with S'0.
+    + apply H5. apply H0. (* apply H3. *) admit.
+    + apply H1. apply H4.
+  - intros. inversion_clear H1. apply E_Assign_Local with l S'0; auto.
+  - intros. inversion_clear H1. apply E_Assign_Global with l S'0; auto.
+  - intros. inversion_clear H3.
+    + apply H6 with
+          params0 fstmt0 fexpr0 params fstmt fexpr in H5. inversion H5. subst.
+      apply E_FunctionCall with
+        params fstmt' fexpr' ls Sargs S'0 S'' S''' Ef S'''' vs; auto.
+      * rewrite H10. apply StringMapFacts.add_mapsto_iff. left. auto.
+      * apply H0. admit.
+      * apply H1. admit.
+      * apply H2. admit.
+    + apply StringMap_mapsto_in in H4. contradiction.
+  - intros. inversion_clear H1.
+    + apply StringMap_mapsto_in in m. contradiction.
+    + apply H3 with
+        params0 mexpr0 params mexpr in H2. inversion H2. subst.
+      apply E_FunctionCall with
+        (params:=params) (fstmt:=Skip) (fexpr:=mexpr) (ls:=ls) (Sargs:=Sargs) (S':=S')
+        (S'':=S'') (S''':=S''') (Ef:=Ef) (S'''':=S'''') (vs:=vs); auto.
+      * rewrite H8. apply StringMapFacts.add_mapsto_iff. left; auto.
+      * Abort.

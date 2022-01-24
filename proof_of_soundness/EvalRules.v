@@ -226,10 +226,10 @@ with EvalArgs :
   list expr -> list Z -> store ->
   Prop :=
   (* End of arguments *)
-  | E_EmptyArgs : forall Sprev Ecaller G F M vs (Snext : store),
+  | EvalArgs_nil : forall Sprev Ecaller G F M vs (Snext : store),
     EvalArgs Sprev Ecaller G F M nil vs Sprev
   (* There are arguments left to evaluate *)
-  | E_NonEmptyArgs : forall Sprev Ecaller G F M e v Snext es vs Sfinal,
+  | EvalArgs_cons : forall Sprev Ecaller G F M e v Snext es vs Sfinal,
     (* Evaluate the first expression using the caller's *)
     ExprEval Sprev Ecaller G F M e v Snext ->
     (* Evaluate the remaining expressions *)
