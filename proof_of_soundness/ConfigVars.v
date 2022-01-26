@@ -7,7 +7,8 @@ Require Import
   Coq.Structures.OrdersEx
   Coq.ZArith.ZArith.
 
-From Cpp2C Require Import Syntax.
+From Cpp2C Require Import
+  Syntax.
 
 (* Mappings from natural numbers to a type *)
 Module Import NatMap := FMapList.Make(OrderedTypeEx.Nat_as_OT).

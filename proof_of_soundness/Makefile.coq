@@ -44,7 +44,7 @@ HASNATDYNLINK     := $(COQMF_HASNATDYNLINK)
 OCAMLWARN         := $(COQMF_WARN)
 
 CoqMakefile.conf: _CoqProject
-	/snap/coq-prover/27/coq-platform/2021-09-0/bin/coq_makefile COQBIN = /snap/coq-prover/27/coq-platform/2021-09-0/bin/ -f _CoqProject
+	coq_makefile -f _CoqProject
 
 # This file can be created by the user to hook into double colon rules or
 # add any other Makefile code he may need

@@ -1,6 +1,7 @@
 -Q . Cpp2C
 ConfigVars.v
 EvalRules.v
+MapTheorems.v
 Syntax.v
 Theorems.v
 Transformations.v
