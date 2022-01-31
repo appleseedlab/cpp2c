@@ -13,23 +13,23 @@ From Cpp2C Require Import
 Inductive TransformExpr :
   macro_table -> function_table -> expr ->
   function_table -> expr -> Prop :=
-  
+
   | Transform_Num : forall M F z,
     TransformExpr M F (Num z) F (Num z)
-  
+
   | Transform_Var : forall M F x,
     TransformExpr M F (Var x) F (Var x)
-  
+
   | Transform_ParenExpr : forall M F e0 F' e0',
     TransformExpr M F e0 F' e0' ->
     TransformExpr M F (ParenExpr e0) F' (ParenExpr e0')
-  
+
   | Transform_UnExpr : forall M F e0 F' e0' uo,
     TransformExpr M F e0 F' e0' ->
     TransformExpr M F (UnExpr uo e0) F' (UnExpr uo e0')
-  
+
   | Transform_BinExpr : forall bo M F e1 e2 F' e1' e2',
-  
+
     (* Transform the left operand *)
     TransformExpr M F e1 F' e1' ->
 
@@ -46,7 +46,7 @@ Inductive TransformExpr :
      notation, then we would have to transform each operand one at a time *)
 
     TransformExpr M F (BinExpr bo e1 e2) F' (BinExpr bo e1' e2')
-  
+
   | Transform_Assign : forall M F x e F' e',
     TransformExpr M F e F' e' ->
     TransformExpr M F (Assign x e) F' (Assign x e')
@@ -57,13 +57,13 @@ Inductive TransformExpr :
 
     ~ StringMap.In x M ->
     StringMap.MapsTo x (params, fstmt, fexpr) F ->
-    
+
     (* Transform function arguments *)
     TransformArgs M F es F' es' ->
-    
+
     (* Transform function statement *)
     TransformStmt M F fstmt F' fstmt' ->
-    
+
     (* Transform function return expression *)
     TransformExpr M F fexpr F' fexpr' ->
 
@@ -71,60 +71,49 @@ Inductive TransformExpr :
     F' = StringMap.add x (params, fstmt', fexpr') F ->
 
     TransformExpr M F (CallOrInvocation x es) F' (CallOrInvocation x es')
-    
-  | Transform_SideEffectFreeNoSharedVarsWithCallerNoNestedMacro :
-    forall F M x es F' es' params mexpr mexpr' fname,
 
+  | Transform_ObjectLikeMacroNoSideEffectsNoSharedVarsNoNestedMacros :
+    forall F M x F' params mexpr mexpr' fname,
     StringMap.MapsTo x (params, mexpr) M ->
-    
+
     (* The macro does not have side-effects *)
     ~ ExprHasSideEffects mexpr ->
-    Forall (fun e => ~ ExprHasSideEffects e) es ->
-
-    (* The macro does not have side-effects *)
+    (* The macro does not contain nested macro invocations *)
     NoMacroInvocations mexpr F M ->
-    (* The macro arguments can share variables with the caller environment
-       since there are no side-effects, but cannnot contain nested macros *)
-    NoMacroInvocationsArgs es F M ->
-
     (* The macro does not share variables with the caller environment *)
     (forall S E G v S',
-      EvalExpr S E G F M (CallOrInvocation x es) v S' ->
+      EvalExpr S E G F M (CallOrInvocation x nil) v S' ->
       NoVarsInEnvironment mexpr E) ->
-
     (* Transform macro body *)
     TransformExpr M F mexpr F' mexpr' ->
-    
-    (* Transform macro arguments *)
-    TransformArgs M F es F' es' ->
-    
+
     (* Add the transformed function definition to the function table *)
     ~ StringMap.In fname M ->
     ~ StringMap.In fname F ->
-    F' = StringMap.add fname (params, Skip, mexpr') F ->
-    
-    TransformExpr M F (CallOrInvocation x es) F' (CallOrInvocation fname es')
+    F' = StringMap.add fname (nil, Skip, mexpr') F ->
+
+    TransformExpr M F (CallOrInvocation x nil) F' (CallOrInvocation fname nil)
 with TransformArgs :
   macro_table -> function_table -> list expr ->
   function_table -> list expr -> Prop :=
-  
+
   (* End of arguments *)
   | TransformArgs_Nil : forall M F,
     TransformArgs M F nil F nil
-  
+
   (* There are arguments left to transform *)
   | TransformArgs_Cons : forall M F e es F' e' es',
     (* Transform the first expression *)
     TransformExpr M F e F' e' ->
-    
+
     (* Transform the remaining expressions *)
     TransformArgs M F es F' es' ->
-    
+
     TransformArgs M F (e::es) F' (e'::es')
 with TransformStmt :
   macro_table -> function_table -> stmt ->
   function_table -> stmt -> Prop :=
-  
+
   | Transform_Skip : forall M F,
     TransformStmt M F Skip F Skip.
 
