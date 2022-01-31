@@ -1,10 +1,19 @@
 Require Import
   Coq.FSets.FMapList
   Coq.ZArith.ZArith.
-  
+
 From Cpp2C Require Import
   ConfigVars.
 
+
+(* I hope these assertions aren't too egregious...
+   Coq doesn't let us actually prove these, but for our definitions
+   of maps these are correct *)
+Axiom NatMap_Equal_eq_iff : forall (t : Type) (m : NatMap.t t) m',
+  NatMap.Equal m m' <-> m = m'.
+
+Axiom StringMap_Equal_eq_iff : forall (t : Type) (m : StringMap.t t) m',
+  StringMap.Equal m m' <-> m = m'.
 
 
 Lemma NatMap_Empty_empty : forall (t : Type) (m : NatMap.t t),
@@ -120,6 +129,32 @@ Proof.
     * apply NatMap_mapsto_in in H0. contradiction.
     * destruct H0. apply H0.
 Qed.
+
+
+Theorem StringMap_disjoint_diff_Equal : forall (S1 : function_table) (S2 : function_table),
+  StringMapProperties.Disjoint S1 S2 ->
+  StringMap.Equal S1 (StringMapProperties.diff (StringMapProperties.update S1 S2) S2).
+Proof.
+  intros. apply StringMapFacts.Equal_mapsto_iff. intros. split.
+  - intros. apply StringMapProperties.diff_mapsto_iff. split.
+    + apply StringMapProperties.update_mapsto_iff. right. split.
+      * assumption.
+      * unfold StringMapProperties.Disjoint in H.
+        apply StringMap_mapsto_in in H0. unfold not. intros. unfold not in H.
+        apply H with k. split.
+        -- assumption.
+        -- assumption.
+    + unfold StringMapProperties.Disjoint in H.
+      apply StringMap_mapsto_in in H0. unfold not. intros. unfold not in H.
+      apply H with k. split.
+      * assumption.
+      * assumption.
+  - intros. apply StringMapProperties.diff_mapsto_iff in H0. destruct H0.
+    apply StringMapProperties.update_mapsto_iff in H0. destruct H0.
+    * apply StringMap_mapsto_in in H0. contradiction.
+    * destruct H0. apply H0.
+Qed.
+
 
 
 Theorem NatMap_disjoint_restrict_Equal : forall (S1 : store) (S2 : store),

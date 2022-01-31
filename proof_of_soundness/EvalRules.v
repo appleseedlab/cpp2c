@@ -15,45 +15,70 @@ From Cpp2C Require Import
    Currently we don't supported macro calls in macro arguments.
  *)
 Fixpoint msub
-  (MP : macro_parameters) (mexpr : expr) : expr :=
+  (p : string) (e : expr) (mexpr : expr) : expr :=
   match mexpr with
   | Num z => Num z
   | Var x =>
-    match lookup_macro_parameter MP x with
-    | Some pe => snd pe
-    | None => Var x
+    match (p =? x)%string with
+    | true => e
+    | false => Var x
     end
-  | ParenExpr e0 => ParenExpr (msub MP e0)
-  | UnExpr uo e0 => UnExpr uo (msub MP e0)
-  | BinExpr bo e1 e2 => BinExpr bo (msub MP e1) (msub MP e2)
+  | ParenExpr e0 => ParenExpr (msub p e e0)
+  | UnExpr uo e0 => UnExpr uo (msub p e e0)
+  | BinExpr bo e1 e2 => BinExpr bo (msub p e e1) (msub p e e2)
     (* TODO: Fix these two once we add pointers *)
-  | Assign x e0 => match lookup_macro_parameter MP x with
+  | Assign x e0 => match (p =? x)%string with
     (* Right now we only substitute the LHS of assignments if
        the expression to plug in is also simply a variable *)
-    | Some pe => match snd pe with
-      | (Var y) => Assign y (msub MP e0)
-      | _ => Assign x (msub MP e0)
+    | true => match e with
+      | (Var y) => Assign y (msub p e e0)
+      | _ => Assign x (msub p e e0)
       end
-    | _ => Assign x (msub MP e0)
+    | _ => Assign x (msub p e e0)
     end
   (* FIXME: This doesn't match the actual semantics of macro expansion
             See the Google Doc *)
   | CallOrInvocation x es => CallOrInvocation x es
 end.
 
-
-Fixpoint fsub
-  (p : string) (e : expr) (fexpr : expr) : expr :=
-  match fexpr with
-   | Num z => Num z
-   | Var x => if String.eqb p x then e else Var x
-   | ParenExpr e0 => ParenExpr (fsub p e e0)
-   | UnExpr uo e0 => UnExpr uo (fsub p e e0)
-   | BinExpr bo e1 e2 => BinExpr bo (fsub p e e1) (fsub p e e2)
-   | Assign x e0 => Assign x e0
-   | CallOrInvocation x es => CallOrInvocation x es
-end.
-
+Inductive MSub : string -> expr -> expr -> expr -> Prop :=
+  | MS_Num : forall p e z,
+    MSub p e (Num z) (Num z)
+  | MS_Var_Replace : forall p e x,
+    p = x ->
+    MSub p e (Var x) e
+  | MS_Var_No_Replace : forall p e x,
+    p <> x ->
+    MSub p e (Var x) (Var x)
+  | MS_PareExpr : forall p e e0 e0',
+    MSub p e e0 e0' ->
+    MSub p e (ParenExpr e0) (ParenExpr e0')
+  | MS_UnExpr : forall p e uo e0 e0',
+    MSub p e e0 e0' ->
+    MSub p e (UnExpr uo e0) (UnExpr uo e0')
+  | MS_BinExpr : forall p e bo e1 e2 e1' e2',
+    MSub p e e1 e1' ->
+    MSub p e e2 e2' ->
+    MSub p e (BinExpr bo e1 e2) (BinExpr bo e1' e2')
+  | MS_Assign_Replace : forall p e x y e0 e0',
+    p = x ->
+    e = Var y ->
+    MSub p e e0 e0' ->
+    MSub p e (Assign x e0) (Assign y e0')
+  | MS_Assign_No_Replace : forall p e x e0 e0',
+    p <> x ->
+    MSub p e e0 e0' ->
+    MSub p e (Assign x e0) (Assign x e0')
+  | MS_Call_Or_Invocation : forall p e x es es',
+    MSubList p e es es' ->
+    MSub p e (CallOrInvocation x es) (CallOrInvocation x es')
+with MSubList : string -> expr -> list expr -> list expr -> Prop :=
+  | MSL_nil : forall p e,
+    MSubList p e nil nil
+  | MSL_cons : forall p e e0 e0' es0 es0',
+    MSub p e e0 e0' ->
+    MSubList p e es0 es0' ->
+    MSubList p e (e0::es0) (e0'::es0').
 
 Fixpoint expr_has_side_effects (e: expr) : bool :=
   match e with
@@ -109,101 +134,74 @@ Proof.
 Qed.
 
 
-Inductive StepExpr :
-  store -> environment -> environment ->
-  function_table -> macro_table ->
-  expr ->
-  expr -> store -> Prop :=
-  (* In small step semantics we elide the rules for constants *)
-  
-  (* Variable lookup *)
-  | Step_VarLocal : forall S E G F M x l z,
-    StringMap.MapsTo x l E ->
-    NatMap.MapsTo l z S ->
-    StepExpr S E G F M (Var x) (Num z) S
-  | Step_VarGlobal : forall S E G F M x l z,
-    ~ StringMap.In x E->
-    StringMap.MapsTo x l G ->
-    NatMap.MapsTo l z S ->
-    StepExpr S E G F M (Var x) (Num z) S
-  (* Parenthesized expressions *)
-  
-  | Step_ParenExprConst : forall S E G F M z,
-    StepExpr S E G F M (ParenExpr (Num z)) (Num z) S
-  | Step_ParenExpr1 : forall S E G F M e0 e0' S',
-    StepExpr S E G F M e0 e0' S' ->
-    StepExpr S E G F M (ParenExpr e0) (ParenExpr e0') S'
-  
-  (* Unary expressions *)
-  | Step_UnExprConst : forall S E G F M uo z,
-    StepExpr S E G F M (UnExpr uo (Num z)) (Num (unop_to_op uo z)) S
-  | Step_UnExpr1 : forall S E G F M uo e0 e0' S',
-    StepExpr S E G F M e0 e0' S' ->
-    StepExpr S E G F M (UnExpr uo e0) (UnExpr uo e0') S'
-  
-  (* Binary expressions *)
-  | Step_BinExprConst : forall S E G F M bo z1 z2,
-    StepExpr S E G F M (BinExpr bo (Num z1) (Num z2)) (Num (binop_to_op bo z1 z2)) S
-  | Step_BinExpr1 : forall S E G F M bo e1 e2 e1' S',
-    StepExpr S E G F M e1 e1' S' ->
-    StepExpr S E G F M (BinExpr bo e1 e2) (BinExpr bo e1' e2) S'
-  | Step_BinExpr2 : forall S E G F M bo z1 e2 e2' S',
-    StepExpr S E G F M e2 e2' S' ->
-    StepExpr S E G F M (BinExpr bo (Num z1) e2) (BinExpr bo (Num z1) e2') S'
-  
-  (* Assignments *)
-  | Step_AssignLocalConst : forall S E G F M l x z S',
-    StringMap.MapsTo x l E ->
-    NatMap.Equal S' (NatMapProperties.update S (NatMap.add l z (NatMap.empty Z))) ->
-    StepExpr S E G F M (Assign x (Num z)) (Num z) S'
-  | Step_AssignGlobalConst : forall S E G F M l x z S',
+Inductive NoVarsInEnvironment : expr -> environment -> Prop :=
+  | NV_Num : forall z E,
+    NoVarsInEnvironment (Num z) E
+  | NV_Var : forall x E,
     ~ StringMap.In x E ->
-    StringMap.MapsTo x l G ->
-    NatMap.Equal S' (NatMapProperties.update S (NatMap.add l z (NatMap.empty Z))) ->
-    StepExpr S E G F M (Assign x (Num z)) (Num z) S'
-  | Step_Assign1 : forall S E G F M x e0 e0' S',
-    StepExpr S E G F M e0 e0' S' ->
-    StepExpr S E G F M (Assign x e0) (Assign x e0') S'
-  
-  
-  (*  TODO: Define small step semantics for
-      function calls and macro invocations *)
-      
-      
-  | Step_FunctionCall : forall S E G F M x params fstmt fexpr es fexpr' S',
+    NoVarsInEnvironment (Var x) E
+  | NV_ParenExpr : forall e0 E,
+    NoVarsInEnvironment e0 E ->
+    NoVarsInEnvironment (ParenExpr e0) E
+  | NV_UnExpr : forall uo e0 E,
+    NoVarsInEnvironment e0 E ->
+    NoVarsInEnvironment (UnExpr uo e0) E
+  | NV_Bin_Expr : forall bo e1 e2 E,
+    NoVarsInEnvironment e1 E ->
+    NoVarsInEnvironment e2 E ->
+    NoVarsInEnvironment (BinExpr bo e1 e2) E
+  | NV_Assign : forall x e0 E,
+    ~ StringMap.In x E ->
+    NoVarsInEnvironment e0 E ->
+    NoVarsInEnvironment (Assign x e0) E
+  | NV_CallOrInvocation : forall x es E,
+    ~ StringMap.In x E ->
+    NoVarsInEnvironmentArgs es E ->
+    NoVarsInEnvironment (CallOrInvocation x es) E
+with NoVarsInEnvironmentArgs : list expr -> environment -> Prop :=
+  | NV_Args_nil : forall E,
+    NoVarsInEnvironmentArgs nil E
+  | NV_Args_cons : forall e es E,
+    NoVarsInEnvironment e E ->
+    NoVarsInEnvironmentArgs es E ->
+    NoVarsInEnvironmentArgs (e::es) E.
+
+
+Inductive NoMacroInvocations : expr -> function_table -> macro_table -> Prop :=
+  | NM_Num : forall z F M,
+    NoMacroInvocations (Num z) F M
+  | NM_Var : forall x F M,
+    NoMacroInvocations (Var x) F M
+  | NM_ParenExpr : forall e0 F M,
+    NoMacroInvocations e0 F M ->
+    NoMacroInvocations (ParenExpr e0) F M
+  | NM_UnExpr : forall uo e0 F M,
+    NoMacroInvocations e0 F M ->
+    NoMacroInvocations (UnExpr uo e0) F M
+  | NM_Bin_Expr : forall bo e1 e2 F M,
+    NoMacroInvocations e1 F M ->
+    NoMacroInvocations e2 F M ->
+    NoMacroInvocations (BinExpr bo e1 e2) F M
+  | NM_Assign : forall x e0 F M,
+    NoMacroInvocations e0 F M ->
+    NoMacroInvocations (Assign x e0) F M
+  | NM_CallOrInvocation : forall x es F M params fstmt fexpr,
     ~ StringMap.In x M ->
+    NoMacroInvocationsArgs es F M ->
     StringMap.MapsTo x (params, fstmt, fexpr) F ->
-    StepArgs S E G F M fexpr params es fexpr' S' ->
-    StepExpr S E G F M (CallOrInvocation x es) fexpr' S'
+    NoMacroInvocations fexpr F M ->
+    NoMacroInvocations (CallOrInvocation x es) F M
+with NoMacroInvocationsArgs : list expr -> function_table -> macro_table -> Prop :=
+  | NM_Args_nil : forall F M,
+    NoMacroInvocationsArgs nil F M
+  | NM_Args_cons : forall e es F M,
+    NoMacroInvocations e F M ->
+    NoMacroInvocationsArgs es F M ->
+    NoMacroInvocationsArgs (e::es) F M.
 
-with StepStmt :
-  store -> environment -> environment ->
-  function_table -> macro_table ->
-  stmt -> stmt -> store -> Prop :=
-
-with StepArgs : 
-  store -> environment -> environment ->
-  function_table -> macro_table ->
-  expr -> list string -> list expr ->
-  expr ->
-  store -> Prop :=
-  
-  | Step_ArgsNil : forall S E G F M fexpr,
-    StepArgs S E G F M fexpr nil nil fexpr S
-  
-  | Step_ArgsConsConst : forall S E G F M fexpr fexpr' z p ps es S',
-    StepArgs S E G F M (fsub p (Num z) fexpr) ps es fexpr' S' ->
-    StepArgs S E G F M fexpr (p::ps) ((Num z)::es) fexpr' S'
-  
-  | Step_ArgsConsExpr : forall S E G F M e' S' fexpr fexpr' p ps e es,
-    StepExpr S E G F M e e' S' ->
-    StepArgs S E G F M fexpr (p::ps) (e'::es) fexpr' S' ->
-    StepArgs S E G F M fexpr (p::ps) (e::es) fexpr' S'.
 
 (* Right now, a term that fails to evaluate will simply get "stuck";
-   i.e. it will fail to be reduced further.
-   We do not provide any error messages, but I think we could add
-   this later using a sum type. *)
+   i.e. it will fail to be reduced further. *)
 Inductive EvalExpr:
   store -> environment -> environment ->
   function_table -> macro_table ->
@@ -271,7 +269,7 @@ Inductive EvalExpr:
      5) Return the return value and store *)
   | E_FunctionCall:
     forall S E G F M x es params fstmt fexpr ls
-           Ef Sargs S' S'' S''' S'''' S''''' v vs,
+           Ef Sargs S' S'' S''' S'''' S''''' v vs l,
     (* TODO: Things to consider :
        - Should all functions have unique names?
     *)
@@ -283,15 +281,17 @@ Inductive EvalExpr:
     (* Parameters should all be unique *)
     NoDup params ->
     (* Evaluate the function's arguments *)
-    EvalArgs S E G F M es vs S' ->
+    EvalArgs S E G F M params es vs S' Ef Sargs l ->
     (* Create the function environment *)
     StringMap.Equal Ef (StringMapProperties.of_list (combine params ls)) ->
-    (* Create a store for mapping L-values to the arguments to in the store *)
+    (* Create a store for mapping L-values to the arguments to in the store.
+       Possibly provable but easier to just assert here *)
     NatMap.Equal Sargs (NatMapProperties.of_list (combine ls vs)) ->
-    (* All the L-values used in the argument store do not appear in the original store *)
+    (* All the L-values used in the argument store do not appear in the original store.
+       We could possibly prove this, but it is easier to put it here. *)
     NatMapProperties.Disjoint S' Sargs ->
     (* Combine the argument store into the original store *)
-    NatMap.Equal S'' (NatMapProperties.update S' Sargs) ->
+    S'' = NatMapProperties.update S' Sargs ->
     (* Evaluate the function's body *)
     EvalStmt S'' Ef G F M fstmt S''' ->
     EvalExpr S''' Ef G F M fexpr v S'''' ->
@@ -302,11 +302,9 @@ Inductive EvalExpr:
     EvalExpr S E G F M (CallOrInvocation x es) v S'''''
   (* Macro invocation *)
   | E_MacroInvocation :
-    forall S E G F M x params es mexpr M' MP ef S' v,
+    forall S E G F M x params es mexpr M' ef S' v,
     (* TODO: Things to consider:
      - How to handle nested macros?
-     - |params| == |es|?
-     - Should all macros have unique names?
      *)
     (* Macro definitions shadow function definitions, so if a macro
        definition is found, we don't even check the function list.
@@ -316,26 +314,39 @@ Inductive EvalExpr:
     StringMap.MapsTo x (params, mexpr) M ->
     M' = StringMap.remove x M ->
     NoDup params ->
-    (* Create the MP for evaluating the macro expression in *)
-    MP = combine params es ->
-    ef = msub MP mexpr ->
+    MacroSubst params es mexpr ef ->
     EvalExpr S E G F M' ef v S' ->
     EvalExpr S E G F M (CallOrInvocation x es) v S'
 with EvalArgs :
   store -> environment -> environment -> function_table -> macro_table ->
-  list expr -> list Z -> store ->
+  list string -> list expr -> list Z -> store -> environment -> store ->
+  nat ->
   Prop :=
   (* End of arguments *)
-  | EvalArgs_nil : forall Sprev Ecaller G F M vs (Snext : store),
-    EvalArgs Sprev Ecaller G F M nil vs Sprev
+  | EvalArgs_nil : forall Sprev Ecaller G F M,
+    EvalArgs Sprev Ecaller G F M nil nil nil Sprev (StringMap.empty nat) (NatMap.empty Z) 0
   (* There are arguments left to evaluate *)
-  | EvalArgs_cons : forall Sprev Ecaller G F M e v Snext es vs Sfinal,
-    (* Evaluate the first expression using the caller's *)
+  | EvalArgs_cons : forall Sprev Ecaller G F M p e v Snext ps es vs Sfinal l Ef' Sargs',
+    (* Evaluate the first expression using the caller's environment *)
     EvalExpr Sprev Ecaller G F M e v Snext ->
     (* Evaluate the remaining expressions *)
-    EvalArgs Snext Ecaller G F M es vs Sfinal ->
+    EvalArgs Snext Ecaller G F M ps es vs Sfinal Ef' Sargs' l ->
+    (* The L-value to add is not in the store *)
+    ~ NatMap.In l Sargs' ->
+    (* The parameter to add is not in the environment *)
+    NoDup (p::ps) ->
+    ~ StringMap.In p Ef' ->
     (* Return the final environment *)
-    EvalArgs Sprev Ecaller G F M (e::es) (v::vs) Sfinal
+    EvalArgs  Sprev Ecaller G F M (p::ps) (e::es) (v::vs) Sfinal
+              (StringMap.add p l Ef') (NatMap.add l v Sargs') (S l)
+with MacroSubst :
+  list string -> list expr -> expr -> expr -> Prop :=
+  | MacroSubst_nil : forall mexpr,
+    MacroSubst nil nil mexpr mexpr
+  | MacroSubst_cons : forall p e ps es mexpr ef ef',
+    MSub p e mexpr ef ->
+    MacroSubst ps es ef ef' ->
+    MacroSubst (p::ps) (e::es) mexpr ef'
 with EvalStmt :
   store -> environment -> environment ->
   function_table -> macro_table ->

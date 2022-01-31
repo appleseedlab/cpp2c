@@ -47,32 +47,7 @@ Definition macro_table : Type := StringMap.t macro_definition.
 
 (* A macro parameters is a mapping from macro parameters (strings) to
    expressions *)
-(* Definition macro_parameters : Type := StringMap.t expr. *)
-
-(* Macro parameters are defined this way to facilitate the proof.
-   Originally we defined them as a StringMap mapping to expressions,
-   but the problem with this is that it was difficult (maybe impossible?)
-   to prove that if the mappings was created from a set of keys ks combined
-   with a set of elements es, and a predicate holds for all the elements of es
-   originally, then it will hold for any elemnt that a key maps to in
-   the mapping. Unfortunately, Coq's FMap built-in lemmas aren't quite strong
-   enough to prove this, but its List lemmas are strong enough to prove a
-   similar lemma for associative arrays. Maybe in the future we can find an
-   external library that proves this for us; that would be ideal.
-*)
-Definition macro_parameters : Set := list (string * expr).
-Definition lookup_macro_parameter
-  (MP : macro_parameters) (k : string) : option (string * expr) :=
-  List.find (fun pe => String.eqb (fst pe) k) MP.
-Fixpoint remove_macro_parameter
-  (l : macro_parameters) (k : string) : macro_parameters :=
-  match l with
-  | nil => nil
-  | cons x xs => if String.eqb (fst x) k then
-    remove_macro_parameter xs k else x :: (remove_macro_parameter xs k)
-  end.
-
-
+Definition macro_parameters : Type := StringMap.t expr.
 
 (* Coq map examples *)
 
