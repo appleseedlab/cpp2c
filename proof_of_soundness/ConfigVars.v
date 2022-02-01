@@ -4,7 +4,6 @@ Require Import
   Coq.Lists.List
   Coq.Strings.String
   Coq.Structures.OrderedTypeEx
-  Coq.Structures.OrdersEx
   Coq.ZArith.ZArith.
 
 From Cpp2C Require Import
@@ -16,8 +15,8 @@ Module NatMapProperties := WProperties_fun OrderedTypeEx.Nat_as_OT NatMap.
 Module NatMapFacts := NatMapProperties.F.
 
 (* Mappings from strings to a type *)
-Module Import StringMap := FMapList.Make(String_as_OT).
-Module StringMapProperties := WProperties_fun String_as_OT StringMap.
+Module Import StringMap := FMapList.Make(OrderedTypeEx.String_as_OT).
+Module StringMapProperties := WProperties_fun OrderedTypeEx.String_as_OT StringMap.
 Module StringMapFacts := StringMapProperties.F.
 
 (* Store is a mapping from l-values (memory addresses, represented as
