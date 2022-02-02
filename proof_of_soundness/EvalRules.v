@@ -80,6 +80,7 @@ with MSubList : string -> expr -> list expr -> list expr -> Prop :=
     MSubList p e es0 es0' ->
     MSubList p e (e0::es0) (e0'::es0').
 
+
 Fixpoint expr_has_side_effects (e: expr) : bool :=
   match e with
   | Num z => false
@@ -355,3 +356,55 @@ with EvalStmt :
   (* A skip statement does not change the state *)
   | E_Skip : forall S E G F M,
     EvalStmt S E G F M Skip S.
+
+
+(* Relation only holds if an expression does not contain any calls from the given
+   function table F' *)
+Inductive ExprNoCallsFromFunctionTable :
+  expr -> function_table -> macro_table -> function_table -> Prop :=
+  | NC_Num : forall z F M F',
+    ExprNoCallsFromFunctionTable (Num z) F M F'
+  | NC_Var : forall x F M F',
+    ExprNoCallsFromFunctionTable (Var x) F M F'
+  | NC_ParenExpr : forall e0 F M F',
+    ExprNoCallsFromFunctionTable e0 F M F' ->
+    ExprNoCallsFromFunctionTable (ParenExpr e0) F M F'
+  | NC_UnExpr : forall uo e0 F M F',
+    ExprNoCallsFromFunctionTable e0 F M F' ->
+    ExprNoCallsFromFunctionTable (UnExpr uo e0) F M F'
+  | NC_BinExpr : forall bo e1 e2 F M F',
+    ExprNoCallsFromFunctionTable e1 F M F' ->
+    ExprNoCallsFromFunctionTable e2 F M F' ->
+    ExprNoCallsFromFunctionTable (BinExpr bo e1 e2) F M F'
+  | NC_Assign : forall x e0 F M F',
+    ExprNoCallsFromFunctionTable e0 F M F' ->
+    ExprNoCallsFromFunctionTable (Assign x e0) F M F'
+  | NC_FunctionCall: forall x es F M F' params fstmt fexpr,
+    ~ StringMap.In x M ->
+    ~ StringMap.In x F' ->
+    ExprNoCallsFromFunctionTableArgs es F M F' ->
+    StringMap.MapsTo x (params, fstmt, fexpr) F ->
+    StmtNoCallsFromFunctionTable fstmt F M F' ->
+    ExprNoCallsFromFunctionTable fexpr F M F' ->
+    ExprNoCallsFromFunctionTable (CallOrInvocation x es) F M F'
+  | NC_MacroInvocation: forall x es F M F' params mexpr ef,
+    ~ StringMap.In x F' ->
+    ExprNoCallsFromFunctionTableArgs es F M F' ->
+    StringMap.MapsTo x (params, mexpr) M ->
+    ExprNoCallsFromFunctionTable mexpr F M F' ->
+    MacroSubst params es mexpr ef ->
+    (* We use (StringMap.remove x M) here because that is what is used in macro invocations *)
+    ExprNoCallsFromFunctionTable ef F (StringMap.remove x M) F' ->
+    ExprNoCallsFromFunctionTable (CallOrInvocation x es) F M F'
+with ExprNoCallsFromFunctionTableArgs :
+  list expr -> function_table -> macro_table -> function_table -> Prop :=
+  | NC_Args_nil : forall F M F',
+    ExprNoCallsFromFunctionTableArgs nil F M F'
+  | NC_Args_cons : forall e es F M F',
+    ExprNoCallsFromFunctionTable e F M F' ->
+    ExprNoCallsFromFunctionTableArgs es F M F' ->
+    ExprNoCallsFromFunctionTableArgs (e::es) F M F'
+with StmtNoCallsFromFunctionTable :
+  stmt -> function_table -> macro_table -> function_table -> Prop :=
+  | NC_Skip : forall F M F',
+    StmtNoCallsFromFunctionTable Skip F M F'.

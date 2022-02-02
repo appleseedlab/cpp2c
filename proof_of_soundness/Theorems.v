@@ -13,6 +13,63 @@ From Cpp2C Require Import
   Transformations.
 
 
+Scheme MSub_mut := Induction for MSub Sort Prop
+with MSubList_mut := Induction for MSubList Sort Prop.
+
+
+Lemma MSub_deterministic : forall p e mexpr ef,
+  MSub p e mexpr ef ->
+  forall ef0,
+  MSub p e mexpr ef0 ->
+  ef = ef0.
+Proof.
+  apply (MSub_mut
+    (fun p e mexpr ef (h : MSub p e mexpr ef) =>
+      forall ef0,
+      MSub p e mexpr ef0 ->
+      ef = ef0)
+    (fun p e es es' (h : MSubList p e es es') =>
+      forall es'0,
+      MSubList p e es es'0 ->
+      es' = es'0)); intros; auto.
+  - inversion_clear H; auto.
+  - inversion_clear H; auto. contradiction.
+  - inversion_clear H. contradiction. auto.
+  - inversion_clear H0. f_equal. auto.
+  - inversion_clear H0. f_equal. auto.
+  - inversion_clear H1. f_equal. auto. auto.
+  - inversion_clear H0; f_equal.
+    + subst e. injection H2. auto.
+    + subst e. injection H2. auto.
+    + contradiction.
+    + contradiction.
+  - inversion_clear H0.
+    + contradiction.
+    + f_equal. auto.
+  - inversion_clear H0. f_equal. auto.
+  - inversion_clear H. auto.
+  - inversion_clear H1.
+    assert (e0' = e0'0). { auto. }
+    assert ( es0' = es0'0). { auto. }
+    subst. auto.
+Qed.
+
+
+Lemma MacroSubst_deterministic : forall params es mexpr ef,
+  MacroSubst params es mexpr ef ->
+  forall ef0,
+  MacroSubst params es mexpr ef0 ->
+  ef = ef0.
+Proof.
+  intros params es mexpe ef H. induction H; intros.
+  - inversion H. auto.
+  - inversion_clear H1.
+    assert (ef = ef1).
+    { apply MSub_deterministic with p e mexpr; auto. }
+    subst ef1. apply IHMacroSubst. auto.
+Qed.
+
+
 Lemma no_side_effects_no_store_change : forall e,
   ~ ExprHasSideEffects e ->
   forall S E G F M v S',
@@ -136,6 +193,144 @@ Lemma skip_no_side_effects_eq : forall S E G F M S',
   S = S'.
 Proof.
   intros. induction H. reflexivity.
+Qed.
+
+
+Scheme ExprNoCallsFromFunctionTable_mut := Induction for ExprNoCallsFromFunctionTable Sort Prop
+with ExprNoCallsFromFunctionTableArgs_mut := Induction for ExprNoCallsFromFunctionTableArgs Sort Prop
+with StmtNoCallsFromFunctionTable_mut := Induction for StmtNoCallsFromFunctionTable Sort Prop.
+
+
+
+Lemma evalexpr_nocallsfromfunctiontable_remove_function_table_evalexpr : forall e F M F',
+  ExprNoCallsFromFunctionTable e F M F' ->
+  forall S E G v S',
+  EvalExpr S E G (StringMapProperties.update F F') M e v S' <->
+  EvalExpr S E G F M e v S'.
+Proof.
+  split.
+  - revert e F M F' H S E G v S'.
+    apply (ExprNoCallsFromFunctionTable_mut
+      (fun e F M F' (h : ExprNoCallsFromFunctionTable e F M F') =>
+        forall S E G v S',
+        EvalExpr S E G (StringMapProperties.update F F') M e v S' ->
+        EvalExpr S E G F M e v S')
+      (fun es F M F' (h : ExprNoCallsFromFunctionTableArgs es F M F') =>
+        forall S E G params vs S' Ef Sargs l,
+        EvalArgs S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ->
+        EvalArgs S E G F M params es vs S' Ef Sargs l)
+      (fun stmt F M F' (h : StmtNoCallsFromFunctionTable stmt F M F') =>
+        forall S E G S',
+        EvalStmt S E G (StringMapProperties.update F F') M stmt S' ->
+        EvalStmt S E G F M stmt S')
+      ); intros; try constructor; auto.
+    +
+      inversion_clear H. constructor.
+    +
+      inversion_clear H.
+      * econstructor; eauto.
+      * apply E_GlobalVar with l; auto.
+    +
+      inversion_clear H0; auto.
+    +
+      inversion_clear H0; constructor; auto.
+    +
+      inversion_clear H1. apply E_BinExpr with S'0; auto.
+    +
+      inversion_clear H0.
+      *
+        apply E_Assign_Local with l S'0; auto.
+      *
+        apply E_Assign_Global with l S'0; auto.
+    +
+      inversion_clear H2.
+      *
+        assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+        { apply StringMapFacts.MapsTo_fun with F x; auto.
+          apply StringMapProperties.update_mapsto_iff in H4. destruct H4.
+          + apply StringMap_mapsto_in in H2. contradiction.
+          + apply H2.
+        } inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+        apply E_FunctionCall with
+          params fstmt fexpr ls Ef Sargs S'0 S'' S''' S'''' vs l; auto.
+      *
+        apply StringMap_mapsto_in in H3. contradiction.
+    +
+      inversion_clear H2.
+      *
+        apply StringMap_mapsto_in in m. contradiction.
+      *
+        assert ((params, mexpr) = (params0, mexpr0)).
+        { apply StringMapFacts.MapsTo_fun with M x; auto. }
+        inversion H2; subst params0 mexpr0; clear H2.
+        assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+        subst ef0.
+        apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+    +
+      inversion_clear H. constructor.
+    +
+      inversion_clear H1. apply EvalArgs_cons with Snext; auto.
+    +
+      inversion_clear H. constructor.
+  -
+    revert e F M F' H S E G v S'.
+    apply (ExprNoCallsFromFunctionTable_mut
+    (fun e F M F' (h : ExprNoCallsFromFunctionTable e F M F') =>
+      forall S E G v S',
+      EvalExpr S E G F M e v S' ->
+      EvalExpr S E G (StringMapProperties.update F F') M e v S')
+    (fun es F M F' (h : ExprNoCallsFromFunctionTableArgs es F M F') =>
+      forall S E G params vs S' Ef Sargs l,
+      EvalArgs S E G F M params es vs S' Ef Sargs l ->
+      EvalArgs S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l)
+    (fun stmt F M F' (h : StmtNoCallsFromFunctionTable stmt F M F') =>
+      forall S E G S',
+      EvalStmt S E G F M stmt S' ->
+      EvalStmt S E G (StringMapProperties.update F F') M stmt S')
+    ); intros; try constructor; auto.
+    +
+      inversion_clear H. constructor.
+    +
+      inversion_clear H.
+      * econstructor; eauto.
+      * apply E_GlobalVar with l; auto.
+    +
+      inversion_clear H0; auto.
+    +
+      inversion_clear H0; constructor; auto.
+    +
+      inversion_clear H1. apply E_BinExpr with S'0; auto.
+    +
+      inversion_clear H0.
+      *
+        apply E_Assign_Local with l S'0; auto.
+      *
+        apply E_Assign_Global with l S'0; auto.
+    +
+      inversion_clear H2.
+      *
+        assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+        { apply StringMapFacts.MapsTo_fun with F x; auto. }
+        inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+        apply E_FunctionCall with
+          params fstmt fexpr ls Ef Sargs S'0 S'' S''' S'''' vs l; auto.
+        apply StringMapProperties.update_mapsto_iff. right. auto.
+      *
+        apply StringMap_mapsto_in in H3. contradiction.
+    +
+      inversion_clear H2.
+      *
+        apply StringMap_mapsto_in in m. contradiction.
+      *
+        assert ((params, mexpr) = (params0, mexpr0)).
+        { apply StringMapFacts.MapsTo_fun with M x; auto. }
+        inversion H2; subst params0 mexpr0; clear H2.
+        assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+        subst ef0.
+        apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+    + inversion_clear H. constructor.
+    + inversion_clear H1. apply EvalArgs_cons with Snext; auto.
+    + inversion_clear H. constructor.
 Qed.
 
 
@@ -611,50 +806,77 @@ Proof.
 Qed.
 
 
-Lemma nomacroinvocations_transformexpr_no_change : forall e F M,
+Lemma nomacroinvocations_update_nocallsfromfunctiontable_no_macro_invocations :
+  forall e F M,
   NoMacroInvocations e F M ->
-  forall F' e',
-  TransformExpr M F e F' e' ->
-  e = e'.
+  forall F',
+  ExprNoCallsFromFunctionTable e F M F' ->
+  NoMacroInvocations e (StringMapProperties.update F F') M.
 Proof.
   apply (NoMacroInvocations_mut
     (fun e F M (h : NoMacroInvocations e F M) =>
-      forall F' e',
-        TransformExpr M F e F' e' ->
-        e = e')
+      forall F',
+      ExprNoCallsFromFunctionTable e F M F' ->
+      NoMacroInvocations e (StringMapProperties.update F F') M)
     (fun es F M (h : NoMacroInvocationsArgs es F M) =>
-      forall F' es',
-        TransformArgs M F es F' es' ->
-        es = es')).
-  - intros. inversion_clear H; auto.
-  - intros. inversion_clear H; auto.
-  - intros. inversion_clear H0.
-    assert (e0 = e0'). { apply H with F'; auto. }
-    subst. auto.
-  - intros. inversion_clear H0.
-    assert (e0 = e0'). { apply H with F'; auto. }
-    subst. auto.
-  - intros. inversion_clear H1.
-    assert (e1 = e1'). { apply H with F'; auto. }
-    assert (e2 = e2'). { apply H0 with F'; auto. }
-    subst. auto.
-  - intros. inversion_clear H0.
-    assert (e0 = e'0). { apply H with F'; auto. }
-    subst; auto.
-  - intros. inversion_clear H1.
-    + assert (es = es'). { apply H with F'; auto. }
-      subst; auto.
-    + apply StringMap_mapsto_in in H2. contradiction.
-  - intros. inversion_clear H. auto.
-  - intros. inversion_clear H1.
-    assert (e = e'). { apply H with F'; auto. }
-    assert (es = es'0). { apply H0 with F'; auto. }
-    subst; auto.
+      forall F',
+      ExprNoCallsFromFunctionTableArgs es F M F' ->
+      NoMacroInvocationsArgs es (StringMapProperties.update F F') M)); intros; try constructor; auto.
+  - inversion_clear H0; auto.
+  - inversion_clear H0; auto.
+  - inversion_clear H1; auto.
+  - inversion_clear H1; auto.
+  - inversion_clear H0; auto.
+  - inversion_clear H1; auto.
+    + assert ((params0, fstmt0, fexpr0) = (params, fstmt, fexpr)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. }
+      inversion H1; subst params0 fstmt0 fexpr0; clear H1.
+      apply NM_CallOrInvocation with params fstmt fexpr; auto.
+      apply StringMapProperties.update_mapsto_iff. auto.
+    + apply StringMap_mapsto_in in H4. contradiction.
+  - inversion_clear H1; auto.
+  - inversion_clear H1; auto.
 Qed.
 
 
-Lemma nomacroinvocations_transformexpr_nomacroinvocations :
-  forall M F e F' e',
+Lemma nomacroinvocations_transformexpr_no_change : forall M F e F' e' ,
+  TransformExpr M F e F' e' ->
+  NoMacroInvocations e F M ->
+  e = e'.
+Proof.
+  apply (TransformExpr_mut
+    (* TransformExpr *)
+    (fun M F e F' e' (h : TransformExpr M F e F' e') =>
+      NoMacroInvocations e F M ->
+      e = e')
+    (* TransformArgs *)
+    (fun M F es F' es' (h : TransformArgs M F es F' es') =>
+      NoMacroInvocationsArgs es F M ->
+      es = es')
+    (* TransformStmt *)
+    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
+      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+  -
+    f_equal. inversion_clear H0; auto.
+  -
+    f_equal. inversion_clear H0; auto.
+  -
+    inversion_clear H1.
+    f_equal; auto.
+    apply H0. subst F'.
+    apply nomacroinvocations_update_nocallsfromfunctiontable_no_macro_invocations; auto.
+  -
+    inversion_clear H0. f_equal; auto.
+  -
+    inversion_clear H2. f_equal; auto.
+  -
+    inversion_clear H0.  apply StringMap_mapsto_in in m. contradiction.
+  -
+    inversion_clear H1. f_equal; auto.
+Qed.
+
+
+Lemma nomacroinvocations_transformexpr_nomacroinvocations : forall M F e F' e',
   TransformExpr M F e F' e' ->
   NoMacroInvocations e F M ->
   NoMacroInvocations e' F' M.
@@ -670,24 +892,40 @@ Proof.
       NoMacroInvocationsArgs es' F' M)
     (* TransformStmt *)
     (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
-      True (* TODO: Fix this later once we add more statements *))); auto.
-  - intros. inversion_clear H0. constructor; auto.
-  - intros. inversion_clear H0. constructor; auto.
-  - intros. inversion_clear H1. constructor; auto.
-  - intros. inversion_clear H0. constructor; auto.
-  - intros. inversion_clear H2. econstructor; auto.
-    + rewrite e. apply StringMapFacts.add_mapsto_iff. left; auto.
-    + apply H1.
-      assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
-      { apply StringMapFacts.MapsTo_fun with F x; auto. }
-      inversion_clear H2. auto.
+      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H1. constructor; auto.
+    + subst F''.
+      apply nomacroinvocations_update_nocallsfromfunctiontable_no_macro_invocations; auto.
+    + apply H0.
+      subst F'.
+      apply nomacroinvocations_update_nocallsfromfunctiontable_no_macro_invocations; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H2. 
+    assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+    { apply StringMapFacts.MapsTo_fun with F x; auto. }
+    inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+    apply NM_CallOrInvocation with params fstmt' fexpr'; auto.
+    subst F'. apply StringMapFacts.add_mapsto_iff. auto.
   - intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
   - intros. inversion_clear H1. constructor; auto.
 Qed.
 
 
+Lemma transformargs_nomacroinvocationsargs_no_change : forall M F es F' es',
+  TransformArgs M F es F' es' ->
+  NoMacroInvocationsArgs es F M ->
+  es = es'.
+Proof.
+  intros. induction H; auto.
+  inversion_clear H0. f_equal; auto.
+  eapply nomacroinvocations_transformexpr_no_change; eauto.
+Qed.
 
-Lemma nomacroinvocations_transformargs_nomacroinvocations : forall M F es F' es',
+
+
+Lemma transformargs_nomacroinvocations_nomacroinvocations : forall M F es F' es',
   TransformArgs M F es F' es' ->
   NoMacroInvocationsArgs es F M ->
   NoMacroInvocationsArgs es' F' M.
@@ -703,34 +941,27 @@ Proof.
       NoMacroInvocationsArgs es' F' M)
     (* TransformStmt *)
     (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
-      True (* TODO: Fix this later once we add more statements *))); auto.
-  - intros. inversion_clear H0. constructor; auto.
-  - intros. inversion_clear H0. constructor; auto.
-  - intros. inversion_clear H1. constructor; auto.
-  - intros. inversion_clear H0. constructor; auto.
-  - intros. inversion_clear H2. econstructor; auto.
+      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H1. constructor.
+    +
+      subst F''.
+      apply nomacroinvocations_update_nocallsfromfunctiontable_no_macro_invocations; auto.
+    +
+      subst F''.
+      apply nomacroinvocations_update_nocallsfromfunctiontable_no_macro_invocations with
+        (F':=F1result) in H3; auto.
+      rewrite <- e in H3. auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H2. econstructor; auto.
     + rewrite e. apply StringMapFacts.add_mapsto_iff. left; auto.
     + apply H1.
       assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
       { apply StringMapFacts.MapsTo_fun with F x; auto. }
       inversion_clear H2. auto.
-  - intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
-  - intros. inversion_clear H1. constructor; auto.
-Qed.
-
-
-Lemma nomacroinvocationsargs_transformargs_no_change : forall es F M,
-  NoMacroInvocationsArgs es F M ->
-  forall F' es',
-  TransformArgs M F es F' es' ->
-  es = es'.
-Proof.
-  intros. induction H0; auto.
-  inversion_clear H.
-  assert (e=e').
-  { apply nomacroinvocations_transformexpr_no_change with F M F'; auto. }
-  assert (es=es'). { apply IHTransformArgs; auto. }
-  subst; auto.
+  - inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
+  - inversion_clear H1. constructor; auto.
 Qed.
 
 
@@ -835,7 +1066,6 @@ Scheme NoVarsInEnvironment_mut := Induction for NoVarsInEnvironment Sort Prop
 with NoVarsInEnvironmentArgs_mut := Induction for NoVarsInEnvironmentArgs Sort Prop.
 
 
-(* TODO *)
 Lemma novarsinenvironment_Msub_novarsinenvironment : forall mexpr E,
   NoVarsInEnvironment mexpr E ->
   forall e,
@@ -986,19 +1216,26 @@ Proof.
       EvalStmt S E G F' M stmt' S'2 ->
       S'1 = S'2
       )); intros; auto.
+
   - (* Num *)
-    inversion H. inversion H0; subst. auto.
-  -
+    inversion H. inversion H0. subst. auto.
+  - (* Var *)
     inversion H; subst.
-    + inversion H0; subst.
-      * apply StringMapFacts.find_mapsto_iff in H2, H3.
+    + (* Untransformed is a local var *)
+      inversion H0; subst.
+      * (* Transformed is a local var *)
+        apply StringMapFacts.find_mapsto_iff in H2, H3.
         rewrite H3 in H2. inversion H2; subst.
         apply NatMapFacts.find_mapsto_iff in H8, H10.
         rewrite H10 in H8. inversion H8. auto.
-      * apply StringMap_mapsto_in in H2. contradiction.
-    + inversion H0; subst.
-      * apply StringMap_mapsto_in in H4. contradiction.
-      * apply StringMapFacts.find_mapsto_iff in H3, H5.
+      * (* Transformed is a global var *)
+        apply StringMap_mapsto_in in H2. contradiction.
+    + (* Untransformed is a gloval var *)
+      inversion H0; subst.
+      * (* Transformed is a local var *)
+        apply StringMap_mapsto_in in H4. contradiction.
+      * (* Transformed is a global var *)
+        apply StringMapFacts.find_mapsto_iff in H3, H5.
         rewrite H5 in H3. inversion H3; subst.
         apply NatMapFacts.find_mapsto_iff in H9, H12.
         rewrite H12 in H9. inversion H9. auto.
@@ -1015,7 +1252,12 @@ Proof.
   - (* BinExpr *)
     inversion_clear H1. inversion_clear H2.
     destruct H with S E G v0 v4 S' S'0; auto.
-    subst. destruct H0 with S'0 E G v3 v5 S'1 S'2; subst; auto.
+    { subst F''.
+      apply evalexpr_nocallsfromfunctiontable_remove_function_table_evalexpr in H1; auto. }
+    subst S'0 v4. destruct H0 with S' E G v3 v5 S'1 S'2; auto.
+    { subst F'.
+      apply evalexpr_nocallsfromfunctiontable_remove_function_table_evalexpr; auto. }
+    subst S'2 v5. auto.
 
   - (* Assign *)
     inversion H0; subst.
@@ -1061,7 +1303,7 @@ Proof.
 
         (* Prove that the macro body does not change after transformation *)
         assert (mexpr = mexpr').
-        { apply nomacroinvocations_transformexpr_no_change with F M F'; auto. }
+        { apply nomacroinvocations_transformexpr_no_change with M F F'; auto. }
         subst mexpr'.
 
         (* No side-effects in function *)

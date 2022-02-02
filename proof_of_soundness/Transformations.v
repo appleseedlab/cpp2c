@@ -28,13 +28,28 @@ Inductive TransformExpr :
     TransformExpr M F e0 F' e0' ->
     TransformExpr M F (UnExpr uo e0) F' (UnExpr uo e0')
 
-  | Transform_BinExpr : forall bo M F e1 e2 F' e1' e2',
+  | Transform_BinExpr : forall bo M F e1 e2 F' F'' F1result F2result e1' e2',
 
     (* Transform the left operand *)
     TransformExpr M F e1 F' e1' ->
+    F' = StringMapProperties.update F F1result ->
 
     (* Transform the right operand *)
-    TransformExpr M F e2 F' e2' ->
+    TransformExpr M F' e2 F'' e2' ->
+    F'' = StringMapProperties.update F' F2result ->
+
+    (* None of the function calls in e1 are to functions that were added
+       while transforming e2 *)
+    ExprNoCallsFromFunctionTable e1 F M F2result ->
+    (* None of the functions calls in e1' are to functions that were added
+       while transforming e2 *)
+    ExprNoCallsFromFunctionTable e1' F' M F2result ->
+    (* None of the functions calls in e2 are to functions that were added
+       while transforming e1 *)
+    ExprNoCallsFromFunctionTable e2 F M F1result ->
+    (* None of the functions calls in e2' are to functions that were added
+       while transforming e1 *)
+    ExprNoCallsFromFunctionTable e2' F'' M F1result ->
 
     (* This is interesting - In order for the proof to succeed, we must assert that
      both the left and right transformations result in ultimately the same function
@@ -45,7 +60,7 @@ Inductive TransformExpr :
      two operands should be equal. If we were to define the semantics using small-step
      notation, then we would have to transform each operand one at a time *)
 
-    TransformExpr M F (BinExpr bo e1 e2) F' (BinExpr bo e1' e2')
+    TransformExpr M F (BinExpr bo e1 e2) F'' (BinExpr bo e1' e2')
 
   | Transform_Assign : forall M F x e F' e',
     TransformExpr M F e F' e' ->
