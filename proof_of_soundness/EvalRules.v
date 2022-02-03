@@ -6,6 +6,7 @@ Require Import
 
 From Cpp2C Require Import
   ConfigVars
+  MapTheorems
   Syntax.
 
 
@@ -40,6 +41,7 @@ Fixpoint msub
             See the Google Doc *)
   | CallOrInvocation x es => CallOrInvocation x es
 end.
+
 
 Inductive MSub : string -> expr -> expr -> expr -> Prop :=
   | MS_Num : forall p e z,
@@ -79,126 +81,6 @@ with MSubList : string -> expr -> list expr -> list expr -> Prop :=
     MSub p e e0 e0' ->
     MSubList p e es0 es0' ->
     MSubList p e (e0::es0) (e0'::es0').
-
-
-Fixpoint expr_has_side_effects (e: expr) : bool :=
-  match e with
-  | Num z => false
-  | Var x => false
-  | ParenExpr e0 => expr_has_side_effects e0
-  | UnExpr uo e0 => expr_has_side_effects e0
-  | BinExpr bo e1 e2 =>
-    orb (expr_has_side_effects e1) (expr_has_side_effects e2)
-  (* This is conservative, but matches the behaviour of Clang *)
-  | Assign x e0 => true
-  | CallOrInvocation x es => true
-end.
-
-
-Fixpoint ExprHasSideEffects (e : expr) : Prop :=
-  match e with
-  | Num z => False
-  | Var x => False
-  | ParenExpr e0 => ExprHasSideEffects e0
-  | UnExpr uo e0 => ExprHasSideEffects e0
-  | BinExpr bo e1 e2 =>
-    (ExprHasSideEffects e1) \/ (ExprHasSideEffects e2)
-  (* This is conservative, but matches the behaviour of Clang *)
-  | Assign x e0 => True
-  | CallOrInvocation x es => True
-end.
-
-
-Theorem expr_has_side_effects_ExprHasSideEffects : forall e,
-  expr_has_side_effects e = true <-> ExprHasSideEffects e.
-Proof.
-  split; induction e; intros; simpl in *;
-    try discriminate; try (apply IHe; apply H);
-    try apply I; try contradiction; try reflexivity.
-  - apply Bool.orb_prop in H. tauto.
-  - apply Bool.orb_true_iff. tauto.
-Qed.
-
-
-Theorem neg_expr_side_effects_NotExprHasSideEffects : forall e,
-  expr_has_side_effects e = false <-> ~ ExprHasSideEffects e.
-Proof.
-  split; induction e; intros; simpl in *;
-  try discriminate; try (apply IHe; apply H);
-  try apply I; try contradiction; try reflexivity; try auto.
-  - rewrite Bool.orb_false_iff in H. apply Classical_Prop.and_not_or. split.
-    + apply IHe1. apply H.
-    + apply IHe2. apply H.
-  - apply Classical_Prop.not_or_and in H. apply Bool.orb_false_iff. split.
-    + apply IHe1. apply H.
-    + apply IHe2. apply H.
-Qed.
-
-
-Inductive NoVarsInEnvironment : expr -> environment -> Prop :=
-  | NV_Num : forall z E,
-    NoVarsInEnvironment (Num z) E
-  | NV_Var : forall x E,
-    ~ StringMap.In x E ->
-    NoVarsInEnvironment (Var x) E
-  | NV_ParenExpr : forall e0 E,
-    NoVarsInEnvironment e0 E ->
-    NoVarsInEnvironment (ParenExpr e0) E
-  | NV_UnExpr : forall uo e0 E,
-    NoVarsInEnvironment e0 E ->
-    NoVarsInEnvironment (UnExpr uo e0) E
-  | NV_Bin_Expr : forall bo e1 e2 E,
-    NoVarsInEnvironment e1 E ->
-    NoVarsInEnvironment e2 E ->
-    NoVarsInEnvironment (BinExpr bo e1 e2) E
-  | NV_Assign : forall x e0 E,
-    ~ StringMap.In x E ->
-    NoVarsInEnvironment e0 E ->
-    NoVarsInEnvironment (Assign x e0) E
-  | NV_CallOrInvocation : forall x es E,
-    ~ StringMap.In x E ->
-    NoVarsInEnvironmentArgs es E ->
-    NoVarsInEnvironment (CallOrInvocation x es) E
-with NoVarsInEnvironmentArgs : list expr -> environment -> Prop :=
-  | NV_Args_nil : forall E,
-    NoVarsInEnvironmentArgs nil E
-  | NV_Args_cons : forall e es E,
-    NoVarsInEnvironment e E ->
-    NoVarsInEnvironmentArgs es E ->
-    NoVarsInEnvironmentArgs (e::es) E.
-
-
-Inductive NoMacroInvocations : expr -> function_table -> macro_table -> Prop :=
-  | NM_Num : forall z F M,
-    NoMacroInvocations (Num z) F M
-  | NM_Var : forall x F M,
-    NoMacroInvocations (Var x) F M
-  | NM_ParenExpr : forall e0 F M,
-    NoMacroInvocations e0 F M ->
-    NoMacroInvocations (ParenExpr e0) F M
-  | NM_UnExpr : forall uo e0 F M,
-    NoMacroInvocations e0 F M ->
-    NoMacroInvocations (UnExpr uo e0) F M
-  | NM_Bin_Expr : forall bo e1 e2 F M,
-    NoMacroInvocations e1 F M ->
-    NoMacroInvocations e2 F M ->
-    NoMacroInvocations (BinExpr bo e1 e2) F M
-  | NM_Assign : forall x e0 F M,
-    NoMacroInvocations e0 F M ->
-    NoMacroInvocations (Assign x e0) F M
-  | NM_CallOrInvocation : forall x es F M params fstmt fexpr,
-    ~ StringMap.In x M ->
-    NoMacroInvocationsArgs es F M ->
-    StringMap.MapsTo x (params, fstmt, fexpr) F ->
-    NoMacroInvocations fexpr F M ->
-    NoMacroInvocations (CallOrInvocation x es) F M
-with NoMacroInvocationsArgs : list expr -> function_table -> macro_table -> Prop :=
-  | NM_Args_nil : forall F M,
-    NoMacroInvocationsArgs nil F M
-  | NM_Args_cons : forall e es F M,
-    NoMacroInvocations e F M ->
-    NoMacroInvocationsArgs es F M ->
-    NoMacroInvocationsArgs (e::es) F M.
 
 
 (* Right now, a term that fails to evaluate will simply get "stuck";
@@ -358,53 +240,329 @@ with EvalStmt :
     EvalStmt S E G F M Skip S.
 
 
-(* Relation only holds if an expression does not contain any calls from the given
-   function table F' *)
-Inductive ExprNoCallsFromFunctionTable :
-  expr -> function_table -> macro_table -> function_table -> Prop :=
-  | NC_Num : forall z F M F',
-    ExprNoCallsFromFunctionTable (Num z) F M F'
-  | NC_Var : forall x F M F',
-    ExprNoCallsFromFunctionTable (Var x) F M F'
-  | NC_ParenExpr : forall e0 F M F',
-    ExprNoCallsFromFunctionTable e0 F M F' ->
-    ExprNoCallsFromFunctionTable (ParenExpr e0) F M F'
-  | NC_UnExpr : forall uo e0 F M F',
-    ExprNoCallsFromFunctionTable e0 F M F' ->
-    ExprNoCallsFromFunctionTable (UnExpr uo e0) F M F'
-  | NC_BinExpr : forall bo e1 e2 F M F',
-    ExprNoCallsFromFunctionTable e1 F M F' ->
-    ExprNoCallsFromFunctionTable e2 F M F' ->
-    ExprNoCallsFromFunctionTable (BinExpr bo e1 e2) F M F'
-  | NC_Assign : forall x e0 F M F',
-    ExprNoCallsFromFunctionTable e0 F M F' ->
-    ExprNoCallsFromFunctionTable (Assign x e0) F M F'
-  | NC_FunctionCall: forall x es F M F' params fstmt fexpr,
-    ~ StringMap.In x M ->
-    ~ StringMap.In x F' ->
-    ExprNoCallsFromFunctionTableArgs es F M F' ->
-    StringMap.MapsTo x (params, fstmt, fexpr) F ->
-    StmtNoCallsFromFunctionTable fstmt F M F' ->
-    ExprNoCallsFromFunctionTable fexpr F M F' ->
-    ExprNoCallsFromFunctionTable (CallOrInvocation x es) F M F'
-  | NC_MacroInvocation: forall x es F M F' params mexpr ef,
-    ~ StringMap.In x F' ->
-    ExprNoCallsFromFunctionTableArgs es F M F' ->
-    StringMap.MapsTo x (params, mexpr) M ->
-    ExprNoCallsFromFunctionTable mexpr F M F' ->
-    MacroSubst params es mexpr ef ->
-    (* We use (StringMap.remove x M) here because that is what is used in macro invocations *)
-    ExprNoCallsFromFunctionTable ef F (StringMap.remove x M) F' ->
-    ExprNoCallsFromFunctionTable (CallOrInvocation x es) F M F'
-with ExprNoCallsFromFunctionTableArgs :
-  list expr -> function_table -> macro_table -> function_table -> Prop :=
-  | NC_Args_nil : forall F M F',
-    ExprNoCallsFromFunctionTableArgs nil F M F'
-  | NC_Args_cons : forall e es F M F',
-    ExprNoCallsFromFunctionTable e F M F' ->
-    ExprNoCallsFromFunctionTableArgs es F M F' ->
-    ExprNoCallsFromFunctionTableArgs (e::es) F M F'
-with StmtNoCallsFromFunctionTable :
-  stmt -> function_table -> macro_table -> function_table -> Prop :=
-  | NC_Skip : forall F M F',
-    StmtNoCallsFromFunctionTable Skip F M F'.
+Scheme MSub_mut := Induction for MSub Sort Prop
+with MSubList_mut := Induction for MSubList Sort Prop.
+
+
+Lemma MSub_deterministic : forall p e mexpr ef,
+  MSub p e mexpr ef ->
+  forall ef0,
+  MSub p e mexpr ef0 ->
+  ef = ef0.
+Proof.
+  apply (MSub_mut
+    (fun p e mexpr ef (h : MSub p e mexpr ef) =>
+      forall ef0,
+      MSub p e mexpr ef0 ->
+      ef = ef0)
+    (fun p e es es' (h : MSubList p e es es') =>
+      forall es'0,
+      MSubList p e es es'0 ->
+      es' = es'0)); intros; auto.
+  - inversion_clear H; auto.
+  - inversion_clear H; auto. contradiction.
+  - inversion_clear H. contradiction. auto.
+  - inversion_clear H0. f_equal. auto.
+  - inversion_clear H0. f_equal. auto.
+  - inversion_clear H1. f_equal. auto. auto.
+  - inversion_clear H0; f_equal.
+    + subst e. injection H2. auto.
+    + subst e. injection H2. auto.
+    + contradiction.
+    + contradiction.
+  - inversion_clear H0.
+    + contradiction.
+    + f_equal. auto.
+  - inversion_clear H0. f_equal. auto.
+  - inversion_clear H. auto.
+  - inversion_clear H1.
+    assert (e0' = e0'0). { auto. }
+    assert ( es0' = es0'0). { auto. }
+    subst. auto.
+Qed.
+
+
+Lemma MacroSubst_deterministic : forall params es mexpr ef,
+  MacroSubst params es mexpr ef ->
+  forall ef0,
+  MacroSubst params es mexpr ef0 ->
+  ef = ef0.
+Proof.
+  intros params es mexpe ef H. induction H; intros.
+  - inversion H. auto.
+  - inversion_clear H1.
+    assert (ef = ef1).
+    { apply MSub_deterministic with p e mexpr; auto. }
+    subst ef1. apply IHMacroSubst. auto.
+Qed.
+
+
+(* The following lemmas involve all parts of program evaluation
+   (e.g., expression, argument list, and statement evaluation).
+   Coq's built-in induction tactic is not powerful enough to provide
+   us with the induction hypotheses necessary to prove these lemmas, so
+   we must define our own induction schema for these proofs *)
+Scheme EvalExpr_mut := Induction for EvalExpr Sort Prop
+with EvalStmt_mut := Induction for EvalStmt Sort Prop
+with EvalArgs_mut := Induction for EvalArgs Sort Prop.
+
+
+Lemma EvalStmt_notin_F_add_EvalStmt : forall S E G F M stmt S',
+  EvalStmt S E G F M stmt S' ->
+  forall x fdef,
+    ~ StringMap.In x F ->
+    EvalStmt S E G (StringMap.add x fdef F) M stmt S'.
+Proof.
+(*
+  This proof could be solved instead with the following ltac code:
+    intros. induction H; try constructor.
+  Instead I have opted to use our custom schema here so that it may serve
+  as a simple demonstration of how to use schemas *)
+  intros. apply (
+    (* First we apply the appropriate schema like a tactic *)
+    EvalStmt_mut
+      (* Then we have to define a custom inductive hypothesis for each Prop
+         that the one we are inducting over is mutually inductive with
+         (in this case just the EvalStmt Prop since statement evaluation
+         currently only includes skip statements, which don't
+         involve expressions) *)
+      (fun S E G F M stmt S' (h : EvalStmt S E G F M stmt S') =>
+        EvalStmt S E G (StringMap.add x fdef F) M stmt S')
+  ); try constructor; auto.
+Qed.
+
+
+Lemma EvalStmt_Disjoint_update_F_EvalStmt : forall S E G F M stmt S',
+  EvalStmt S E G F M stmt S' ->
+  forall F',
+    StringMapProperties.Disjoint F F' ->
+    EvalStmt S E G (StringMapProperties.update F F') M stmt S'.
+Proof.
+  intros. induction H; try constructor. Qed.
+
+
+Lemma EvalExpr_notin_F_add_EvalExpr : forall S E G F M e v S',
+  EvalExpr S E G F M e v S' ->
+  forall x fdef,
+    ~ StringMap.In x F ->
+    EvalExpr S E G (StringMap.add x fdef F) M e v S'.
+Proof.
+  apply (
+    EvalExpr_mut
+      (* EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S' ) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        EvalExpr S E G (StringMap.add x fdef F) M e v S' )
+      (* EvalStmt *)
+      (fun S E G F M stmt S' (h : EvalStmt S E G F M stmt S' ) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        EvalStmt S E G (StringMap.add x fdef F) M stmt S' )
+      (* EvalArgs *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l (h : EvalArgs Sprev Ecaller G F M ps es vs Snext Ef Sargs l) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        EvalArgs Sprev Ecaller G (StringMap.add x fdef F) M ps es vs Snext Ef Sargs l)
+    ); intros; try constructor; auto.
+  - apply E_LocalVar with l; auto.
+  - apply E_GlobalVar with l; auto.
+  - apply E_BinExpr with S'; auto.
+  - apply E_Assign_Local with l S'; auto.
+  - apply E_Assign_Global with l S'; auto.
+  - apply E_FunctionCall with
+      params fstmt fexpr ls Ef Sargs S' S'' S''' S'''' vs l; auto.
+    + apply StringMapFacts.add_mapsto_iff. right. split.
+      * unfold not; intros. subst. apply StringMap_mapsto_in in m.
+        contradiction.
+      * auto.
+  - apply E_MacroInvocation with params mexpr M' ef; auto.
+  - apply EvalArgs_cons with Snext; auto.
+Qed.
+
+
+Lemma EvalExpr_Disjoint_update_F_EvalExpr : forall S E G F M e v S',
+  EvalExpr S E G F M e v S' ->
+  forall F',
+    StringMapProperties.Disjoint F F' ->
+    EvalExpr S E G (StringMapProperties.update F F') M e v S'.
+Proof.
+  apply (
+    EvalExpr_mut
+      (* EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S' ) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalExpr S E G (StringMapProperties.update F F') M e v S' )
+      (* EvalStmt *)
+      (fun S E G F M stmt S' (h : EvalStmt S E G F M stmt S' ) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalStmt S E G (StringMapProperties.update F F') M stmt S' )
+      (* EvalArgs *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l (h : EvalArgs Sprev Ecaller G F M ps es vs Snext Ef Sargs l) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalArgs Sprev Ecaller G (StringMapProperties.update F F') M ps es vs Snext Ef Sargs l)
+    ); intros; try constructor; auto.
+  - apply E_LocalVar with l; auto.
+  - apply E_GlobalVar with l; auto.
+  - apply E_BinExpr with S'; auto.
+  - apply E_Assign_Local with l S'; auto.
+  - apply E_Assign_Global with l S'; auto.
+  - apply E_FunctionCall with
+      params fstmt fexpr ls Ef Sargs S' S'' S''' S'''' vs l; auto.
+    + apply StringMapProperties.update_mapsto_iff. right. split.
+      * auto.
+      * apply StringMap_mapsto_in in m.
+        unfold StringMapProperties.Disjoint in H2.
+        assert (~ (StringMap.In (elt:=function_definition) x F /\
+                    StringMap.In (elt:=function_definition) x F')).
+        { apply H2. }
+        apply Classical_Prop.not_and_or in H3. destruct H3.
+        -- contradiction.
+        -- auto.
+  - apply E_MacroInvocation with params mexpr M' ef; auto.
+  - apply EvalArgs_cons with Snext; auto.
+Qed.
+
+
+Lemma EvalExpr_Disjoint_diff_F_EvalExpr : forall S E G F M e v S',
+  EvalExpr S E G F M e v S' ->
+  forall F',
+    StringMapProperties.Disjoint F F' ->
+    EvalExpr S E G (StringMapProperties.diff F F') M e v S'.
+Proof.
+  apply (
+    EvalExpr_mut
+      (* EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S' ) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalExpr S E G (StringMapProperties.diff F F') M e v S' )
+      (* EvalStmt *)
+      (fun S E G F M stmt S' (h : EvalStmt S E G F M stmt S' ) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalStmt S E G (StringMapProperties.diff F F') M stmt S' )
+      (* EvalArgs *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l (h : EvalArgs Sprev Ecaller G F M ps es vs Snext Ef Sargs l) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalArgs Sprev Ecaller G (StringMapProperties.diff F F') M ps es vs Snext Ef Sargs l)
+    ); intros; try constructor; auto.
+  - apply E_LocalVar with l; auto.
+  - apply E_GlobalVar with l; auto.
+  - apply E_BinExpr with S'; auto.
+  - apply E_Assign_Local with l S'; auto.
+  - apply E_Assign_Global with l S'; auto.
+  - apply E_FunctionCall with
+      params fstmt fexpr ls Ef Sargs S' S'' S''' S'''' vs l; auto.
+    + apply StringMapProperties.diff_mapsto_iff. split.
+      * auto.
+      * apply StringMap_mapsto_in in m.
+        unfold StringMapProperties.Disjoint in H2.
+        assert (~ (StringMap.In (elt:=function_definition) x F /\
+                    StringMap.In (elt:=function_definition) x F')).
+        { apply H2. }
+        apply Classical_Prop.not_and_or in H3. destruct H3.
+        -- contradiction.
+        -- auto.
+  - apply E_MacroInvocation with params mexpr M' ef; auto.
+  - apply EvalArgs_cons with Snext; auto.
+Qed.
+
+
+Lemma EvalArgs_notin_F_add_EvalArgs : forall S E G F M ps es vs S' Ef Sargs l,
+  EvalArgs S E G F M ps es vs S' Ef Sargs l->
+  forall x fdef,
+    ~ StringMap.In x F ->
+    EvalArgs S E G (StringMap.add x fdef F) M ps es vs S' Ef Sargs l.
+Proof.
+  apply (
+    EvalArgs_mut
+      (* EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S' ) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        EvalExpr S E G (StringMap.add x fdef F) M e v S' )
+      (* EvalStmt *)
+      (fun S E G F M stmt S' (h : EvalStmt S E G F M stmt S' ) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        EvalStmt S E G (StringMap.add x fdef F) M stmt S' )
+      (* EvalArgs *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l (h : EvalArgs Sprev Ecaller G F M ps es vs Snext Ef Sargs l) =>
+        forall x fdef,
+        ~ StringMap.In x F ->
+        EvalArgs Sprev Ecaller G (StringMap.add x fdef F) M ps es vs Snext Ef Sargs l)
+    ); intros; try constructor; auto.
+  - apply E_LocalVar with l; auto.
+  - apply E_GlobalVar with l; auto.
+  - apply E_BinExpr with S'; auto.
+  - apply E_Assign_Local with l S'; auto.
+  - apply E_Assign_Global with l S'; auto.
+  - apply E_FunctionCall with params fstmt fexpr ls Ef Sargs S' S'' S''' S'''' vs l; auto.
+    + apply StringMapFacts.add_mapsto_iff. right. split.
+      * unfold not; intros. subst. apply StringMap_mapsto_in in m.
+        contradiction.
+      * auto.
+  - apply E_MacroInvocation with params mexpr M' ef; auto.
+  - apply EvalArgs_cons with Snext; auto.
+Qed.
+
+
+Lemma EvalArgs_Disjoint_update_F_EvalArgs : forall S E G F M ps es vs S' Ef Sargs l,
+  EvalArgs S E G F M ps es vs S' Ef Sargs l ->
+  forall F',
+    StringMapProperties.Disjoint F F' ->
+    EvalArgs S E G (StringMapProperties.update F F') M ps es vs S' Ef Sargs l.
+Proof.
+  apply (
+    EvalArgs_mut
+      (* EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S' ) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalExpr S E G (StringMapProperties.update F F') M e v S' )
+      (* EvalStmt *)
+      (fun S E G F M stmt S' (h : EvalStmt S E G F M stmt S' ) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalStmt S E G (StringMapProperties.update F F') M stmt S' )
+      (* EvalArgs *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l
+      (h : EvalArgs Sprev Ecaller G F M ps es vs Snext Ef Sargs l) =>
+        forall F',
+          StringMapProperties.Disjoint F F' ->
+          EvalArgs Sprev Ecaller G (StringMapProperties.update F F') M ps es vs Snext Ef Sargs l)
+    ); intros; try constructor; auto.
+  - apply E_LocalVar with l; auto.
+  - apply E_GlobalVar with l; auto.
+  - apply E_BinExpr with S'; auto.
+  - apply E_Assign_Local with l S'; auto.
+  - apply E_Assign_Global with l S'; auto.
+  - apply E_FunctionCall with params fstmt fexpr ls Ef Sargs S' S'' S''' S'''' vs l; auto.
+    + apply StringMapProperties.update_mapsto_iff. right. split.
+      * auto.
+      * apply StringMap_mapsto_in in m.
+        unfold StringMapProperties.Disjoint in H2.
+        assert (~ (StringMap.In (elt:=function_definition) x F /\
+                    StringMap.In (elt:=function_definition) x F')).
+        { apply H2. }
+        apply Classical_Prop.not_and_or in H3. destruct H3.
+        -- contradiction.
+        -- auto.
+  - apply E_MacroInvocation with params mexpr M' ef; auto.
+  - apply EvalArgs_cons with Snext; auto.
+Qed.
+
+
+Lemma EvalExpr_Var_x_in_E_or_G : forall S E G F M x v S',
+  EvalExpr S E G F M (Var x) v S' ->
+  StringMap.In x E \/ StringMap.In x G.
+Proof.
+  intros. inversion_clear H.
+  - left. apply StringMap_mapsto_in in H0. auto.
+  - right. apply StringMap_mapsto_in in H1. auto.
+Qed.

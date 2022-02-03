@@ -7,7 +7,12 @@ Require Import
 From Cpp2C Require Import
   Syntax
   ConfigVars
-  EvalRules.
+  EvalRules
+  SideEffects
+  MapTheorems
+  NoCallsFromFunctionTable
+  NoMacroInvocations
+  NoVarsInEnvironment.
 
 
 Inductive TransformExpr :
@@ -94,11 +99,11 @@ Inductive TransformExpr :
     (* The macro does not have side-effects *)
     ~ ExprHasSideEffects mexpr ->
     (* The macro does not contain nested macro invocations *)
-    NoMacroInvocations mexpr F M ->
+    ExprNoMacroInvocations mexpr F M ->
     (* The macro does not share variables with the caller environment *)
     (forall S E G v S',
       EvalExpr S E G F M (CallOrInvocation x nil) v S' ->
-      NoVarsInEnvironment mexpr E) ->
+      ExprNoVarsInEnvironment mexpr E) ->
     (* Transform macro body *)
     TransformExpr M F mexpr F' mexpr' ->
 
@@ -132,3 +137,184 @@ with TransformStmt :
   | Transform_Skip : forall M F,
     TransformStmt M F Skip F Skip.
 
+
+Scheme TransformExpr_mut := Induction for TransformExpr Sort Prop
+with TransformArgs_mut := Induction for TransformArgs Sort Prop
+with TransformStmt_mut := Induction for TransformStmt Sort Prop.
+
+
+(* This proof is easy right now because we only have Skip statements *)
+Lemma mapsto_TransformStmt_mapsto : forall x fdef F M stmt F' stmt', 
+  StringMap.MapsTo x fdef F ->
+  TransformStmt M F stmt F' stmt' ->
+  StringMap.MapsTo x fdef F'.
+Proof.
+  intros. induction H0. assumption.
+Qed.
+
+
+Lemma not_ExprHasSideEffects_TransformExpr_not_ExprHasSideEffects : forall e,
+  ~ ExprHasSideEffects e ->
+  forall M F F' e',
+    TransformExpr M F e F' e' ->
+    ~ ExprHasSideEffects e'.
+Proof.
+  intros. induction H0; auto.
+  -
+    simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
+    unfold ExprHasSideEffects. fold ExprHasSideEffects.
+    apply Classical_Prop.and_not_or. split; auto.
+Qed.
+
+
+Lemma not_ExprHasSideEffects_TransformArgs_Forall_not_ExprHasSideEffects : forall es,
+  Forall (fun e => ~ ExprHasSideEffects e) es ->
+  forall M F F' es',
+    TransformArgs M F es F' es' ->
+  Forall (fun e => ~ ExprHasSideEffects e) es'.
+Proof.
+  intros. induction H0.
+  - auto.
+  - inversion H. subst. apply Forall_cons.
+    * apply not_ExprHasSideEffects_TransformExpr_not_ExprHasSideEffects with e M F F'; auto.
+    * apply IHTransformArgs; auto.
+Qed.
+
+
+(* This proof is easy right now because we only have Skip statements *)
+Lemma EvalStmt_TransformArgs_EvalStmt : forall S E G F M stmt S' F' stmt',
+  EvalStmt S E G F M stmt S' ->
+  TransformStmt M F stmt F' stmt' ->
+  EvalStmt S E G F' M stmt S'.
+Proof.
+  intros. induction H0. assumption.
+Qed.
+
+
+Lemma TransformExpr_ExprNoMacroInvocations_e_eq : forall M F e F' e' ,
+  TransformExpr M F e F' e' ->
+  ExprNoMacroInvocations e F M ->
+  e = e'.
+Proof.
+  apply (TransformExpr_mut
+    (* TransformExpr *)
+    (fun M F e F' e' (h : TransformExpr M F e F' e') =>
+      ExprNoMacroInvocations e F M ->
+      e = e')
+    (* TransformArgs *)
+    (fun M F es F' es' (h : TransformArgs M F es F' es') =>
+      NoMacroInvocationsArgs es F M ->
+      es = es')
+    (* TransformStmt *)
+    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
+      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+  -
+    f_equal. inversion_clear H0; auto.
+  -
+    f_equal. inversion_clear H0; auto.
+  -
+    inversion_clear H1.
+    f_equal; auto.
+    apply H0. subst F'.
+    apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations;
+      auto.
+  -
+    inversion_clear H0. f_equal; auto.
+  -
+    inversion_clear H2. f_equal; auto.
+  -
+    inversion_clear H0.  apply StringMap_mapsto_in in m. contradiction.
+  -
+    inversion_clear H1. f_equal; auto.
+Qed.
+
+
+Lemma TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations : forall M F e F' e',
+  TransformExpr M F e F' e' ->
+  ExprNoMacroInvocations e F M ->
+  ExprNoMacroInvocations e' F' M.
+Proof.
+  apply (TransformExpr_mut
+    (* TransformExpr *)
+    (fun M F e F' e' (h : TransformExpr M F e F' e') =>
+      ExprNoMacroInvocations e F M ->
+      ExprNoMacroInvocations e' F' M)
+    (* TransformArgs *)
+    (fun M F es F' es' (h : TransformArgs M F es F' es') =>
+      NoMacroInvocationsArgs es F M ->
+      NoMacroInvocationsArgs es' F' M)
+    (* TransformStmt *)
+    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
+      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H1. constructor; auto.
+    + subst F''.
+      apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations;
+        auto.
+    + apply H0.
+      subst F'.
+      apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations;
+        auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H2. 
+    assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+    { apply StringMapFacts.MapsTo_fun with F x; auto. }
+    inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+    apply NM_CallOrInvocation with params fstmt' fexpr'; auto.
+    subst F'. apply StringMapFacts.add_mapsto_iff. auto.
+  - intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
+  - intros. inversion_clear H1. constructor; auto.
+Qed.
+
+
+Lemma TransformArgs_ExprNoMacroInvocationsArgs_e_eq: forall M F es F' es',
+  TransformArgs M F es F' es' ->
+  NoMacroInvocationsArgs es F M ->
+  es = es'.
+Proof.
+  intros. induction H; auto.
+  inversion_clear H0. f_equal; auto.
+  eapply TransformExpr_ExprNoMacroInvocations_e_eq; eauto.
+Qed.
+
+
+Lemma TransformArgs_NoMacroInvocationsArgs_NoMacroInvocationsArgs : forall M F es F' es',
+  TransformArgs M F es F' es' ->
+  NoMacroInvocationsArgs es F M ->
+  NoMacroInvocationsArgs es' F' M.
+Proof.
+  apply (TransformArgs_mut
+    (* TransformExpr *)
+    (fun M F e F' e' (h : TransformExpr M F e F' e') =>
+      ExprNoMacroInvocations e F M ->
+      ExprNoMacroInvocations e' F' M)
+    (* TransformArgs *)
+    (fun M F es F' es' (h : TransformArgs M F es F' es') =>
+      NoMacroInvocationsArgs es F M ->
+      NoMacroInvocationsArgs es' F' M)
+    (* TransformStmt *)
+    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
+      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H1. constructor.
+    +
+      subst F''.
+      apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations;
+        auto.
+    +
+      subst F''.
+      apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations with
+        (F':=F1result) in H3; auto.
+      rewrite <- e in H3. auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H2. econstructor; auto.
+    + rewrite e. apply StringMapFacts.add_mapsto_iff. left; auto.
+    + apply H1.
+      assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. }
+      inversion_clear H2. auto.
+  - inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
+  - inversion_clear H1. constructor; auto.
+Qed.

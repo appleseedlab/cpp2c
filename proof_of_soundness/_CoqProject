@@ -2,6 +2,10 @@
 ConfigVars.v
 EvalRules.v
 MapTheorems.v
+NoCallsFromFunctionTable.v
+NoMacroInvocations.v
+NoVarsInEnvironment.v
+SideEffects.v
 Syntax.v
 Theorems.v
 Transformations.v
