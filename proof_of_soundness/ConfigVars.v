@@ -13,6 +13,8 @@ From Cpp2C Require Import
 Module Import NatMap := FMapList.Make(OrderedTypeEx.Nat_as_OT).
 Module NatMapProperties := WProperties_fun OrderedTypeEx.Nat_as_OT NatMap.
 Module NatMapFacts := NatMapProperties.F.
+Module NatMapOP := OrdProperties NatMap.
+
 
 (* Mappings from strings to a type *)
 Module Import StringMap := FMapList.Make(OrderedTypeEx.String_as_OT).

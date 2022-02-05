@@ -134,38 +134,37 @@ Proof.
 Qed.
 
 
-Theorem Forall_not_ExprHasSideEffects_EvalArgs_S_Equal : forall S E G F M ps es S' vs Ef Sargs l,
+Theorem Forall_not_ExprHasSideEffects_EvalExprList_S_Equal : forall S E G F M ps es S' vs Ef Sargs l ls,
   Forall (fun e => ~ ExprHasSideEffects e ) es ->
-  EvalArgs S E G F M ps es vs S' Ef Sargs l ->
+  EvalExprList S E G F M ps es vs S' Ef Sargs l ls ->
   NatMap.Equal S S'.
 Proof.
-  intros. induction H0.
-  - reflexivity.
+  intros. induction H0; try reflexivity.
   - inversion H. apply not_ExprHasSideEffects_S_eq in H0.
-    rewrite H0. apply IHEvalArgs. assumption. assumption.
+    rewrite H0. apply IHEvalExprList. assumption. assumption.
 Qed.
 
 
-Theorem Forall_not_ExprHasSideEffects_EvalArgs_S_eq : forall S E G F M ps es S' vs Ef Sargs l,
+Theorem Forall_not_ExprHasSideEffects_EvalExprList_S_eq : forall S E G F M ps es S' vs Ef Sargs l ls,
   Forall (fun e => ~ ExprHasSideEffects e ) es ->
-  EvalArgs S E G F M ps es vs S' Ef Sargs l ->
+  EvalExprList S E G F M ps es vs S' Ef Sargs l ls ->
   S = S'.
 Proof.
   intros. induction H0.
   - reflexivity.
   - inversion H. apply not_ExprHasSideEffects_S_eq in H0.
-    rewrite H0. apply IHEvalArgs. assumption. assumption.
+    rewrite H0. apply IHEvalExprList. assumption. assumption.
 Qed.
 
 
-Lemma Forall_not_ExprHasSideEffects_EvalArgs_EvalArgs: forall S E G F M ps es S' vs Ef Sargs l,
+Lemma Forall_not_ExprHasSideEffects_EvalExprList_EvalExprList: forall S E G F M ps es S' vs Ef Sargs l ls,
   Forall (fun e => ~ ExprHasSideEffects e ) es ->
-  EvalArgs S E G F M ps es vs S' Ef Sargs l ->
-  EvalArgs S E G F M ps es vs S Ef Sargs l.
+  EvalExprList S E G F M ps es vs S' Ef Sargs l ls ->
+  EvalExprList S E G F M ps es vs S Ef Sargs l ls.
 Proof.
   intros. induction H0.
-  - apply EvalArgs_nil.
-  - inversion H; subst. apply EvalArgs_cons with Snext; auto.
+  - apply EvalExprList_nil.
+  - inversion H; subst. apply EvalExprList_cons with Snext; auto.
     + apply not_ExprHasSideEffects_S_eq in H0; subst; auto.
 Qed.
 

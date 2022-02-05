@@ -16,6 +16,22 @@ Axiom StringMap_Equal_eq_iff : forall (t : Type) (m : StringMap.t t) m',
   StringMap.Equal m m' <-> m = m'.
 
 
+Lemma NatMap_eq_Equal : forall (t : Type) (m : NatMap.t t) m',
+  m = m' ->
+  NatMap.Equal m m'.
+Proof.
+  intros. subst. reflexivity.
+Qed.
+
+
+Lemma StringMap_eq_Equal : forall (t : Type) (m : StringMap.t t) m',
+  m = m' ->
+  StringMap.Equal m m'.
+Proof.
+  intros. subst. reflexivity.
+Qed.
+
+
 Lemma NatMap_Empty_empty : forall (t : Type) (m : NatMap.t t),
   NatMap.Empty (elt:=_) m ->
   NatMap.Equal m (NatMap.empty _).

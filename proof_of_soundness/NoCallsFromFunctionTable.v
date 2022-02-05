@@ -1,6 +1,7 @@
 Require Import
   Coq.Lists.List
-  Coq.Logic.Classical_Prop.
+  Coq.Logic.Classical_Prop
+  Coq.Strings.String.
 
 From Cpp2C Require Import
   ConfigVars
@@ -33,14 +34,14 @@ Inductive ExprNoCallsFromFunctionTable :
   | NC_FunctionCall: forall x es F M F' params fstmt fexpr,
     ~ StringMap.In x M ->
     ~ StringMap.In x F' ->
-    ExprNoCallsFromFunctionTableArgs es F M F' ->
+    ExprListNoCallsFromFunctionTable es F M F' ->
     StringMap.MapsTo x (params, fstmt, fexpr) F ->
     StmtNoCallsFromFunctionTable fstmt F M F' ->
     ExprNoCallsFromFunctionTable fexpr F M F' ->
     ExprNoCallsFromFunctionTable (CallOrInvocation x es) F M F'
   | NC_MacroInvocation: forall x es F M F' params mexpr ef,
     ~ StringMap.In x F' ->
-    ExprNoCallsFromFunctionTableArgs es F M F' ->
+    ExprListNoCallsFromFunctionTable es F M F' ->
     StringMap.MapsTo x (params, mexpr) M ->
     ExprNoCallsFromFunctionTable mexpr F M F' ->
     MacroSubst params es mexpr ef ->
@@ -65,18 +66,39 @@ Inductive ExprNoCallsFromFunctionTable :
        and expose the function f to the program. *)
     ExprNoCallsFromFunctionTable ef F (StringMap.remove x M) F' ->
     ExprNoCallsFromFunctionTable (CallOrInvocation x es) F M F'
-with ExprNoCallsFromFunctionTableArgs :
+with ExprListNoCallsFromFunctionTable :
   list expr -> function_table -> macro_table -> function_table -> Prop :=
-  | NC_Args_nil : forall F M F',
-    ExprNoCallsFromFunctionTableArgs nil F M F'
-  | NC_Args_cons : forall e es F M F',
+  | NC_ExprList_nil : forall F M F',
+    ExprListNoCallsFromFunctionTable nil F M F'
+  | NC_ExprList_cons : forall e es F M F',
     ExprNoCallsFromFunctionTable e F M F' ->
-    ExprNoCallsFromFunctionTableArgs es F M F' ->
-    ExprNoCallsFromFunctionTableArgs (e::es) F M F'
+    ExprListNoCallsFromFunctionTable es F M F' ->
+    ExprListNoCallsFromFunctionTable (e::es) F M F'
 with StmtNoCallsFromFunctionTable :
   stmt -> function_table -> macro_table -> function_table -> Prop :=
   | NC_Skip : forall F M F',
     StmtNoCallsFromFunctionTable Skip F M F'.
+
+
+Definition ExprFunctionNotCalled
+  (e : expr) (F : function_table)
+  (M : macro_table) (x: string) (fdef : function_definition) : Prop :=
+  ExprNoCallsFromFunctionTable e F M
+    (StringMap.add x fdef (StringMap.empty function_definition)).
+
+
+Definition ExprListFunctionNotCalled
+  (es : list expr) (F : function_table)
+  (M : macro_table) (x: string) (fdef : function_definition) : Prop :=
+  ExprListNoCallsFromFunctionTable es F M
+    (StringMap.add x fdef (StringMap.empty function_definition)).
+
+
+Definition StmtFunctionNotCalled
+  (st : stmt) (F : function_table)
+  (M : macro_table) (x: string) (fdef : function_definition) : Prop :=
+  StmtNoCallsFromFunctionTable st F M
+    (StringMap.add x fdef (StringMap.empty function_definition)).
 
 
 Lemma ExprNoCallsFromFunctionTable_remove_macro_ExprNoCallsFromFunctionTable :
@@ -94,11 +116,11 @@ Abort.
 
 
 Scheme ExprNoCallsFromFunctionTable_mut := Induction for ExprNoCallsFromFunctionTable Sort Prop
-with ExprNoCallsFromFunctionTableArgs_mut := Induction for ExprNoCallsFromFunctionTableArgs Sort Prop
+with ExprListNoCallsFromFunctionTable_mut := Induction for ExprListNoCallsFromFunctionTable Sort Prop
 with StmtNoCallsFromFunctionTable_mut := Induction for StmtNoCallsFromFunctionTable Sort Prop.
 
 
-Lemma EvalExpr_ExprNoCallsFromFunctionTable_remove_function_EvalExpr : forall e F M F',
+Lemma EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr : forall e F M F',
   ExprNoCallsFromFunctionTable e F M F' ->
   forall S E G v S',
   EvalExpr S E G (StringMapProperties.update F F') M e v S' <->
@@ -111,10 +133,10 @@ Proof.
         forall S E G v S',
         EvalExpr S E G (StringMapProperties.update F F') M e v S' ->
         EvalExpr S E G F M e v S')
-      (fun es F M F' (h : ExprNoCallsFromFunctionTableArgs es F M F') =>
-        forall S E G params vs S' Ef Sargs l,
-        EvalArgs S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ->
-        EvalArgs S E G F M params es vs S' Ef Sargs l)
+      (fun es F M F' (h : ExprListNoCallsFromFunctionTable es F M F') =>
+        forall S E G params vs S' Ef Sargs l ls,
+        EvalExprList S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ls ->
+        EvalExprList S E G F M params es vs S' Ef Sargs l ls)
       (fun stmt F M F' (h : StmtNoCallsFromFunctionTable stmt F M F') =>
         forall S E G S',
         EvalStmt S E G (StringMapProperties.update F F') M stmt S' ->
@@ -148,7 +170,7 @@ Proof.
           + apply H2.
         } inversion H2; subst params0 fstmt0 fexpr0; clear H2.
         apply E_FunctionCall with
-          params fstmt fexpr ls Ef Sargs S'0 S'' S''' S'''' vs l; auto.
+          params fstmt fexpr l ls Ef Sargs S'0 S'' S''' S'''' vs ; auto.
       *
         apply StringMap_mapsto_in in H3. contradiction.
     +
@@ -165,7 +187,7 @@ Proof.
     +
       inversion_clear H. constructor.
     +
-      inversion_clear H1. apply EvalArgs_cons with Snext; auto.
+      inversion_clear H1. apply EvalExprList_cons with Snext; auto.
     +
       inversion_clear H. constructor.
   -
@@ -175,10 +197,10 @@ Proof.
       forall S E G v S',
       EvalExpr S E G F M e v S' ->
       EvalExpr S E G (StringMapProperties.update F F') M e v S')
-    (fun es F M F' (h : ExprNoCallsFromFunctionTableArgs es F M F') =>
-      forall S E G params vs S' Ef Sargs l,
-      EvalArgs S E G F M params es vs S' Ef Sargs l ->
-      EvalArgs S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l)
+    (fun es F M F' (h : ExprListNoCallsFromFunctionTable es F M F') =>
+      forall S E G params vs S' Ef Sargs l ls,
+      EvalExprList S E G F M params es vs S' Ef Sargs l ls ->
+      EvalExprList S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ls)
     (fun stmt F M F' (h : StmtNoCallsFromFunctionTable stmt F M F') =>
       forall S E G S',
       EvalStmt S E G F M stmt S' ->
@@ -209,7 +231,7 @@ Proof.
         { apply StringMapFacts.MapsTo_fun with F x; auto. }
         inversion H2; subst params0 fstmt0 fexpr0; clear H2.
         apply E_FunctionCall with
-          params fstmt fexpr ls Ef Sargs S'0 S'' S''' S'''' vs l; auto.
+          params fstmt fexpr l ls Ef Sargs S'0 S'' S''' S'''' vs; auto.
         apply StringMapProperties.update_mapsto_iff. right. auto.
       *
         apply StringMap_mapsto_in in H3. contradiction.
@@ -225,6 +247,50 @@ Proof.
         subst ef0.
         apply E_MacroInvocation with params mexpr M' ef; subst; auto.
     + inversion_clear H. constructor.
-    + inversion_clear H1. apply EvalArgs_cons with Snext; auto.
+    + inversion_clear H1. apply EvalExprList_cons with Snext; auto.
     + inversion_clear H. constructor.
+Qed.
+
+
+Lemma EvalExprListNoCallsFromFunctionTable_update_EvalExprListNoCallsFromFunctionTable: forall es F M F',
+  ExprListNoCallsFromFunctionTable es F M F' ->
+  forall S E G params vs S' Ef Sargs l ls,
+  EvalExprList S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ls <->
+  EvalExprList S E G F M params es vs S' Ef Sargs l ls.
+Proof.
+  intros es F M F' H.
+  remember (StringMapProperties.update F F'). split.
+  -
+    intros. induction H0.
+    +
+      constructor.
+    +
+      subst F0. inversion_clear H. 
+      apply EvalExprList_cons with Snext; auto.
+      apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr with F';
+        auto.
+  - intros. induction H0.
+    +
+      constructor.
+    +
+      subst t. inversion_clear H.
+      apply EvalExprList_cons with Snext; auto.
+      apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
+Qed.
+
+
+Lemma EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable: forall stmt F M F',
+  StmtNoCallsFromFunctionTable stmt F M F' ->
+  forall S E G S',
+  EvalStmt S E G (StringMapProperties.update F F') M stmt S' <->
+  EvalStmt S E G F M stmt S'.
+Proof.
+  intros es F M F' H.
+  remember (StringMapProperties.update F F'). split.
+  -
+    intros. induction H0.
+    + constructor.
+  -
+    intros. induction H0.
+    + constructor.
 Qed.

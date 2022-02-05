@@ -31,19 +31,19 @@ Inductive ExprNoVarsInEnvironment : expr -> environment -> Prop :=
     ExprNoVarsInEnvironment (Assign x e0) E
   | NV_CallOrInvocation : forall x es E,
     ~ StringMap.In x E ->
-    NoVarsInEnvironmentArgs es E ->
+    ExprListNoVarsInEnvironment es E ->
     ExprNoVarsInEnvironment (CallOrInvocation x es) E
-with NoVarsInEnvironmentArgs : list expr -> environment -> Prop :=
-  | NV_Args_nil : forall E,
-    NoVarsInEnvironmentArgs nil E
-  | NV_Args_cons : forall e es E,
+with ExprListNoVarsInEnvironment : list expr -> environment -> Prop :=
+  | NV_ExprList_nil : forall E,
+    ExprListNoVarsInEnvironment nil E
+  | NV_ExprList_cons : forall e es E,
     ExprNoVarsInEnvironment e E ->
-    NoVarsInEnvironmentArgs es E ->
-    NoVarsInEnvironmentArgs (e::es) E.
+    ExprListNoVarsInEnvironment es E ->
+    ExprListNoVarsInEnvironment (e::es) E.
 
 
 Scheme ExprNoVarsInEnvironment_mut := Induction for ExprNoVarsInEnvironment Sort Prop
-with NoVarsInEnvironmentArgs_mut := Induction for NoVarsInEnvironmentArgs Sort Prop.
+with ExprListNoVarsInEnvironment_mut := Induction for ExprListNoVarsInEnvironment Sort Prop.
 
 
 Lemma ExprNoVarsInEnvironment_msub_ExprNoVarsInEnvironment : forall mexpr E,
@@ -82,12 +82,12 @@ Proof.
       forall p ef,
       MSub p e mexpr ef ->
       ExprNoVarsInEnvironment ef E)
-    (fun es E (h : NoVarsInEnvironmentArgs es E) =>
+    (fun es E (h : ExprListNoVarsInEnvironment es E) =>
       forall e,
       ExprNoVarsInEnvironment e E ->
       forall p es',
       MSubList p e es es' ->
-      NoVarsInEnvironmentArgs es' E)); intros; try constructor; auto.
+      ExprListNoVarsInEnvironment es' E)); intros; try constructor; auto.
   - inversion_clear H0; constructor.
   - inversion H0.
     + subst; auto.
