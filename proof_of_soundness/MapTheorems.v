@@ -6,15 +6,6 @@ From Cpp2C Require Import
   ConfigVars.
 
 
-(* I hope these assertions aren't too egregious...
-   Coq doesn't let us actually prove these, but for our definitions
-   of maps these are correct *)
-Axiom NatMap_Equal_eq_iff : forall (t : Type) (m : NatMap.t t) m',
-  NatMap.Equal m m' <-> m = m'.
-
-Axiom StringMap_Equal_eq_iff : forall (t : Type) (m : StringMap.t t) m',
-  StringMap.Equal m m' <-> m = m'.
-
 
 Lemma NatMap_eq_Equal : forall (t : Type) (m : NatMap.t t) m',
   m = m' ->

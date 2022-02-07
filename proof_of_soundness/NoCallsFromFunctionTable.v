@@ -143,7 +143,7 @@ Proof.
         EvalStmt S E G F M stmt S')
       ); intros; try constructor; auto.
     +
-      inversion_clear H. constructor.
+      inversion_clear H. constructor; auto.
     +
       inversion_clear H.
       * econstructor; eauto.
@@ -185,11 +185,11 @@ Proof.
         subst ef0.
         apply E_MacroInvocation with params mexpr M' ef; subst; auto.
     +
-      inversion_clear H. constructor.
+      inversion_clear H. constructor; auto.
     +
-      inversion_clear H1. apply EvalExprList_cons with Snext; auto.
+      inversion_clear H1. apply E_ExprList_cons with Snext; auto.
     +
-      inversion_clear H. constructor.
+      inversion_clear H; auto.
   -
     revert e F M F' H S E G v S'.
     apply (ExprNoCallsFromFunctionTable_mut
@@ -207,7 +207,7 @@ Proof.
       EvalStmt S E G (StringMapProperties.update F F') M stmt S')
     ); intros; try constructor; auto.
     +
-      inversion_clear H. constructor.
+      inversion_clear H. constructor; auto.
     +
       inversion_clear H.
       * econstructor; eauto.
@@ -246,9 +246,9 @@ Proof.
         assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
         subst ef0.
         apply E_MacroInvocation with params mexpr M' ef; subst; auto.
-    + inversion_clear H. constructor.
-    + inversion_clear H1. apply EvalExprList_cons with Snext; auto.
-    + inversion_clear H. constructor.
+    + inversion_clear H. constructor; auto.
+    + inversion_clear H1. apply E_ExprList_cons with Snext; auto.
+    + inversion_clear H; auto.
 Qed.
 
 
@@ -263,18 +263,18 @@ Proof.
   -
     intros. induction H0.
     +
-      constructor.
+      constructor; auto.
     +
       subst F0. inversion_clear H. 
-      apply EvalExprList_cons with Snext; auto.
+      apply E_ExprList_cons with Snext; auto.
       apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr with F';
         auto.
   - intros. induction H0.
     +
-      constructor.
+      constructor; auto.
     +
       subst t. inversion_clear H.
-      apply EvalExprList_cons with Snext; auto.
+      apply E_ExprList_cons with Snext; auto.
       apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
 Qed.
 
@@ -289,8 +289,8 @@ Proof.
   remember (StringMapProperties.update F F'). split.
   -
     intros. induction H0.
-    + constructor.
+    + constructor; auto.
   -
     intros. induction H0.
-    + constructor.
+    + constructor; auto.
 Qed.

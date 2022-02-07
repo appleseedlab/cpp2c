@@ -67,70 +67,19 @@ Lemma not_ExprHasSideEffects_S_Equal : forall e,
   NatMap.Equal S S'.
 Proof.
   intros e H S E G F M v S' E1.
-  induction E1.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - apply IHE1. apply H.
-  - apply IHE1. apply H.
-  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
-    apply Classical_Prop.not_or_and in H.
-    rewrite <- IHE1_1 in IHE1_2.
-    apply IHE1_2.  apply H. apply H.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-Qed.
-
-
-Lemma not_ExprHasSideEffects_S_eq: forall e,
-  ~ ExprHasSideEffects e ->
-  forall S E G F M v S',
-  EvalExpr S E G F M e v S' ->
-  S = S'.
-Proof.
-  intros e H S E G F M v S' E1.
-  induction E1.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - apply IHE1. apply H.
-  - apply IHE1. apply H.
-  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
-    apply Classical_Prop.not_or_and in H.
-    rewrite <- IHE1_1 in IHE1_2.
-    apply IHE1_2.  apply H. apply H.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-Qed.
-
-
-Lemma not_ExprHasSideEffects_EvalExpr_EvalExpr : forall e,
-  ~ ExprHasSideEffects e ->
-  forall S E G F M v S',
-  EvalExpr S E G F M e v S' ->
-  EvalExpr S E G F M e v S.
-Proof.
-  intros e H S E G F M v S' E1.
-  induction E1.
-  - apply E_Num.
-  - apply E_LocalVar with l; assumption.
-  - apply E_GlobalVar with l; assumption.
-  - apply E_ParenExpr. apply IHE1. assumption.
-  - apply E_UnExpr. apply IHE1. assumption.
-  - unfold ExprHasSideEffects in H. fold ExprHasSideEffects in H.
-    apply Classical_Prop.not_or_and in H. destruct H. apply E_BinExpr with S'.
-    + assumption.
-    + apply not_ExprHasSideEffects_S_eq in E1_1.
-      * subst. apply IHE1_2. assumption.
-      * assumption.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
-  - unfold ExprHasSideEffects in H. contradiction.
+  induction E1; auto.
+  - (* BinExpr *)
+    simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
+    assert (NatMap.Equal S S'). { auto. }
+   rewrite H1. auto.
+  - (* Local assignment *)
+    unfold ExprHasSideEffects in H. contradiction.
+  - (* Global assignment *)
+    unfold ExprHasSideEffects in H. contradiction.
+  - (* Function call *)
+    unfold ExprHasSideEffects in H. contradiction.
+  - (* Macro invocation *)
+    unfold ExprHasSideEffects in H. contradiction.
 Qed.
 
 
@@ -139,33 +88,11 @@ Theorem Forall_not_ExprHasSideEffects_EvalExprList_S_Equal : forall S E G F M ps
   EvalExprList S E G F M ps es vs S' Ef Sargs l ls ->
   NatMap.Equal S S'.
 Proof.
-  intros. induction H0; try reflexivity.
-  - inversion H. apply not_ExprHasSideEffects_S_eq in H0.
-    rewrite H0. apply IHEvalExprList. assumption. assumption.
-Qed.
-
-
-Theorem Forall_not_ExprHasSideEffects_EvalExprList_S_eq : forall S E G F M ps es S' vs Ef Sargs l ls,
-  Forall (fun e => ~ ExprHasSideEffects e ) es ->
-  EvalExprList S E G F M ps es vs S' Ef Sargs l ls ->
-  S = S'.
-Proof.
-  intros. induction H0.
-  - reflexivity.
-  - inversion H. apply not_ExprHasSideEffects_S_eq in H0.
-    rewrite H0. apply IHEvalExprList. assumption. assumption.
-Qed.
-
-
-Lemma Forall_not_ExprHasSideEffects_EvalExprList_EvalExprList: forall S E G F M ps es S' vs Ef Sargs l ls,
-  Forall (fun e => ~ ExprHasSideEffects e ) es ->
-  EvalExprList S E G F M ps es vs S' Ef Sargs l ls ->
-  EvalExprList S E G F M ps es vs S Ef Sargs l ls.
-Proof.
-  intros. induction H0.
-  - apply EvalExprList_nil.
-  - inversion H; subst. apply EvalExprList_cons with Snext; auto.
-    + apply not_ExprHasSideEffects_S_eq in H0; subst; auto.
+  intros. induction H0; auto.
+  - (* ExprList cons *)
+    inversion H. subst x l0.
+    apply not_ExprHasSideEffects_S_Equal in H0; auto. rewrite <- H0 in IHEvalExprList.
+    auto.
 Qed.
 
 
@@ -173,15 +100,7 @@ Lemma Skip_S_Equal : forall S E G F M S',
   EvalStmt S E G F M Skip S' ->
   NatMap.Equal S S'.
 Proof.
-  intros. induction H. reflexivity.
-Qed.
-
-
-Lemma Skip_S_eq : forall S E G F M S',
-  EvalStmt S E G F M Skip S' ->
-  S = S'.
-Proof.
-  intros. induction H. reflexivity.
+  intros. induction H. auto.
 Qed.
 
 

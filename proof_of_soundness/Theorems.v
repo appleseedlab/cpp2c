@@ -44,41 +44,54 @@ Lemma no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_nil :
   v = v0.
 Proof.
   intros.
-  assert ((NatMapProperties.update S' Sargs) = S'''0).
-  { apply not_ExprHasSideEffects_S_eq in H6; auto. }
-  rewrite H7 in *.
+  assert (NatMap.Equal (NatMapProperties.update S' Sargs) S'''0).
+  { apply not_ExprHasSideEffects_S_Equal in H6; auto. }
   inversion H2; subst. clear H2.
   inversion H4; subst. clear H4.
   generalize dependent v0. 
   induction H3; intros; try (simpl in H; contradiction).
-  -
+  - (* Macro expression is Num *)
     inversion H6; auto.
-  -
-    apply StringMap_mapsto_in in H2. inversion_clear H1.
+  - (* Macro expression is Local Var (contradiction) *)
+    apply StringMap_mapsto_in in H4. inversion_clear H1.
     contradiction.
-  -
-    inversion_clear H6.
-    + apply StringMapFacts.empty_mapsto_iff in H7. destruct H7.
-    + assert (l = l0). { apply StringMapFacts.MapsTo_fun with G x; auto. }
-      subst l0. apply NatMapProperties.update_mapsto_iff in H9. destruct H9.
-      * apply NatMapFacts.empty_mapsto_iff in H6. destruct H6.
-      * destruct H6. apply NatMapFacts.MapsTo_fun with S l; auto.
-  -
+  - (* Macro expression is Global Var *)
+    inversion_clear H9.
+    + (* Call by value is Local Var (contradiction) *)
+      apply StringMapFacts.empty_mapsto_iff in H11. contradiction.
+    + (* Call by value is Global Var *)
+      assert (l = l0). { apply StringMapFacts.MapsTo_fun with G x; auto. }
+      subst l0. apply NatMapProperties.update_mapsto_iff in H13. destruct H13.
+      * apply NatMapFacts.empty_mapsto_iff in H9. contradiction.
+      * destruct H9. rewrite <- H2 in H9.
+        apply NatMapFacts.MapsTo_fun with S l; auto. 
+  - (* Macro is ParenExpr *)
     simpl in H. inversion_clear H0. inversion_clear H1.
     inversion_clear H6. auto.
-  -
+  - (* Macro is UnExpr *)
     simpl in H. inversion_clear H0. inversion_clear H1.
     inversion_clear H6. assert (v = v1). apply IHEvalExpr; auto.
     subst v1; auto.
-  -
+  - (* Macro is BinExpr *)
     simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
     inversion_clear H0. inversion_clear H1. inversion_clear H6.
-    assert (S = S'). { apply not_ExprHasSideEffects_S_eq in H3_; auto. }
-    assert ((NatMapProperties.update S (NatMap.empty Z)) = S'0).
-    { apply not_ExprHasSideEffects_S_eq in H1; auto. }
-    subst S'. rewrite H9 in *. clear H9.
-    assert (v1 = v3). { apply IHEvalExpr1; auto. }
-    assert (v2 = v4). { apply IHEvalExpr2; auto. }
+    assert (NatMap.Equal (NatMapProperties.update S (NatMap.empty Z)) S'0).
+    { apply not_ExprHasSideEffects_S_Equal in H3_; auto. }
+    rewrite <- H2 in *.
+    assert (NatMap.Equal S'0 S'''0).
+    { rewrite <- H6. rewrite <- H7. reflexivity. }
+    assert (NatMap.Equal S'1 S'''0). { apply not_ExprHasSideEffects_S_Equal in H10; auto. }
+    assert (v1 = v3).
+    { apply IHEvalExpr1; auto.
+      reflexivity.
+      apply S'_Equal_EvalExpr with (S'_1:=S'1); auto. }
+    assert (v2 = v4).
+    { apply IHEvalExpr2; auto.
+      apply not_ExprHasSideEffects_S_Equal in H3_; auto.
+      symmetry. assumption.
+      apply S_Equal_EvalExpr with (S_1:=S'1); auto.
+      rewrite H2 in H6. rewrite <- H6 in H11. rewrite <- H11 in H12. assumption.
+      }
     subst v3 v4; auto.
 Qed.
 
@@ -90,7 +103,7 @@ Theorem transform_expr_sound_mut_v_s : forall M F e F' e',
   forall S E G v1 v2 S'1 S'2,
     EvalExpr S E G F M e v1 S'1 ->
     EvalExpr S E G F' M e' v2 S'2 ->
-    v1 = v2 /\ S'1 = S'2.
+    v1 = v2 /\ NatMap.Equal S'1 S'2.
 Proof.
   apply (TransformExpr_mut
     (* Induction rule for TransformExpr *)
@@ -98,44 +111,47 @@ Proof.
     forall S E G v1 v2 S'1 S'2,
       EvalExpr S E G F M e v1 S'1 ->
       EvalExpr S E G F' M e' v2 S'2 ->
-      v1 = v2 /\ S'1 = S'2)
+      v1 = v2 /\ NatMap.Equal S'1 S'2)
     (* Induction rule for TransformExprList *)
     (fun M F es F' es' (h : TransformExprList M F es F' es') =>
     forall S Ecaller G ps1 vs1 vs2 Snext1 Snext2 Ef1 Ef2 Sargs1 Sargs2 l1 l2 ls1 ls2,
       EvalExprList S Ecaller G F M ps1 es vs1 Snext1 Ef1 Sargs1 l1 ls1 ->
       EvalExprList S Ecaller G F' M ps1 es' vs2 Snext2 Ef2 Sargs2 l2 ls2 ->
-      vs1 = vs2 /\ Snext1 = Snext2 /\ Ef1 = Ef2 /\ Sargs1 = Sargs2 /\ l1 = l2 /\ ls1 = ls2)
+      vs1 = vs2 /\ NatMap.Equal Snext1 Snext2 /\ StringMap.Equal Ef1 Ef2 /\ NatMap.Equal Sargs1 Sargs2 /\ l1 = l2 /\ ls1 = ls2)
     (* Induction rule for TransformStmt *)
     (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
     forall S E G S'1 S'2,
       EvalStmt S E G F M stmt S'1 ->
       EvalStmt S E G F' M stmt' S'2 ->
-      S'1 = S'2
+      NatMap.Equal S'1 S'2
       )); intros; auto.
 
   - (* Num *)
-    inversion H. inversion H0. subst. auto.
+    inversion H. inversion H0. subst. split.
+    auto. rewrite <- H7, <- H16. reflexivity.
 
   - (* Var *)
     inversion H; subst.
     + (* Untransformed is a local var *)
       inversion H0; subst.
       * (* Transformed is a local var *)
-        apply StringMapFacts.find_mapsto_iff in H2, H3.
-        rewrite H3 in H2. inversion H2; subst.
-        apply NatMapFacts.find_mapsto_iff in H8, H10.
-        rewrite H10 in H8. inversion H8. auto.
-      * (* Transformed is a global var *)
-        apply StringMap_mapsto_in in H2. contradiction.
-    + (* Untransformed is a gloval var *)
-      inversion H0; subst.
-      * (* Transformed is a local var *)
-        apply StringMap_mapsto_in in H4. contradiction.
-      * (* Transformed is a global var *)
         apply StringMapFacts.find_mapsto_iff in H3, H5.
         rewrite H5 in H3. inversion H3; subst.
         apply NatMapFacts.find_mapsto_iff in H9, H12.
-        rewrite H12 in H9. inversion H9. auto.
+        rewrite H12 in H9. inversion H9. split.
+        auto. rewrite <- H2, <- H4. reflexivity.
+      * (* Transformed is a global var *)
+        apply StringMap_mapsto_in in H3. contradiction.
+    + (* Untransformed is a gloval var *)
+      inversion H0; subst.
+      * (* Transformed is a local var *)
+        apply StringMap_mapsto_in in H6. contradiction.
+      * (* Transformed is a global var *)
+        apply StringMapFacts.find_mapsto_iff in H4, H7.
+        rewrite H7 in H4. inversion H4; subst.
+        apply NatMapFacts.find_mapsto_iff in H10, H14.
+        rewrite H14 in H10. inversion H10. split.
+        auto. rewrite <- H2, <- H5. reflexivity.
 
   - (* ParenExpr *)
     inversion_clear H0. inversion_clear H1.
@@ -154,27 +170,29 @@ Proof.
     apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr in H1; auto.
     eapply H in H1; eauto.
     destruct H1.
-    subst v4 S'0.
+    subst v4.
 
     (* Prove that transformation of the right operand is sound *)
     eapply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr in H4; eauto.
     rewrite <- e in H4.
     apply H0 with (v1:=v3) (S'1:=S'1) in H5; auto.
-    destruct H5. subst v5 S'2. auto.
+    destruct H5. subst v5. auto.
+    apply S_Equal_EvalExpr with (S_1:=S'); auto.
+
   - (* Assign *)
     inversion H0; subst.
     + inversion H1; subst.
       * apply StringMapFacts.find_mapsto_iff in H4, H5.
         rewrite H5 in H4. inversion H4; subst.
         destruct H with S E G v1 v2 S' S'0; auto.
-        subst. auto.
+        subst. split. auto. rewrite H13, H16. reflexivity.
       * apply StringMap_mapsto_in in H4. contradiction.
     + inversion H1; subst.
       * apply StringMap_mapsto_in in H6. contradiction.
       * apply StringMapFacts.find_mapsto_iff in H5, H7.
         rewrite H7 in H5. inversion H5; subst.
         destruct H with S E G v1 v2 S' S'0; auto.
-        subst. auto.
+        subst. split. auto. rewrite H14, H18. reflexivity.
 
   - (* CallOrInvocation *)
     inversion_clear H2.
@@ -206,10 +224,12 @@ Proof.
           auto.
         apply H with (vs1:=vs) (Snext1:=S') (Ef1:=Ef) (Sargs1:=Sargs) (l1:=l) (ls1:=ls) in H17; auto.
         destruct H17. destruct H25. destruct H26. destruct H27. destruct H28.
-        subst Ef0 Sargs0 vs0 S'0 ls0.
+        subst vs0 ls0.
 
-        assert (S'' = S''0). {rewrite <- H11 in H21; auto. }
-        rewrite <- H17 in *; clear H17.
+        assert (NatMap.Equal S'' S''0).
+        { rewrite H11. rewrite H21. 
+          rewrite H25, H27. reflexivity. }
+        rewrite <- H17 in *.
 
         (* Prove statement transformation is sound *)
         rewrite e10 in H22.
@@ -220,10 +240,10 @@ Proof.
           auto.
         apply H0 with (S'1:=S''') in H22; auto.
         2 : {
-          subst F'. apply EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable; auto.
-          }
-
-        subst S'''0.
+          subst F'.
+          apply EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable; auto.
+          apply S_Equal_EvalStmt with (S_1:=S''); auto.
+          apply E_Equal_EvalStmt with (E_1:=Ef); auto. }
 
         (* Prove expression transformation is sound *)
         rewrite e10 in H23.
@@ -232,10 +252,11 @@ Proof.
         2 : {
           subst F''. apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
           subst F'. apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
-        }
+          apply S_Equal_EvalExpr with (S_1:=S'''); auto.
+          apply E_Equal_EvalExpr with (E_1:=Ef); auto. }
 
-        destruct H23. subst v2 S''''0. rewrite <- H14 in H24.
-        apply NatMap_Equal_eq_iff in H14, H24. subst. auto.
+        destruct H23. subst v2. rewrite H24. rewrite <- H29. auto.
+
       * (* Transformed is a macro invocation  *)
         apply StringMap_mapsto_in in H2. contradiction.
     + (* Transformed is a macro invocation (contradiction) *)
@@ -285,22 +306,22 @@ Proof.
         (* Add to the context all the premises we get from evaluating an
            empty argument list *)
         inversion H21.
-
-        
         subst Sprev E G0 F0 M0 vs S'0 Ef Sargs l.
 
         (* Prove that there are no side-effects caused by the skip statement *)
-        apply Skip_S_eq in H26. subst S'''.
+        apply Skip_S_Equal in H26.
 
         (* Prove that there are no side-effects cause by the return expression *)
-        assert (S'' = S''''). { apply not_ExprHasSideEffects_S_eq in H32; auto. }
-        subst S''''.
+        assert (NatMap.Equal S'' S'''').
+        { apply not_ExprHasSideEffects_S_Equal in H32; auto.
+          rewrite <- H32. rewrite <- H26. reflexivity. }
 
-        (* Prove that after freeing the memort allocated for function environment,
-           the store reverts back to its original state *)
+        (* Prove that after freeing the memory allocated for the function
+           environment, the store reverts back to its original state *)
         assert (NatMap.Equal S (NatMapProperties.restrict S'' S)).
-        { rewrite H25. apply NatMap_disjoint_restrict_Equal; auto. }
-        rewrite <- H2 in H35. apply NatMap_Equal_eq_iff in H35. subst S'2.
+        { rewrite H25. rewrite <- H2.
+          apply NatMap_restrict_refl. }
+
 
         (* No side-effects in macro *)
 
@@ -308,7 +329,7 @@ Proof.
            is the same one we asserted in the transformation *)
         assert ( (params, mexpr) = (params0, mexpr0) ).
         { apply StringMapFacts.MapsTo_fun with M x; auto. }
-        inversion H3. subst params0 mexpr0. clear H3.
+        inversion H8. subst params0 mexpr0. clear H8.
 
         (* Prove that after macro substitution, the macro body still
            does not have side-effects *)
@@ -316,16 +337,16 @@ Proof.
         { apply not_ExprHasSideEffects_MacroSubst_not_ExprHasSideEffects with mexpr params nil; auto. }
 
         (* Prove that the macro invocation does not have side-effects *)
-        assert (S = S').
-        { apply not_ExprHasSideEffects_S_eq in H15; auto; auto. }
-        subst S'.
+        assert (NatMap.Equal S S').
+        { apply not_ExprHasSideEffects_S_Equal in H15; auto; auto. }
+        rewrite <- H9. rewrite H7. rewrite H3. rewrite H35.
 
         (* Use one of our premises to assert that the macro does not contain
            variables from the caller environment *)
         (* NOTE: We should probably add the environment to the transformation
            relation so that we don't have to use such a generous premise *)
         assert (ExprNoVarsInEnvironment mexpr Ecaller).
-        { apply e0 with S G v S; auto. }
+        { apply e0 with S G v S'; auto. }
         assert (mexpr=ef). { inversion_clear H12; auto. } subst ef.
         split.
         -- (* Prove that the expression will result in the same value
@@ -339,35 +360,49 @@ Proof.
            ++ constructor.
            ++ (* Prove that macro expression evaluation works the same
                   under an updated function table *)
-              inversion H12. subst params mexpr0. clear H11.
+              inversion H12. subst params mexpr0.
               subst F'. apply EvalExpr_notin_F_add_EvalExpr; auto.
-           ++ subst ls. constructor.
+              apply S'_Equal_EvalExpr with (S'_1:=S'); auto.
+              symmetry. auto.
+           ++ subst ls. constructor. reflexivity.
+           ++ rewrite H2. auto.
            ++ (* Prove that function expression evaluation works the same
                  under an updated macro table *)
-              subst S'' M'. apply EvalExprNoMacroInvocations_remove_EvalExpr; auto.
-              apply TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations with F mexpr; auto.
-        -- auto.
-      * apply StringMap_mapsto_in in H18. contradiction.
+              subst M'. apply EvalExprNoMacroInvocations_remove_EvalExpr; auto.
+              ** apply S_Equal_EvalExpr with (S_1:=S''').
+                 --- apply S'_Equal_EvalExpr with (S'_1:=S''''); auto.
+                     symmetry. auto.
+                 --- rewrite <- H26. rewrite H2. auto.
+              ** apply TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations with F mexpr; auto.
+        -- reflexivity.
+      * (* Transformed is a macro invocation (contradiction) *)
+        apply StringMap_mapsto_in in H18. contradiction.
 
   - (* ExprList nil *)
     inversion H. inversion H0. subst. split; auto.
+    split. rewrite <- H1, H8. reflexivity.
+    split. reflexivity. split. reflexivity.
+    auto.
 
   - (* ExprList cons *)
     inversion H1. inversion H2.
-    destruct H with S Ecaller G v v0 Snext Snext0; auto. subst. inversion H32. subst.
-    destruct H0 with Snext0 Ecaller G ps vs vs0 Snext1 Snext2 Ef' Ef'0 Sargs' Sargs'0 l1 l2 ls ls0; auto.
+    destruct H with
+      S Ecaller G v v0 Snext Snext0; auto. subst. inversion H32. subst.
+    destruct H0 with
+      Snext0 Ecaller G ps vs vs0 Snext1 Snext2 Ef' Ef'0 Sargs' Sargs'0 l1 l2 ls ls0; auto.
+    apply S_Equal_EvalExprList with (S_1:=Snext); auto.
     destruct H4. destruct H8. destruct H9. destruct H10. subst.
-    split; auto.
+    split; auto. split. rewrite <- H4. reflexivity.
+    split. rewrite H8. reflexivity. split. rewrite H9. reflexivity.
+    auto.
 
   - (* Stmt *)
-    inversion H. inversion H0. subst. auto.
+    inversion H. inversion H0. subst. rewrite <- H1, <- H7. reflexivity.
 Qed.
-
 
 (* Issues:
            1) Proving evaluation equivalence under call-by-name and call-by-value
-           2) Coq doesn't treat FMap.Equal as the same thing as Logic.eq
 
            Solutions:
-           1) ???
-           2) Just use an axiom stating that Equal implies eq. *) 
+           1) For now just prove for macros that have one argument.
+*)

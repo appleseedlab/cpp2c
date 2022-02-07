@@ -86,7 +86,7 @@ Proof.
       (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls (h : EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls) =>
         ExprListNoMacroInvocations es F M ->
         forall x,
-        EvalExprList Sprev Ecaller G F (StringMap.remove x M) ps es vs Snext Ef Sargs l ls)); auto; intros; try constructor.
+        EvalExprList Sprev Ecaller G F (StringMap.remove x M) ps es vs Snext Ef Sargs l ls)); auto; intros; try constructor; auto.
   - apply E_LocalVar with l; auto.
   - apply E_GlobalVar with l; auto.
   - inversion_clear H0; auto.
@@ -128,7 +128,7 @@ Proof.
       (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls (h : EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls) =>
         ExprListNoMacroInvocations es F M ->
         forall x,
-        EvalExprList Sprev Ecaller G F (StringMap.remove x M) ps es vs Snext Ef Sargs l ls)); auto; intros; try constructor.
+        EvalExprList Sprev Ecaller G F (StringMap.remove x M) ps es vs Snext Ef Sargs l ls)); auto; intros; try constructor; auto.
   - apply E_LocalVar with l; auto.
   - apply E_GlobalVar with l; auto.
   - inversion_clear H0; auto.
