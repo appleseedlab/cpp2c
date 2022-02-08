@@ -337,9 +337,9 @@ Proof.
     inversion H2; subst params0 fstmt0 fexpr0; clear H2.
     apply NM_CallOrInvocation with params fstmt' fexpr'; auto.
     + (* Prove that transformed arguments don't contain macro invocations *)
-      subst F''''. apply ExprListNoMacroInvocations_update_ExprNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
-      subst F'''. apply ExprListNoMacroInvocations_update_ExprNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
-      subst F''. apply ExprListNoMacroInvocations_update_ExprNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
+      subst F''''. apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
+      subst F'''. apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
+      subst F''. apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
     + (* Prove that the function can actually be found in the tranformed
          function table *)
       subst F'''' newdef. apply StringMapFacts.add_mapsto_iff.
