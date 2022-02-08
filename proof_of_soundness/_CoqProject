@@ -4,6 +4,7 @@ EvalRules.v
 MapTheorems.v
 NoCallsFromFunctionTable.v
 NoMacroInvocations.v
+NotContainsVar.v
 NoVarsInEnvironment.v
 SideEffects.v
 Syntax.v

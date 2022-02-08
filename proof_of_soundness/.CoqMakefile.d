@@ -13,6 +13,9 @@ NoCallsFromFunctionTable.vos NoCallsFromFunctionTable.vok NoCallsFromFunctionTab
 NoMacroInvocations.vo NoMacroInvocations.glob NoMacroInvocations.v.beautified NoMacroInvocations.required_vo: NoMacroInvocations.v ConfigVars.vo EvalRules.vo MapTheorems.vo NoCallsFromFunctionTable.vo Syntax.vo
 NoMacroInvocations.vio: NoMacroInvocations.v ConfigVars.vio EvalRules.vio MapTheorems.vio NoCallsFromFunctionTable.vio Syntax.vio
 NoMacroInvocations.vos NoMacroInvocations.vok NoMacroInvocations.required_vos: NoMacroInvocations.v ConfigVars.vos EvalRules.vos MapTheorems.vos NoCallsFromFunctionTable.vos Syntax.vos
+NotContainsVar.vo NotContainsVar.glob NotContainsVar.v.beautified NotContainsVar.required_vo: NotContainsVar.v ConfigVars.vo EvalRules.vo Syntax.vo
+NotContainsVar.vio: NotContainsVar.v ConfigVars.vio EvalRules.vio Syntax.vio
+NotContainsVar.vos NotContainsVar.vok NotContainsVar.required_vos: NotContainsVar.v ConfigVars.vos EvalRules.vos Syntax.vos
 NoVarsInEnvironment.vo NoVarsInEnvironment.glob NoVarsInEnvironment.v.beautified NoVarsInEnvironment.required_vo: NoVarsInEnvironment.v ConfigVars.vo EvalRules.vo Syntax.vo
 NoVarsInEnvironment.vio: NoVarsInEnvironment.v ConfigVars.vio EvalRules.vio Syntax.vio
 NoVarsInEnvironment.vos NoVarsInEnvironment.vok NoVarsInEnvironment.required_vos: NoVarsInEnvironment.v ConfigVars.vos EvalRules.vos Syntax.vos
