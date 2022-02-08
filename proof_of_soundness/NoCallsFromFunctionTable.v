@@ -1,3 +1,8 @@
+(*  NoCallsFromFunctionTable.v
+    Definition for relation stating that an expression does not contain any
+    calls to a function from the given function table
+*)
+
 Require Import
   Coq.Lists.List
   Coq.Logic.Classical_Prop
@@ -10,39 +15,61 @@ From Cpp2C Require Import
   MapLemmas.
 
 
-(* Relation only holds if an expression does not contain any calls from the given
-   function table F' *)
+(*  Relation only holds if an expression does not contain any calls from the
+    given function table F' *)
 Inductive ExprNoCallsFromFunctionTable :
   expr -> function_table -> macro_table -> function_table -> Prop :=
   | NC_Num : forall z F M F',
+    (*  Numerals of course do not call functions *)
     ExprNoCallsFromFunctionTable (Num z) F M F'
   | NC_Var : forall x F M F',
+    (*  Variables of course do not call functions *)
     ExprNoCallsFromFunctionTable (Var x) F M F'
   | NC_ParenExpr : forall e0 F M F',
+    (*  The inner expression does not call a function in the function table *)
     ExprNoCallsFromFunctionTable e0 F M F' ->
     ExprNoCallsFromFunctionTable (ParenExpr e0) F M F'
   | NC_UnExpr : forall uo e0 F M F',
+    (*  The inner expression does not call a function in the function table *)
     ExprNoCallsFromFunctionTable e0 F M F' ->
     ExprNoCallsFromFunctionTable (UnExpr uo e0) F M F'
   | NC_BinExpr : forall bo e1 e2 F M F',
+    (*  The left operand does not call a function in the function table *)
     ExprNoCallsFromFunctionTable e1 F M F' ->
+    (*  The right operand does not call a function in the function table *)
     ExprNoCallsFromFunctionTable e2 F M F' ->
     ExprNoCallsFromFunctionTable (BinExpr bo e1 e2) F M F'
   | NC_Assign : forall x e0 F M F',
+    (*  The inner expression does not call a function in the function table *)
     ExprNoCallsFromFunctionTable e0 F M F' ->
     ExprNoCallsFromFunctionTable (Assign x e0) F M F'
   | NC_FunctionCall: forall x es F M F' params fstmt fexpr,
+    (*  Verify that we have found a function *)
     ~ StringMap.In x M ->
+    (*  Verify that the function name is not present in the table *)
     ~ StringMap.In x F' ->
+    (*  None of the arguments contain a call to a function from the function
+        table *)
     ExprListNoCallsFromFunctionTable es F M F' ->
+    (*  Retreive the function's body *)
     StringMap.MapsTo x (params, fstmt, fexpr) F ->
+    (*  The function statement does not contain a call to a function from
+        the function table *)
     StmtNoCallsFromFunctionTable fstmt F M F' ->
+    (*  The function expression does not contain a call to a function from
+        the function table *)
     ExprNoCallsFromFunctionTable fexpr F M F' ->
     ExprNoCallsFromFunctionTable (CallOrInvocation x es) F M F'
   | NC_MacroInvocation: forall x es F M F' params mexpr ef,
+    (*  Verify that the macro name is not present in the table *)
     ~ StringMap.In x F' ->
+    (*  None of the arguments contain a call to a function from the function
+        table *)
     ExprListNoCallsFromFunctionTable es F M F' ->
+    (*  Retrieve the macro definition *)
     StringMap.MapsTo x (params, mexpr) M ->
+    (*  The function body does not contain a call to a function from
+        the function table *)
     ExprNoCallsFromFunctionTable mexpr F M F' ->
     MacroSubst params es mexpr ef ->
     (* We use (StringMap.remove x M) here because after removing the
@@ -69,9 +96,14 @@ Inductive ExprNoCallsFromFunctionTable :
 with ExprListNoCallsFromFunctionTable :
   list expr -> function_table -> macro_table -> function_table -> Prop :=
   | NC_ExprList_nil : forall F M F',
+    (*  An empty list does not contain any function calls *)
     ExprListNoCallsFromFunctionTable nil F M F'
   | NC_ExprList_cons : forall e es F M F',
+    (*  The head of the list does not contain a call to a function from the
+        function table *)
     ExprNoCallsFromFunctionTable e F M F' ->
+    (*  The tail of the list does not contain a call to a function from the
+        function table *)
     ExprListNoCallsFromFunctionTable es F M F' ->
     ExprListNoCallsFromFunctionTable (e::es) F M F'
 with StmtNoCallsFromFunctionTable :
@@ -80,6 +112,8 @@ with StmtNoCallsFromFunctionTable :
     StmtNoCallsFromFunctionTable Skip F M F'.
 
 
+(*  Simple way of saying that an expression does not call a specific
+    function *)
 Definition ExprFunctionNotCalled
   (e : expr) (F : function_table)
   (M : macro_table) (x: string) (fdef : function_definition) : Prop :=
@@ -87,6 +121,8 @@ Definition ExprFunctionNotCalled
     (StringMap.add x fdef (StringMap.empty function_definition)).
 
 
+(*  Simple way of saying that an expression list does not call a specific
+    function *)
 Definition ExprListFunctionNotCalled
   (es : list expr) (F : function_table)
   (M : macro_table) (x: string) (fdef : function_definition) : Prop :=
@@ -94,6 +130,8 @@ Definition ExprListFunctionNotCalled
     (StringMap.add x fdef (StringMap.empty function_definition)).
 
 
+(*  Simple way of saying that a statement does not call a specific
+    function *)
 Definition StmtFunctionNotCalled
   (st : stmt) (F : function_table)
   (M : macro_table) (x: string) (fdef : function_definition) : Prop :=
@@ -114,12 +152,17 @@ Proof.
          it shadowed *)
 Abort.
 
-
+(*  Custom induction scheme *)
 Scheme ExprNoCallsFromFunctionTable_mut := Induction for ExprNoCallsFromFunctionTable Sort Prop
 with ExprListNoCallsFromFunctionTable_mut := Induction for ExprListNoCallsFromFunctionTable Sort Prop
 with StmtNoCallsFromFunctionTable_mut := Induction for StmtNoCallsFromFunctionTable Sort Prop.
 
-
+(*  If an expression contains no call to a function table, and the expression
+    terminates under some context in which a function table it may
+    contain calls from is updated with the function table it does not contain
+    calls from, then it will terminate under the context in which its
+    function table that it may contain calls from has not been updated with
+    the table that it does not contain calls from *)
 Lemma EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr : forall e F M F',
   ExprNoCallsFromFunctionTable e F M F' ->
   forall S E G v S',
@@ -251,7 +294,7 @@ Proof.
     + inversion_clear H; auto.
 Qed.
 
-
+(*  Above, but for expression lists *)
 Lemma EvalExprListNoCallsFromFunctionTable_update_EvalExprListNoCallsFromFunctionTable: forall es F M F',
   ExprListNoCallsFromFunctionTable es F M F' ->
   forall S E G params vs S' Ef Sargs l ls,
@@ -278,7 +321,7 @@ Proof.
       apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
 Qed.
 
-
+(*  Above, but for statements *)
 Lemma EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable: forall stmt F M F',
   StmtNoCallsFromFunctionTable stmt F M F' ->
   forall S E G S',
