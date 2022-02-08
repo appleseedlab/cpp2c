@@ -1023,3 +1023,16 @@ Proof.
     split. rewrite H10. reflexivity.
     auto.
 Qed.
+
+
+(*  Looking up a variable in the store is the same as just
+    substituting the variable with its value in the original
+    expression *)
+Lemma EvalExpr_Var_EvalExpr_Num : forall S E G F M x v S',
+  EvalExpr S E G F M (Var x) v S' ->
+  EvalExpr S E G F M (Num v) v S'.
+Proof.
+  intros. remember (Var x). induction H; try discriminate.
+  - constructor; auto.
+  - constructor; auto.
+Qed.
