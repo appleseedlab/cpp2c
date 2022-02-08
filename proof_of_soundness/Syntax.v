@@ -1,3 +1,7 @@
+(*  Syntax.v
+    Defininition of the language syntax.
+*)
+
 Require Import
   Coq.Strings.String
   Coq.ZArith.ZArith.

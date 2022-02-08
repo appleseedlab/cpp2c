@@ -1,3 +1,8 @@
+(*  ConfigVars.v
+    Definitions of the configuration variables used to specify
+    the operational semantics for the language.
+*)
+
 Require Import
   Coq.FSets.FMapFacts
   Coq.FSets.FMapList
@@ -45,29 +50,3 @@ Definition macro_definition : Set := ((list string) * expr).
 (* A macro table is a mapping from macro names (strings) to
    macro definitions *)
 Definition macro_table : Type := StringMap.t macro_definition.
-
-(* A macro parameters is a mapping from macro parameters (strings) to
-   expressions *)
-Definition macro_parameters : Type := StringMap.t expr.
-
-(* Coq map examples *)
-
-(* Compute StringMap.find "x"%string (StringMap.empty nat). *)
-
-Example no_mappings_in_empty_map : ~ MapsTo "x"%string 1 (empty nat).
-Proof.
-  intros. assert (Empty (empty nat)). apply is_empty_2. reflexivity.
-  apply H.
-Qed.
-
-(* Compute NatMapProperties.update (NatMap.empty nat) (NatMap.empty nat). *)
-
-Example no_mappings_in_empty_joined_map : forall x,
-~ NatMap.MapsTo x 1 (NatMapProperties.update (NatMap.empty nat) (NatMap.empty nat)).
-Proof.
-  intros. unfold not. intros. apply NatMapProperties.update_mapsto_iff in H.
-  destruct H.
-  - apply NatMapFacts.empty_mapsto_iff in H. apply H.
-  - destruct H. apply NatMapFacts.empty_mapsto_iff in H. apply H.
-Qed.
-

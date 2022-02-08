@@ -7,7 +7,7 @@ From Cpp2C Require Import
   ConfigVars
   EvalRules
   Syntax
-  MapTheorems.
+  MapLemmas.
 
 
 (* Relation only holds if an expression does not contain any calls from the given

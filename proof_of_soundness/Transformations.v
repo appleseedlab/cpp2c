@@ -9,7 +9,7 @@ From Cpp2C Require Import
   ConfigVars
   EvalRules
   SideEffects
-  MapTheorems
+  MapLemmas
   NoCallsFromFunctionTable
   NoMacroInvocations
   NoVarsInEnvironment.

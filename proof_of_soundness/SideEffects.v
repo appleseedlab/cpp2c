@@ -104,21 +104,6 @@ Proof.
 Qed.
 
 
-Lemma not_ExprHasSideEffects_msub_not_ExprHasSideEffects : forall mexpr p e,
-  ~ ExprHasSideEffects mexpr ->
-  ~ ExprHasSideEffects e ->
-  ~ ExprHasSideEffects (msub p e mexpr).
-Proof.
-  induction mexpr; auto.
-  - (* Var *)
-    intros. simpl in *. destruct ((p =? x)%string); auto.
-  - (* BinExpr *)
-    intros. simpl in *. apply Classical_Prop.not_or_and in H. destruct H.
-    apply Classical_Prop.and_not_or. split; auto.
-  - (* Assign *)
-    intros. simpl in *. contradiction.
-Qed.
-
 
 Lemma not_ExprHasSideEffects_Msub_not_ExprHasSideEffects : forall p e mexpr ef,
   ~ ExprHasSideEffects mexpr ->

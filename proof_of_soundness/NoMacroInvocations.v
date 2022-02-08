@@ -4,7 +4,7 @@ Require Import
 From Cpp2C Require Import
   ConfigVars
   EvalRules
-  MapTheorems
+  MapLemmas
   NoCallsFromFunctionTable
   Syntax.
 
@@ -214,27 +214,6 @@ Proof.
   - inversion_clear H.
     constructor; auto.
     apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto. 
-Qed.
-
-
-Lemma ExprNoMacroInvocations_msub_ExprNoMacroInvocations : forall mexpr F M,
-  ExprNoMacroInvocations mexpr F M ->
-  forall e,
-  ExprNoMacroInvocations e F M ->
-  forall p,
-  ExprNoMacroInvocations (msub p e mexpr) F M.
-Proof.
-  intros.
-  induction H; simpl.
-  - constructor.
-  - destruct ((p =? x)%string); auto; constructor.
-  - constructor. auto.
-  - constructor. auto.
-  - constructor. auto. auto.
-  - destruct ( (p =? x)%string ).
-    + destruct e; constructor; apply IHExprNoMacroInvocations; auto.
-    + constructor. apply IHExprNoMacroInvocations; auto.
-  - apply NM_CallOrInvocation with params fstmt fexpr; auto.
 Qed.
 
 

@@ -8,7 +8,7 @@ Require Import
 From Cpp2C Require Import
   Syntax
   ConfigVars
-  MapTheorems
+  MapLemmas
   EvalRules
   SideEffects
   NoCallsFromFunctionTable
@@ -132,7 +132,8 @@ Proof.
   { apply not_ExprHasSideEffects_S_Equal in H8; auto. }
   inversion H4; subst. clear H4.
   inversion H6; subst. clear H6.
-  inversion_clear H17.
+  inversion H17. subst. clear H17.
+  inversion H23. subst. clear H23.
   generalize dependent v0_.
 Abort.
 

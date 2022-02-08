@@ -46,27 +46,6 @@ Scheme ExprNoVarsInEnvironment_mut := Induction for ExprNoVarsInEnvironment Sort
 with ExprListNoVarsInEnvironment_mut := Induction for ExprListNoVarsInEnvironment Sort Prop.
 
 
-Lemma ExprNoVarsInEnvironment_msub_ExprNoVarsInEnvironment : forall mexpr E,
-  ExprNoVarsInEnvironment mexpr E ->
-  forall e,
-  ExprNoVarsInEnvironment e E ->
-  forall p,
-  ExprNoVarsInEnvironment (msub p e mexpr) E.
-Proof.
-  intros.
-  induction H; try constructor; try (fold msub; apply IHExprNoVarsInEnvironment; auto).
-  - simpl. destruct ((p =? x)%string); auto. constructor. auto.
-  - fold msub. apply IHExprNoVarsInEnvironment1; auto.
-  - fold msub. apply IHExprNoVarsInEnvironment2; auto.
-  - simpl. destruct ( (p =? x)%string); auto.
-    + destruct e; constructor; auto.
-      inversion_clear H0; auto.
-    + constructor; auto.
-  - auto.
-  - apply H1.
-Qed.
-
-
 Lemma ExprNoVarsInEnvironment_MSub_ExprNoVarsInEnvironment : forall mexpr E,
   ExprNoVarsInEnvironment mexpr E ->
   forall e,
