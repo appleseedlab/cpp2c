@@ -1,3 +1,9 @@
+(*  MapLemmas.v
+    Lemmas about FMapList objects.
+    These could probably be defined generically, but defining them separately
+    for different key types works fine.
+*)
+
 Require Import
   Coq.FSets.FMapList
   Coq.ZArith.ZArith.
@@ -6,7 +12,7 @@ From Cpp2C Require Import
   ConfigVars.
 
 
-
+(* Leibniz equality implies Equal *)
 Lemma NatMap_eq_Equal : forall (t : Type) (m : NatMap.t t) m',
   m = m' ->
   NatMap.Equal m m'.
@@ -15,6 +21,7 @@ Proof.
 Qed.
 
 
+(*  Leibniz equality implies Equal *)
 Lemma StringMap_eq_Equal : forall (t : Type) (m : StringMap.t t) m',
   m = m' ->
   StringMap.Equal m m'.
@@ -23,6 +30,7 @@ Proof.
 Qed.
 
 
+(*  A map for which the Empty property holds is an empty map *)
 Lemma NatMap_Empty_empty : forall (t : Type) (m : NatMap.t t),
   NatMap.Empty (elt:=_) m ->
   NatMap.Equal m (NatMap.empty _).
@@ -36,6 +44,7 @@ Proof.
 Qed.
 
 
+(*  A map for which the Empty property holds is an empty map *)
 Lemma StringMap_Empty_empty : forall (t : Type) (m : StringMap.t t),
   StringMap.Empty (elt:=_) m ->
   StringMap.Equal m (StringMap.empty _).
@@ -49,6 +58,8 @@ Proof.
 Qed.
 
 
+(*  Restricting a map only to the keys in the map itself
+    result in the same map *)
 Lemma NatMap_restrict_refl: forall (S : store),
   NatMap.Equal S (NatMapProperties.restrict S S).
 Proof.
@@ -66,6 +77,8 @@ Proof.
 Qed.
 
 
+(*  Restricting a map only to the keys in the map itself
+    result in the same map *)
 Lemma NatMap_mapsto_in: forall (S : store) l v,
   NatMap.MapsTo l v S -> NatMap.In l S.
 Proof.
@@ -76,6 +89,8 @@ Proof.
 Qed.
 
 
+(*  If a key maps to some value in a map, then that key is clearly
+    in the map *)
 Lemma StringMap_mapsto_in: forall (t : Type) (m : StringMap.t t) k e,
   StringMap.MapsTo k e m -> StringMap.In k m.
 Proof.
@@ -86,6 +101,9 @@ Proof.
 Qed.
 
 
+(*  If a new, unique key is added to a mapping, then that mapping is restricted
+    to only contain keys that were originally in the mapping, then the
+    final state of the map is Equal to the initial state *)
 Lemma NatMap_add_unique_then_restrict_no_change : forall (S : store) l v,
   ~ NatMap.In l S ->
   NatMap.Equal S (NatMapProperties.restrict (NatMapProperties.update S ( NatMap.add l v (NatMap.empty Z))) S).
@@ -113,7 +131,9 @@ Proof.
 Qed.
 
 
-Theorem NatMap_disjoint_diff_Equal : forall (S1 : store) (S2 : store),
+(*  If a set of keys that are disjoint from a given map's keys are removed
+    from that map, then the map remains unchanged *)
+Lemma NatMap_disjoint_diff_Equal : forall (S1 : store) (S2 : store),
   NatMapProperties.Disjoint S1 S2 ->
   NatMap.Equal S1 (NatMapProperties.diff (NatMapProperties.update S1 S2) S2).
 Proof.
@@ -138,7 +158,9 @@ Proof.
 Qed.
 
 
-Theorem StringMap_disjoint_diff_Equal : forall (S1 : function_table) (S2 : function_table),
+(*  If a set of keys that are disjoint from a given map's keys are removed
+    from that map, then the map remains unchanged *)
+Lemma StringMap_disjoint_diff_Equal : forall (S1 : function_table) (S2 : function_table),
   StringMapProperties.Disjoint S1 S2 ->
   StringMap.Equal S1 (StringMapProperties.diff (StringMapProperties.update S1 S2) S2).
 Proof.
@@ -163,8 +185,10 @@ Proof.
 Qed.
 
 
-
-Theorem NatMap_disjoint_restrict_Equal : forall (S1 : store) (S2 : store),
+(*  If a map is updated with a set of disjoint keys, then that map
+    is restricted to only contain keys which were originally in the map,
+    then the final state of the map is Equal to the initial state *)
+Lemma NatMap_disjoint_restrict_Equal : forall (S1 : store) (S2 : store),
   NatMapProperties.Disjoint S1 S2 ->
   NatMap.Equal S1 (NatMapProperties.restrict (NatMapProperties.update S1 S2) S1).
 Proof.
