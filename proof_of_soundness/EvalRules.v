@@ -94,42 +94,52 @@ Inductive EvalExpr:
   | E_Num : forall S E G F M z S',
     NatMap.Equal S S' ->
     EvalExpr S E G F M (Num z) z S'
-  (* Variable lookup occurs iff a macro parameter is not found. *)
+  (* Local variable lookup *)
   | E_LocalVar : forall S E G F M x l v S',
+    (* Store does not change *)
     NatMap.Equal S S' ->
+    (* Variable is found in local environment *)
     StringMap.MapsTo x l E ->
+    (* L-value maps to an R-value *)
     NatMap.MapsTo l v S ->
     EvalExpr S E G F M (Var x) v S'
+  (* Global variable lookup *)
+  | E_GlobalVar : forall S E G F M x l v S',
+    (* Store does not change *)
+    NatMap.Equal S S' ->
   (* Local variables shadow global variables, so only if a local
      variable lookup fails do we check the global environment. *)
-  | E_GlobalVar : forall S E G F M x l v S',
-    NatMap.Equal S S' ->
     ~ StringMap.In x E->
+    (* Variable is found in global environment *)
     StringMap.MapsTo x l G ->
+    (* L-value maps to R-value *)
     NatMap.MapsTo l v S ->
     EvalExpr S E G F M (Var x) v S'
   (* Parenthesized expressions evaluate to themselves. *)
   | E_ParenExpr : forall S E G F M e0 v S',
+    (* Evaluate the inner expression *)
     EvalExpr S E G F M e0 v S' ->
     EvalExpr S E G F M (ParenExpr e0) v S'
   (* Unary expressions *)
   | E_UnExpr : forall S E G F M S' uo e0 v,
+    (* Evaluate the inner expression *)
     EvalExpr S E G F M e0 v S' ->
+    (* Perform the unary operations on the value obtained *)
     EvalExpr S E G F M (UnExpr uo e0) ((unop_to_op uo) v) S'
   (* Binary expressions. Left operands are evaluated first. *)
   (* NOTE: Evaluation rules do not handle operator precedence.
      The parser must use a concrete syntax to generate a parse tree
      with the appropriate precedence levels in it. *)
   | E_BinExpr : forall S E G F M bo e1 e2 v1 v2 S' S'',
+    (* Evaluate the left operand *)
     EvalExpr S E G F M e1 v1 S' ->
+    (* Evaluate the right operand *)
     EvalExpr S' E G F M e2 v2 S'' ->
+    (* Perform the binary operation on the values obtained *)
     EvalExpr S E G F M (BinExpr bo e1 e2) ((binop_to_op bo) v1 v2) S''
   (* Variable assignments update the store by adding a new L-value to
      R-value mapping or by overriding an existing one.
-     The R-value is returned along with the updated state.
-     For now we assume that there is no overlap between macro parameters
-     and variables that are assigned to (i.e., it is impossible for a
-     macro to have side-effects). *)
+     The R-value is returned along with the updated state. *)
   (* Local variable assignment overrides global variable assignment. *)
   | E_Assign_Local : forall S E G F M l x e0 v S' S'',
     StringMap.MapsTo x l E ->
@@ -197,9 +207,16 @@ Inductive EvalExpr:
        the current macro definition from the list of macro definitions
        to avoid nested macros from being expanded. *)
     StringMap.MapsTo x (params, mexpr) M ->
-    M' = StringMap.remove x M ->
+    (* Remove the macro from the macro table to avoid recursively
+       expanding macros. We could express this using StringMap.Equal,
+       but it is easier for the proof if we Logic.eq instead. *)
+    M' = (StringMap.remove x M) ->
+    (* No duplicate parameters *)
     NoDup params ->
+    (* Perform the macro substitution *)
     MacroSubst params es mexpr ef ->
+    (* Evalue the fully-substituted macro body
+       under the caller's environment *)
     EvalExpr S E G F M' ef v S' ->
     EvalExpr S E G F M (CallOrInvocation x es) v S'
 with EvalExprList :
@@ -228,10 +245,14 @@ with EvalExprList :
 with MacroSubst :
   list string -> list expr -> expr -> expr -> Prop :=
   | MacroSubst_nil : forall mexpr,
+    (* No more substitutions necessary *)
     MacroSubst nil nil mexpr mexpr
   | MacroSubst_cons : forall p e ps es mexpr ef ef',
+    (* Substitute the first argument *)
     MSub p e mexpr ef ->
+    (* Substitute the remaining arguments *)
     MacroSubst ps es ef ef' ->
+    (* Return the fully-substituted expression *)
     MacroSubst (p::ps) (e::es) mexpr ef'
 with EvalStmt :
   store -> environment -> environment ->
@@ -298,6 +319,44 @@ Proof.
     assert (ef = ef1).
     { apply MSub_deterministic with p e mexpr; auto. }
     subst ef1. apply IHMacroSubst. auto.
+Qed.
+
+
+Lemma MSub_mexpr_Num_ef_Num : forall p e z ef,
+  MSub p e (Num z) ef ->
+  ef = Num z.
+Proof.
+  intros. remember (Num z). induction H; try discriminate.
+  - auto.
+Qed.
+
+
+Lemma MacroSubst_mexpr_Num_ef_Num : forall params es z ef,
+  MacroSubst params es (Num z) ef ->
+  ef = Num z.
+Proof.
+  intros. remember (Num z). induction H.
+  - (* MacroSubst nil *)
+    auto.
+  - (* MacroSubst cons *)
+    subst. apply MSub_mexpr_Num_ef_Num in H. subst.
+    auto.
+Qed.
+
+
+Lemma MSub_ef_eq_mexpr_or_ef_eq_ef: forall p e mexpr ef,
+  MSub p e mexpr ef ->
+  ef = mexpr \/ ef = ef.
+Proof.
+  intros. induction H; auto.
+Qed.
+
+
+Lemma MacroSubst1_ef_eq_mexpr_or_ef_eq_ef: forall p e mexpr ef,
+  MacroSubst (p::nil) (e::nil) mexpr ef ->
+  ef = mexpr \/ ef = ef.
+Proof.
+  intros. induction H; auto.
 Qed.
 
 
@@ -891,9 +950,8 @@ Proof.
       assert (ef = ef0).
       { eapply MacroSubst_deterministic; eauto. }
       subst ef0.
-      assert (M' = M'0). { subst. auto. }
-      rewrite <- H0 in *.
-      apply H; auto.
+      assert (M' = M'0). { rewrite e, H2. reflexivity. }
+      subst M'0. apply H; auto. rewrite H0. auto.
   - (* Statements *)
     inversion_clear H. rewrite e in H0. auto.
   - (* EvalExprList nil *)

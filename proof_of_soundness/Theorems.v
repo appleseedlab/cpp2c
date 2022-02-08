@@ -354,9 +354,9 @@ Proof.
            apply no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_nil with
             mexpr F' M' Ecaller mexpr S G S S (StringMap.empty nat) (NatMap.empty Z) 1 ls S'';
               auto.
-           ++ (* Prove that the macro body does contain a macro invocation *)
-               subst M'. apply ExprNoMacroInvocations_remove_ExprNoMacroInvocations.
-               apply TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations with F mexpr; auto.
+           ++(* Prove that the macro body does contain a macro invocation *)
+              subst M'. apply ExprNoMacroInvocations_remove_ExprNoMacroInvocations.
+              apply TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations with F mexpr; auto.
            ++ constructor.
            ++ (* Prove that macro expression evaluation works the same
                   under an updated function table *)

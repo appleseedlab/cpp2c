@@ -46,6 +46,26 @@ Scheme ExprNoMacroInvocations_mut := Induction for ExprNoMacroInvocations Sort P
 with ExprListNoMacroInvocations_mut := Induction for ExprListNoMacroInvocations Sort Prop.
 
 
+Lemma M_Equal_ExprNoMacroInvocations : forall e F M_1,
+  ExprNoMacroInvocations e F M_1 ->
+  forall M_2,
+  StringMap.Equal M_1 M_2 ->
+  ExprNoMacroInvocations e F M_2.
+Proof.
+  apply (ExprNoMacroInvocations_mut
+    (fun e F M_1 (h : ExprNoMacroInvocations e F M_1) =>
+      forall M_2,
+      StringMap.Equal M_1 M_2 ->
+      ExprNoMacroInvocations e F M_2)
+    (fun es F M_1 (h : ExprListNoMacroInvocations es F M_1) =>
+      forall M_2,
+      StringMap.Equal M_1 M_2 ->
+      ExprListNoMacroInvocations es F M_2)); try constructor; auto.
+  - intros. rewrite H1 in n.
+    apply NM_CallOrInvocation with params fstmt fexpr; auto.
+Qed.
+
+
 Lemma ExprNoMacroInvocations_remove_ExprNoMacroInvocations : forall e F M,
   ExprNoMacroInvocations e F M ->
   forall x,
