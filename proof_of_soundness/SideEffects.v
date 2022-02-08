@@ -1,3 +1,8 @@
+(*  SideEffects.v
+    Definitions for functions checking whether or not a given
+    expression has side-effects, and some lemmas related to them
+*)
+
 Require Import
   Coq.Lists.List
   Coq.Logic.Classical_Prop
@@ -8,6 +13,9 @@ From Cpp2C Require Import
   EvalRules
   Syntax.
 
+
+(*  Checks if a function has side-effects and returns a Boolean
+    indicating the result *)
 Fixpoint expr_has_side_effects (e: expr) : bool :=
   match e with
   | Num z => false
@@ -22,6 +30,8 @@ Fixpoint expr_has_side_effects (e: expr) : bool :=
 end.
 
 
+(*  Checks if a function has side-effects and returns Prop indicating
+    the result *)
 Fixpoint ExprHasSideEffects (e : expr) : Prop :=
   match e with
   | Num z => False
@@ -36,7 +46,9 @@ Fixpoint ExprHasSideEffects (e : expr) : Prop :=
 end.
 
 
-Theorem expr_has_side_effects_ExprHasSideEffects_iff : forall e,
+(*  Proof of equivalence between the two functions for checking whether
+    an expression has side-effects in the positive case *)
+Lemma expr_has_side_effects_ExprHasSideEffects_iff : forall e,
   expr_has_side_effects e = true <-> ExprHasSideEffects e.
 Proof.
   split; induction e; intros; simpl in *;
@@ -46,8 +58,9 @@ Proof.
   - apply Bool.orb_true_iff. tauto.
 Qed.
 
-
-Theorem expr_side_effects_not_true_not_ExprHasSideEffects_iff : forall e,
+(*  Proof of equivalence between the two functions for checking whether
+    an expression has side-effects in the negative case *)
+Lemma expr_side_effects_not_true_not_ExprHasSideEffects_iff : forall e,
   expr_has_side_effects e <> true <-> ~ ExprHasSideEffects e.
 Proof.
   split.
@@ -60,6 +73,9 @@ Proof.
 Qed.
 
 
+(*  If an expression does not have side-effects, and terminates to some
+    value and final store under some context, then the final store
+    is equal to the initial store *)
 Lemma not_ExprHasSideEffects_S_Equal : forall e,
   ~ ExprHasSideEffects e ->
   forall S E G F M v S',
@@ -83,19 +99,9 @@ Proof.
 Qed.
 
 
-Theorem Forall_not_ExprHasSideEffects_EvalExprList_S_Equal : forall S E G F M ps es S' vs Ef Sargs l ls,
-  Forall (fun e => ~ ExprHasSideEffects e ) es ->
-  EvalExprList S E G F M ps es vs S' Ef Sargs l ls ->
-  NatMap.Equal S S'.
-Proof.
-  intros. induction H0; auto.
-  - (* ExprList cons *)
-    inversion H. subst x l0.
-    apply not_ExprHasSideEffects_S_Equal in H0; auto. rewrite <- H0 in IHEvalExprList.
-    auto.
-Qed.
-
-
+(*  If a Skip statement terminates under some context, then
+    the initial store the Skip statement was evaluated under
+    is equal to the final store it evaluates to *)
 Lemma Skip_S_Equal : forall S E G F M S',
   EvalStmt S E G F M Skip S' ->
   NatMap.Equal S S'.
@@ -104,7 +110,9 @@ Proof.
 Qed.
 
 
-
+(*  If an expression does not have side-effects, and substitute into it a single
+    expression which also does not have side-effects, then the fully-
+    substituted expression will also not have side-effects *)
 Lemma not_ExprHasSideEffects_Msub_not_ExprHasSideEffects : forall p e mexpr ef,
   ~ ExprHasSideEffects mexpr ->
   ~ ExprHasSideEffects e ->
@@ -117,7 +125,10 @@ Proof.
 Qed.
 
 
-Theorem not_ExprHasSideEffects_MacroSubst_not_ExprHasSideEffects : forall mexpr params es ef,
+(*  If an expression does not have side-effects, and substitute into it
+    multiple expression which also do not have side-effects, then the
+    fully-substituted expression will also not have side-effects *)
+Lemma not_ExprHasSideEffects_MacroSubst_not_ExprHasSideEffects : forall mexpr params es ef,
   ~ ExprHasSideEffects mexpr ->
   Forall (fun e => ~ ExprHasSideEffects e) es ->
   MacroSubst params es mexpr ef ->
