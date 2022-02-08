@@ -13,7 +13,6 @@ From Cpp2C Require Import
   SideEffects
   NoCallsFromFunctionTable
   NoMacroInvocations
-  NotContainsVar
   NoVarsInEnvironment
   Transformations.
 
