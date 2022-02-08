@@ -344,22 +344,6 @@ Proof.
 Qed.
 
 
-Lemma MSub_ef_eq_mexpr_or_ef_eq_ef: forall p e mexpr ef,
-  MSub p e mexpr ef ->
-  ef = mexpr \/ ef = ef.
-Proof.
-  intros. induction H; auto.
-Qed.
-
-
-Lemma MacroSubst1_ef_eq_mexpr_or_ef_eq_ef: forall p e mexpr ef,
-  MacroSubst (p::nil) (e::nil) mexpr ef ->
-  ef = mexpr \/ ef = ef.
-Proof.
-  intros. induction H; auto.
-Qed.
-
-
 (* The following lemmas involve all parts of program evaluation
    (e.g., expression, argument list, and statement evaluation).
    Coq's built-in induction tactic is not powerful enough to provide
