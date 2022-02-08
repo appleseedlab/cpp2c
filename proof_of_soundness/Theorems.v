@@ -1,3 +1,7 @@
+(*  Theorems.v
+    Contains theorems directly concerning the soundness of the
+    transformation that Cpp2C performs *)
+
 Require Import
   Coq.FSets.FMapList
   Coq.Logic.Classical_Prop
@@ -17,8 +21,11 @@ From Cpp2C Require Import
   Transformations.
 
 
-
-Lemma no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_nil :
+(*  If an expression has no side-effects, no nested macro invocations, and
+    does not share any variables with its caller's environment, then
+    it will evaluat to the same value whether it is invoked as the body of
+    a macro, or called as the body of a function *)
+Theorem no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_nil :
   forall mexpr,
   (* The macro body must not have side-effects *)
   ~ ExprHasSideEffects mexpr ->
@@ -95,7 +102,13 @@ Proof.
     subst v3 v4; auto.
 Qed.
 
-
+(*  If an expression mexpr has no side-effects, no nested macro invocations,
+    and does not share any variables with its caller's environment, and we
+    substitute into it an expression e that also does not have side-effects
+    or nested macro invocations, then the macro invocation with mexpr
+    as its body and e as its argument will terminate to
+    the same value as it would if mexpr were instead the body of a function
+    and e were passed to that function as an argument *)
 Lemma no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_1 :
   forall mexpr,
   (* The macro body must not have side-effects *)
@@ -136,7 +149,10 @@ Proof.
   generalize dependent v0_.
 Abort.
 
-
+(*  If an expression terminates to some value and final store before
+    Cpp2C transforms it, and terminates to some value and final store
+    after Cpp2C transforms it, then these two values and final stores
+    are equal *)
 Theorem transform_expr_sound_mut_v_s : forall M F e F' e',
   TransformExpr M F e F' e' ->
   (* The proof will not work if these variables were introduced sooner.
