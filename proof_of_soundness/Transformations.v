@@ -1,3 +1,8 @@
+(*  Transformations.v
+    Definition of the transformation that Cpp2C performs as well as some
+    lemmas concerning it
+*)
+
 Require Import
   Coq.FSets.FMapList
   Coq.Lists.List
@@ -204,62 +209,14 @@ with TransformStmt :
   | Transform_Skip : forall M F,
     TransformStmt M F Skip F Skip.
 
-
+(*  Custom induction scheme *)
 Scheme TransformExpr_mut := Induction for TransformExpr Sort Prop
 with TransformExprList_mut := Induction for TransformExprList Sort Prop
 with TransformStmt_mut := Induction for TransformStmt Sort Prop.
 
 
-(* This proof is easy right now because we only have Skip statements *)
-Lemma mapsto_TransformStmt_mapsto : forall x fdef F M stmt F' stmt', 
-  StringMap.MapsTo x fdef F ->
-  TransformStmt M F stmt F' stmt' ->
-  StringMap.MapsTo x fdef F'.
-Proof.
-  intros. induction H0. assumption.
-Qed.
-
-
-Lemma not_ExprHasSideEffects_TransformExpr_not_ExprHasSideEffects : forall e,
-  ~ ExprHasSideEffects e ->
-  forall M F F' e',
-    TransformExpr M F e F' e' ->
-    ~ ExprHasSideEffects e'.
-Proof.
-  intros. induction H0; auto.
-  - (* BinExpr *)
-    simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
-    unfold ExprHasSideEffects. fold ExprHasSideEffects.
-    apply Classical_Prop.and_not_or. split; auto.
-Qed.
-
-
-Lemma not_ExprHasSideEffects_TransformExprList_Forall_not_ExprHasSideEffects : forall es,
-  Forall (fun e => ~ ExprHasSideEffects e) es ->
-  forall M F F' es',
-    TransformExprList M F es F' es' ->
-  Forall (fun e => ~ ExprHasSideEffects e) es'.
-Proof.
-  intros. induction H0.
-  - (* nil *)
-    auto.
-  - (* cons *)
-    inversion H. subst. constructor; auto.
-    (* Prove the head of the list doesn't have side-effects *)
-    apply not_ExprHasSideEffects_TransformExpr_not_ExprHasSideEffects with e M F F'; auto.
-Qed.
-
-
-(* This proof is easy right now because we only have Skip statements *)
-Lemma EvalStmt_TransformExprList_EvalStmt : forall S E G F M stmt S' F' stmt',
-  EvalStmt S E G F M stmt S' ->
-  TransformStmt M F stmt F' stmt' ->
-  EvalStmt S E G F' M stmt S'.
-Proof.
-  intros. induction H0. assumption.
-Qed.
-
-
+(*  If an expression does not contain any macro invocations, then
+    after transformation it remains unchanged *)
 Lemma TransformExpr_ExprNoMacroInvocations_e_eq : forall M F e F' e' ,
   TransformExpr M F e F' e' ->
   ExprNoMacroInvocations e F M ->
@@ -297,7 +254,8 @@ Proof.
     inversion_clear H1. f_equal; auto.
 Qed.
 
-
+(*  If an expression does not contain macro invocations, then after
+    transformation it does not contain macro invocations *)
 Lemma TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations : forall M F e F' e',
   TransformExpr M F e F' e' ->
   ExprNoMacroInvocations e F M ->
@@ -355,29 +313,4 @@ Proof.
     intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
   - (* ExprList *)
     intros. inversion_clear H1. constructor; auto.
-Qed.
-
-
-Lemma TransformExprList_ExprExprListNoMacroInvocations_e_eq: forall M F es F' es',
-  TransformExprList M F es F' es' ->
-  ExprListNoMacroInvocations es F M ->
-  es = es'.
-Proof.
-  intros. induction H; auto.
-  inversion_clear H0. f_equal;
-    eauto using TransformExpr_ExprNoMacroInvocations_e_eq.
-Qed.
-
-
-Lemma TransformExprList_ExprListNoMacroInvocations_ExprListNoMacroInvocations : forall M F es F' es',
-  TransformExprList M F es F' es' ->
-  ExprListNoMacroInvocations es F M ->
-  ExprListNoMacroInvocations es' F' M.
-Proof.
-  intros. induction H.
-  - (* nil *)
-    constructor.
-  - (* cons *)
-    inversion_clear H0. constructor;
-      eauto using TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations.
 Qed.
