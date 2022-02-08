@@ -13,6 +13,7 @@ From Cpp2C Require Import
   SideEffects
   NoCallsFromFunctionTable
   NoMacroInvocations
+  NotContainsVar
   NoVarsInEnvironment
   Transformations.
 
@@ -24,7 +25,7 @@ Lemma no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_nil :
   ~ ExprHasSideEffects mexpr ->
   forall F M,
   (* The macro must not contain a macro invocation *)
-  ExprNoMacroInvocations mexpr F M->
+  ExprNoMacroInvocations mexpr F M ->
   forall Ecaller,
   (* The macro body must not rely on variables from the caller's scope.
      Global variables, however, are allowed. *)
@@ -94,6 +95,49 @@ Proof.
       }
     subst v3 v4; auto.
 Qed.
+
+
+Lemma no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_1 :
+  forall mexpr,
+  (* The macro body must not have side-effects *)
+  ~ ExprHasSideEffects mexpr ->
+  forall F M,
+  (* The macro must not contain a macro invocation *)
+  ExprNoMacroInvocations mexpr F M ->
+  forall Ecaller,
+  (* The macro body must not rely on variables from the caller's scope.
+     Global variables, however, are allowed. *)
+  ExprNoVarsInEnvironment mexpr Ecaller ->
+  forall e,
+  (* The argument must not have side-effects *)
+  ~ ExprHasSideEffects e ->
+  (* The argument must not contain a macro invocation *)
+  ExprNoMacroInvocations e F M->
+  forall ef p,
+  MacroSubst (p::nil) (e::nil) mexpr ef ->
+  forall S G v S''',
+  EvalExpr S Ecaller G F M ef v S''' ->
+  forall v0_ S' Ef Sargs l ls,
+  EvalExprList S Ecaller G F M (p::nil) (e::nil) (v0_::nil) S' Ef Sargs l ls ->
+  (* We will prove that S = S' since there are no side-effects.
+     S' and Sargs must be distinct so that we don't overwrite pre-existing
+     L-values *)
+  NatMapProperties.Disjoint S' Sargs ->
+  forall v0 S'''0,
+  EvalExpr (NatMapProperties.update S' Sargs) Ef G F M mexpr v0 S'''0 ->
+  v = v0.
+Proof.
+  intros.
+  assert (NatMap.Equal (NatMapProperties.update S' Sargs) S'''0).
+  { apply not_ExprHasSideEffects_S_Equal in H8; auto. }
+  inversion H4; subst. clear H4.
+  inversion H6; subst. clear H6.
+  inversion_clear H17.
+  generalize dependent v0_.
+  apply MSub_ef_eq_e_or_mexpr_eq_ef in H16.
+  destruct H16.
+  - subst.
+Abort.
 
 
 Theorem transform_expr_sound_mut_v_s : forall M F e F' e',
