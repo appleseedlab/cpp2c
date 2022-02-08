@@ -25,6 +25,7 @@ From Cpp2C Require Import
     does not share any variables with its caller's environment, then
     it will evaluat to the same value whether it is invoked as the body of
     a macro, or called as the body of a function *)
+(*  https://homepages.inf.ed.ac.uk/gdp/publications/cbn_cbv_lambda.pdf *)
 Theorem no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_nil :
   forall mexpr,
   (* The macro body must not have side-effects *)
