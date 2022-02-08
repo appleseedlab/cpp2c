@@ -46,7 +46,7 @@ Scheme ExprNotContainsVar_mut := Induction for ExprNotContainsVar Sort Prop
 with ExprListNotContainsVar_mut := Induction for ExprListNotContainsVar Sort Prop.
 
 
-Lemma foo: forall mexpr p,
+Lemma ExprNotContainsVar_MSub_no_change: forall mexpr p,
   ExprNotContainsVar mexpr p ->
   forall e,
   MSub p e mexpr mexpr.
@@ -67,66 +67,4 @@ Proof.
   - intros. apply MS_Call_Or_Invocation; auto.
   - constructor.
   - constructor; auto.
-Qed.
-
-
-Lemma MSub_ef_eq_e_or_mexpr_eq_ef: forall p e mexpr ef,
-  MSub p e mexpr ef ->
-  ((mexpr = Var p /\ ef = e) \/
-    forall x e0 e0',
-    p = x ->
-    mexpr = Assign p e0 ->
-    e = Var x ->
-    MSub p e e0 e0' ->
-    ef = Assign x e0' ) \/
-  ((ExprNotContainsVar mexpr p) -> mexpr = ef).
-Proof.
-  intros. induction H.
-  - right. intros. auto.
-  - left. subst. auto.
-  - right. auto.
-  - destruct IHMSub.
-    + destruct H0.
-      * destruct H0. subst. right. intros. inversion_clear H0.
-        inversion_clear H1. contradiction.
-      * left. right. intros. discriminate.
-    + right. intros. f_equal. inversion_clear H1. auto.
- - destruct IHMSub.
-    + destruct H0.
-      * destruct H0. subst. right. intros. inversion_clear H0.
-        inversion_clear H1. contradiction.
-      * left.  right. intros. discriminate.
-    + right. intros. f_equal. inversion_clear H1. auto.
-  - destruct IHMSub1.
-    + destruct H1.
-      * destruct H1. subst. right. intros. inversion_clear H1.
-        inversion_clear H2. contradiction.
-      * left. right. intros. discriminate.
-    + destruct IHMSub2.
-      * destruct H2.
-        -- destruct H2. subst. right. intros. inversion_clear H2.
-           inversion_clear H4. contradiction.
-        -- left. right. intros. discriminate.
-      * right. intros. inversion_clear H3. f_equal; auto.
-  - destruct IHMSub.
-    + destruct H2.
-      * destruct H2. right. intros. inversion_clear H4. contradiction.
-      * left. right. intros. subst. inversion H5. subst. inversion H4. subst. f_equal.
-        apply MSub_deterministic with (ef:=e0'0) in H1; auto.
-    + right. intros. subst. inversion_clear H3. contradiction.
-  - destruct IHMSub.
-    + destruct H1.
-      * destruct H1. right. intros. subst. inversion_clear H3.
-        inversion_clear H2. contradiction.
-      * left. right. intros. inversion H3. subst. contradiction.
-    + right. intros. subst. inversion_clear H2. f_equal. auto.
-  - left. right. intros. discriminate.
-Qed.
-
-
-Lemma MacroSubst1_ef_eq_mexpr_or_ef_eq_ef: forall p e mexpr ef,
-  MacroSubst (p::nil) (e::nil) mexpr ef ->
-  ef = mexpr \/ ef = ef.
-Proof.
-  intros. induction H; auto.
 Qed.

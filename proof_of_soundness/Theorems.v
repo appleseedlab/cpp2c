@@ -134,9 +134,6 @@ Proof.
   inversion H6; subst. clear H6.
   inversion_clear H17.
   generalize dependent v0_.
-  apply MSub_ef_eq_e_or_mexpr_eq_ef in H16.
-  destruct H16.
-  - subst.
 Abort.
 
 
