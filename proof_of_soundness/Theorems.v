@@ -12,6 +12,7 @@ Require Import
 From Cpp2C Require Import
   Syntax
   ConfigVars
+  Constant
   MapLemmas
   EvalRules
   SideEffects
@@ -103,6 +104,7 @@ Proof.
     subst v3 v4; auto.
 Qed.
 
+
 (*  If an expression mexpr has no side-effects, no nested macro invocations,
     and does not share any variables with its caller's environment, and we
     substitute into it an expression e that also does not have side-effects
@@ -112,19 +114,19 @@ Qed.
     and e were passed to that function as an argument *)
 Lemma no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_1 :
   forall mexpr,
-  (* The macro body must not have side-effects *)
+  (*  The macro body must not have side-effects *)
   ~ ExprHasSideEffects mexpr ->
   forall F M,
-  (* The macro must not contain a macro invocation *)
+  (*  The macro must not contain a macro invocation *)
   ExprNoMacroInvocations mexpr F M ->
   forall Ecaller,
-  (* The macro body must not rely on variables from the caller's scope.
-     Global variables, however, are allowed. *)
+  (*  The macro body must not rely on variables from the caller's scope.
+      Global variables, however, are allowed. *)
   ExprNoVarsInEnvironment mexpr Ecaller ->
   forall e,
-  (* The argument must not have side-effects *)
+  (*  The argument must not have side-effects *)
   ~ ExprHasSideEffects e ->
-  (* The argument must not contain a macro invocation *)
+  (*  The argument must not contain a macro invocation *)
   ExprNoMacroInvocations e F M->
   forall ef p,
   MacroSubst (p::nil) (e::nil) mexpr ef ->
@@ -132,9 +134,9 @@ Lemma no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_1 :
   EvalExpr S Ecaller G F M ef v S''' ->
   forall v0_ S' Ef Sargs l ls,
   EvalExprList S Ecaller G F M (p::nil) (e::nil) (v0_::nil) S' Ef Sargs l ls ->
-  (* We will prove that S = S' since there are no side-effects.
-     S' and Sargs must be distinct so that we don't overwrite pre-existing
-     L-values *)
+  (*  We will prove that S = S' since there are no side-effects.
+      S' and Sargs must be distinct so that we don't overwrite pre-existing
+      L-values *)
   NatMapProperties.Disjoint S' Sargs ->
   forall v0 S'''0,
   EvalExpr (NatMapProperties.update S' Sargs) Ef G F M mexpr v0 S'''0 ->
@@ -149,6 +151,92 @@ Proof.
   inversion H23. subst. clear H23.
   generalize dependent v0_.
 Abort.
+
+
+(*  If an mexpr is a variable not in the caller's scope,
+    and e is is a constant expression,
+    then that mexpr will evaluate to the same value under call-by-value
+    and call-by-name semantics if e is the argument *)
+Theorem ExprConst_ExprNoVarsInEnvironment_call_by_name_call_by_value :
+  forall x Ecaller,
+  (*  The macro body does not share variables with its caller environment *)
+  ExprNoVarsInEnvironment (Var x) Ecaller ->
+  forall e,
+  (*  e is a constant expression *)
+  ExprConstant e ->
+  forall p ef,
+  (*  Substitute e into a macro body for call-by-name *)
+  MacroSubst (p::nil) (e::nil) (Var x) ef ->
+  forall S G F M v S''',
+  (*  Evaluate the substituted expression under the callers' scope *)
+  EvalExpr S Ecaller G F M ef v S''' ->
+  forall v0 S' Ef Sargs l ls,
+  EvalExprList S Ecaller G F M (p::nil) (e::nil) (v0::nil) S' Ef Sargs l ls ->
+  (*  We will prove that S = S' since there are no side-effects.
+      S' and Sargs must be distinct so that we don't overwrite pre-existing
+      L-values *)
+  NatMapProperties.Disjoint S' Sargs ->
+  forall v1 S'''0,
+  EvalExpr (NatMapProperties.update S' Sargs) Ef G F M (Var x) v1 S'''0 ->
+  v = v1.
+Proof.
+  intros.
+  inversion H3. subst. clear H3. inversion H18. subst. clear H18.
+  inversion H1. subst. clear H1. inversion H13. subst. clear H13.
+  clear H25.
+  assert (NatMap.Equal S Snext).
+  { apply ExprConstant_EvalExpr_S_Equal in H17; auto. }
+  inversion H12.
+  - (*  Var x was substituted by the constant expression *)
+    subst.
+    assert (v = v0).
+    { apply EvalExpr_deterministic with (v1:=v) (S'1:=S''') in H17;
+        auto. destruct H17. auto. }
+    subst v0.
+    inversion H5.
+    + (*  Local variable *)
+      subst. apply NatMapProperties.update_mapsto_iff in H15.
+      destruct H15.
+      * apply NatMapFacts.add_mapsto_iff in H6. destruct H6.
+        -- destruct H6. auto.
+        -- destruct H6. apply NatMapFacts.empty_mapsto_iff in H9.
+           contradiction.
+      * destruct H6. apply StringMapFacts.add_mapsto_iff in H8.
+        destruct H8.
+        -- destruct H8. subst l. unfold not in H9.
+           destruct H9. apply NatMapFacts.add_in_iff. auto.
+        -- destruct H8. contradiction.
+    + (*  Global variable *)
+      subst. unfold not in H8. destruct H8.
+      apply StringMapFacts.add_in_iff. auto.
+  - (*  Var x was not substituted by the constant expression *)
+    subst.
+    inversion H2.
+    + (*  Var x refers to a local variable from the caller's scope *)
+      subst. inversion H. apply StringMap_mapsto_in in H8. contradiction.
+    + (*  Var x refers to a global variable *)
+      subst. inversion H5.
+      * (*  Var x inside the function refers to a local variable *)
+        subst. assert (~ StringMap.In x (StringMap.add p 1 (StringMap.empty nat))).
+        { rewrite StringMapFacts.add_in_iff. unfold not. intros. destruct H6.
+          contradiction. apply StringMapFacts.empty_in_iff in H6. contradiction. }
+        apply StringMap_mapsto_in in H13. contradiction.
+      * (*  Var x inside the function refers to a global variable *)
+        subst. assert (l=l0). { eapply StringMapFacts.MapsTo_fun; eauto. }
+        subst l0. apply NatMapProperties.update_mapsto_iff in H22.
+        destruct H22.
+        -- (* Not exactly sure what we're proving here but it's nasty *)
+          apply NatMapFacts.add_mapsto_iff in H6. destruct H6.
+           ++ destruct H6. subst v0 l.
+              rewrite NatMapProperties.Disjoint_alt in H4.
+              destruct H4 with (k:=1) (e:=v) (e':=v1).
+              ** rewrite H1 in H18. rewrite H3 in H18. auto.
+              ** apply NatMapFacts.add_mapsto_iff. left. auto.
+           ++ destruct H6. apply NatMapFacts.empty_mapsto_iff in H15.
+              contradiction.
+        -- destruct H6. rewrite H1 in H18. rewrite H3 in H18.
+           eapply NatMapFacts.MapsTo_fun; eauto.
+Qed.
 
 (*  If an expression terminates to some value and final store before
     Cpp2C transforms it, and terminates to some value and final store
