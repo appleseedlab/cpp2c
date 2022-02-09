@@ -11,6 +11,7 @@ Require Import
 From Cpp2C Require Import
   ConfigVars
   EvalRules
+  SideEffects
   Syntax
   MapLemmas.
 
@@ -321,6 +322,7 @@ Proof.
       apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
 Qed.
 
+
 (*  Above, but for statements *)
 Lemma EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable: forall stmt F M F',
   StmtNoCallsFromFunctionTable stmt F M F' ->
@@ -336,4 +338,21 @@ Proof.
   -
     intros. induction H0.
     + constructor; auto.
+Qed.
+
+
+(* If an expression does not have side-effects, then it must not contain a
+   call from a function table *)
+Lemma not_ExprHasSideEffects_ExprNoCallsFromFunctionTable : forall e,
+  ~ ExprHasSideEffects e ->
+  forall F M F',
+  ExprNoCallsFromFunctionTable e F M F'.
+Proof.
+  intros. induction e; try constructor; auto.
+  - simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
+    auto.
+  - simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
+    auto.
+  - simpl in H. contradiction.
+  - simpl in H. contradiction.
 Qed.
