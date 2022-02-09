@@ -156,7 +156,7 @@ Abort.
     and e is is a side-effect-free expression,
     then that mexpr will evaluate to the same value under call-by-value
     and call-by-name semantics if e is the argument *)
-Theorem ExprConst_ExprNoVarsInEnvironment_call_by_name_call_by_value :
+Theorem not_ExprSideEffects_ExprNoVarsInEnvironment_call_by_name_call_by_value :
   forall x Ecaller,
   (*  The macro body does not share variables with its caller environment *)
   ExprNoVarsInEnvironment (Var x) Ecaller ->
@@ -236,6 +236,7 @@ Proof.
         -- destruct H6. rewrite H1 in H18. rewrite H3 in H18.
            eapply NatMapFacts.MapsTo_fun; eauto.
 Qed.
+
 
 (*  If an expression terminates to some value and final store before
     Cpp2C transforms it, and terminates to some value and final store
@@ -423,6 +424,80 @@ Proof.
         { apply MacroSubst_deterministic with params1 es mexpr1; auto. }
         subst ef0. apply EvalExpr_deterministic with (v1:=v1) (S'1:=S'1) in H9; auto.
 
+  - (*  Function-like macro with one argument that does not have side-effects
+        and a body that is a variable which is not from the caller's environment *)
+    inversion H0. inversion H1.
+    + subst. apply StringMap_mapsto_in in m. contradiction.
+    + subst. apply StringMap_mapsto_in in m. contradiction.
+    + inversion H1.
+      subst S0 E0 G0 F0 M0 x0 es v1 S'1.
+      subst S1 E1 G1 F1 M1 x1 es0 v2 S'''''.
+      * (*  Transformed is a function call *)
+        (*  Proof of equivalence *)
+
+        (* Prove that the definition that we know the function maps to
+           is the same one that we added during the transformation *)
+        assert ( (params0, fstmt, fexpr) = ((p::nil), Skip, (Var y)) ).
+        { subst newdef. apply StringMapFacts.MapsTo_fun with F' fname; auto.
+          rewrite e2. apply StringMapFacts.add_mapsto_iff. auto. }
+        inversion H2. subst params0 fstmt fexpr. clear H2.
+
+        (* Prove that the definition that we know the macro maps to
+           is the same one we asserted in the transformation *)
+        assert ( (params, mexpr) = ((p::nil), (Var y)) ).
+        { apply StringMapFacts.MapsTo_fun with M x; auto. }
+        inversion H2. subst params mexpr. clear H2.
+
+        (* Prove that after macro substitution, the macro body still
+           does not have side-effects *)
+        assert (~ ExprHasSideEffects ef).
+        { apply not_ExprHasSideEffects_MacroSubst_not_ExprHasSideEffects with (Var y) (p::nil) (e::nil); auto. }
+
+        (*  Add to the context all the premises we get from evaluating a
+            singleton arugment list *)
+        inversion H21. subst Sprev Ecaller G0 F0 M0 p0 ps e3 es vs Sfinal l0.
+        inversion H27. subst Sprev E G0 F0 M0 vs0 Snext0 Ef' Sargs'.
+
+        (* Prove that the macro invocation does not have side-effects *)
+        assert (NatMap.Equal S S').
+        { apply not_ExprHasSideEffects_S_Equal in H15; auto; auto. }
+
+        (* Prove that there are no side-effects caused by the skip statement *)
+        apply Skip_S_Equal in H26.
+
+        (* Prove that there are no side-effects cause by evaluating the argument *)
+        assert (NatMap.Equal S Snext).
+        { apply not_ExprHasSideEffects_S_Equal in H10; auto. }
+
+        (* Prove that there are no side-effects cause by the return expression *)
+        assert (NatMap.Equal S'' S'''').
+        { apply not_ExprHasSideEffects_S_Equal in H32; auto.
+          rewrite <- H32. rewrite <- H26. reflexivity. }
+
+        split.
+        -- (*  Prove that macro and function evaluate to the same value *)
+           apply not_ExprSideEffects_ExprNoVarsInEnvironment_call_by_name_call_by_value with
+            (x:=y) (Ecaller:=Ecaller) (e:=e) (p:=p) (ef:=ef) (S:=S) (G:=G) (F:=F')
+            (M:=M') (S''':=S') (v0:=v1) (S':=S'0) (Ef:=Ef) (Sargs:=Sargs)
+            (l:=l) (ls:=ls) (S'''0:=S''''); auto.
+            ++ apply e0 with (S:=S) (G:=G) (v:=v) (S':=S'); auto.
+            ++ (* Prove that the macro body terminates under the updated function table *)
+               rewrite e2. apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
+               apply not_ExprHasSideEffects_ExprNoCallsFromFunctionTable; auto.
+            ++ rewrite H5. apply ExprListNoMacroInvocations_remove_EvalExprList; auto.
+                constructor. apply not_ExprHasSideEffects_ExprNoMacroInvocations; auto.
+                constructor.
+            ++ apply S_Equal_EvalExpr with (S_1:=S'''); auto.
+               rewrite H5. apply EvalExprNoMacroInvocations_remove_EvalExpr; auto.
+               ** apply not_ExprHasSideEffects_ExprNoMacroInvocations; auto.
+               ** rewrite <- H26. auto.
+        -- (* Prove that the macro and function evaluate to the same final store *)
+           rewrite H35. rewrite <- H9. rewrite H25.
+           rewrite <- H7. rewrite H8. rewrite H3.
+           apply NatMap_disjoint_restrict_Equal; auto.
+      * (* Transformed is a macro invocation (contradiction) *)
+        apply StringMap_mapsto_in in H18. contradiction.
+
   - (* Object like macro without side-effects, shared variables with the caller environment,
        or nested macro invocations *)
     inversion H0. inversion H1.
@@ -443,10 +518,10 @@ Proof.
 
         (* Prove that the definition that we know the function maps to
            is the same one that we added during the transformation *)
-        assert ( (params1, fstmt, fexpr) = (nil, Skip, mexpr) ).
+        assert ( (params0, fstmt, fexpr) = (nil, Skip, mexpr) ).
         { subst newdef. apply StringMapFacts.MapsTo_fun with F' fname; auto.
           rewrite e3. apply StringMapFacts.add_mapsto_iff. auto. }
-        inversion H2. subst params1 fstmt fexpr. clear H2.
+        inversion H2. subst params0 fstmt fexpr. clear H2.
 
         (* Add to the context all the premises we get from evaluating an
            empty argument list *)
@@ -472,14 +547,14 @@ Proof.
 
         (* Prove that the definition that we know the macro maps to
            is the same one we asserted in the transformation *)
-        assert ( (params, mexpr) = (params0, mexpr0) ).
+        assert ( (nil, mexpr) = (params, mexpr0) ).
         { apply StringMapFacts.MapsTo_fun with M x; auto. }
-        inversion H8. subst params0 mexpr0. clear H8.
+        inversion H8. subst params mexpr0. clear H8.
 
         (* Prove that after macro substitution, the macro body still
            does not have side-effects *)
         assert (~ ExprHasSideEffects ef).
-        { apply not_ExprHasSideEffects_MacroSubst_not_ExprHasSideEffects with mexpr params nil; auto. }
+        { apply not_ExprHasSideEffects_MacroSubst_not_ExprHasSideEffects with mexpr nil nil; auto. }
 
         (* Prove that the macro invocation does not have side-effects *)
         assert (NatMap.Equal S S').
@@ -495,17 +570,16 @@ Proof.
         assert (mexpr=ef). { inversion_clear H12; auto. } subst ef.
         split.
         -- (* Prove that the expression will result in the same value
-               under call-by-name and call-by-value *)
+              under call-by-name and call-by-value *)
            apply no_side_effects_no_shared_vars_with_caller_evalargs_macrosubst_nil with
             mexpr F' M' Ecaller mexpr S G S S (StringMap.empty nat) (NatMap.empty Z) 1 ls S'';
               auto.
-           ++(* Prove that the macro body does contain a macro invocation *)
+           ++ (* Prove that the macro body does contain a macro invocation *)
               subst M'. apply ExprNoMacroInvocations_remove_ExprNoMacroInvocations.
               apply TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations with F mexpr; auto.
-           ++ constructor.
            ++ (* Prove that macro expression evaluation works the same
                   under an updated function table *)
-              inversion H12. subst params mexpr0.
+              inversion H12. subst mexpr0.
               subst F'. apply EvalExpr_notin_F_add_EvalExpr; auto.
               apply S'_Equal_EvalExpr with (S'_1:=S'); auto.
               symmetry. auto.
