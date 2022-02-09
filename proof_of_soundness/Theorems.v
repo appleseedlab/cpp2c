@@ -12,7 +12,6 @@ Require Import
 From Cpp2C Require Import
   Syntax
   ConfigVars
-  Constant
   MapLemmas
   EvalRules
   SideEffects
@@ -154,7 +153,7 @@ Abort.
 
 
 (*  If an mexpr is a variable not in the caller's scope,
-    and e is is a constant expression,
+    and e is is a side-effect-free expression,
     then that mexpr will evaluate to the same value under call-by-value
     and call-by-name semantics if e is the argument *)
 Theorem ExprConst_ExprNoVarsInEnvironment_call_by_name_call_by_value :
@@ -162,8 +161,8 @@ Theorem ExprConst_ExprNoVarsInEnvironment_call_by_name_call_by_value :
   (*  The macro body does not share variables with its caller environment *)
   ExprNoVarsInEnvironment (Var x) Ecaller ->
   forall e,
-  (*  e is a constant expression *)
-  ExprConstant e ->
+  (*  e is a side-effect-free expression *)
+  ~ ExprHasSideEffects e ->
   forall p ef,
   (*  Substitute e into a macro body for call-by-name *)
   MacroSubst (p::nil) (e::nil) (Var x) ef ->
@@ -185,9 +184,9 @@ Proof.
   inversion H1. subst. clear H1. inversion H13. subst. clear H13.
   clear H25.
   assert (NatMap.Equal S Snext).
-  { apply ExprConstant_EvalExpr_S_Equal in H17; auto. }
+  { apply not_ExprHasSideEffects_S_Equal in H17; auto. }
   inversion H12.
-  - (*  Var x was substituted by the constant expression *)
+  - (*  Var x was substituted by the side-effect-free expression *)
     subst.
     assert (v = v0).
     { apply EvalExpr_deterministic with (v1:=v) (S'1:=S''') in H17;
@@ -209,7 +208,7 @@ Proof.
     + (*  Global variable *)
       subst. unfold not in H8. destruct H8.
       apply StringMapFacts.add_in_iff. auto.
-  - (*  Var x was not substituted by the constant expression *)
+  - (*  Var x was not substituted by the side-effect-free expression *)
     subst.
     inversion H2.
     + (*  Var x refers to a local variable from the caller's scope *)
