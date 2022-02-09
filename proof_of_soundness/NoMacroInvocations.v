@@ -12,6 +12,7 @@ From Cpp2C Require Import
   EvalRules
   MapLemmas
   NoCallsFromFunctionTable
+  SideEffects
   Syntax.
 
 (*  Definition of the relation.
@@ -323,4 +324,21 @@ Proof.
   - auto.
   - inversion_clear H0. apply IHMacroSubst; auto.
     + subst. apply ExprNoMacroInvocations_MSub_ExprNoMacroInvocations with mexpr e p; auto.
+Qed.
+
+
+(* If an expression does not have side-effects, then it must not contain a
+   macro invocation *)
+Lemma not_ExprHasSideEffects_ExprNoMacroInvocations: forall e,
+  ~ ExprHasSideEffects e ->
+  forall F M,
+  ExprNoMacroInvocations e F M.
+Proof.
+  intros. induction e; try constructor; auto.
+  - simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
+    auto.
+  - simpl in H. apply Classical_Prop.not_or_and in H. destruct H.
+    auto.
+  - simpl in H. contradiction.
+  - simpl in H. contradiction.
 Qed.
