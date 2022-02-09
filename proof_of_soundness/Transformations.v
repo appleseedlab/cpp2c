@@ -132,7 +132,6 @@ Inductive TransformExpr :
 
     TransformExpr M F (CallOrInvocation x es) F'''' (CallOrInvocation x es')
 
-
   | Transform_MacroIdentity :
     forall F M x es params mexpr,
 
@@ -155,10 +154,37 @@ Inductive TransformExpr :
 
     TransformExpr M F (CallOrInvocation x es) F (CallOrInvocation x es)
 
-  | Transform_ObjectLikeMacroNoSideEffectsNoSharedVarsNoNestedMacros :
-    forall F M x F' params mexpr mexpr' fname newdef,
+  | Transform_FunctionLikeMacroBodyIsVarNoSharedVars1ArgNoSideEffects :
+    forall F M x y p e e' F' fname newdef,
 
-    StringMap.MapsTo x (params, mexpr) M ->
+    StringMap.MapsTo x ((p::nil), (Var y)) M ->
+
+    (*  e is a side-effect-free expression *)
+    ~ ExprHasSideEffects e ->
+
+    (* The macro's variable is not from its caller's environment *)
+    (forall S E G v S',
+      EvalExpr S E G F M (CallOrInvocation x (e::nil)) v S' ->
+      ExprNoVarsInEnvironment (Var y) E) ->
+
+    (* Transform macro argument *)
+    TransformExpr M F e F' e' ->
+
+    (* Create the transformed definition *)
+    newdef = ((p::nil), Skip, (Var y)) ->
+
+    (* Add the transformed function definition to the function table *)
+    ~ StringMap.In fname M ->
+    ~ StringMap.In fname F ->
+    F' = StringMapProperties.update F (StringMap.add fname newdef (StringMap.empty function_definition)) ->
+
+    TransformExpr M F (CallOrInvocation x (e::nil)) F' (CallOrInvocation fname (e::nil))
+
+
+  | Transform_ObjectLikeMacroNoSideEffectsNoSharedVarsNoNestedMacros :
+    forall F M x F' mexpr mexpr' fname newdef,
+
+    StringMap.MapsTo x (nil, mexpr) M ->
 
     (* The macro does not have side-effects *)
     ~ ExprHasSideEffects mexpr ->
@@ -250,6 +276,8 @@ Proof.
     inversion_clear H2. f_equal; auto.
   - (* Macro invocation (contradiction) *)
     inversion_clear H0.  apply StringMap_mapsto_in in m. contradiction.
+  - (* Macro invocation (contradiction) *)
+    inversion_clear H0.  apply StringMap_mapsto_in in m. contradiction.
   - (* ExprList *)
     inversion_clear H1. f_equal; auto.
 Qed.
@@ -308,6 +336,9 @@ Proof.
       apply H1.
       subst F''. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
       subst F'. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
+  - (* Macro invocation 
+    (can't happen since we are assuming no macro invocations *)
+    intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
   - (* Macro invocation 
     (can't happen since we are assuming no macro invocations *)
     intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
