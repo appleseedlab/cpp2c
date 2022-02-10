@@ -7,13 +7,13 @@ Require Import
   Coq.ZArith.ZArith.
 
 
-(* Unary operators *)
+(*  Unary operators *)
 Inductive unop : Type :=
   | Positive
   | Negative.
 
 
-(* Converts a unop type to its corresponding unary operation *)
+(*  Converts a unop type to its corresponding unary operation *)
 Definition unop_to_op (uo : unop) : (Z -> Z) :=
   match uo with
   | Positive => id
@@ -21,7 +21,7 @@ Definition unop_to_op (uo : unop) : (Z -> Z) :=
   end.
 
 
-(* Binary operators *)
+(*  Binary operators *)
 Inductive binop : Type :=
   | Plus
   | Sub
@@ -29,7 +29,7 @@ Inductive binop : Type :=
   | Div.
 
 
-(* Converts a binop type to its corresponding binary operation *)
+(*  Converts a binop type to its corresponding binary operation *)
 Definition binop_to_op (bo : binop) : (Z -> Z -> Z) :=
   match bo with
   | Plus => Zplus
@@ -41,7 +41,7 @@ Definition binop_to_op (bo : binop) : (Z -> Z -> Z) :=
 
 (* TODO: Currently we can only assign from strings to R-values.
    This need to be fixed so that LHS of assignments can be an L-value *)
-(* This would necessitate an evaluation rule for L-values as well *)
+(*  This would necessitate an evaluation rule for L-values as well *)
 Inductive expr : Type :=
   | Num (z : Z)
   | Var (x : string)
@@ -52,7 +52,12 @@ Inductive expr : Type :=
   | CallOrInvocation (x : string) (es : list expr).
 
 
+(*  Statements one would expect to find in an
+    imperative programming language *)
 Inductive stmt : Type :=
-  (* We may not need Skip, I added it to make the evaluation rule
-     for compound statements easier to define. *)
-  | Skip.
+  | Skip
+  | Expr (e0 : expr)
+  | IfElse (cond : expr) (s1 : stmt) (s2 : stmt)
+  | While (cond : expr) (s0 : stmt)
+  | Compound (ss : list stmt).
+
