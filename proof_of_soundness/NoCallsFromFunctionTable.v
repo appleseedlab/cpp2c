@@ -110,7 +110,25 @@ with ExprListNoCallsFromFunctionTable :
 with StmtNoCallsFromFunctionTable :
   stmt -> function_table -> macro_table -> function_table -> Prop :=
   | NC_Skip : forall F M F',
-    StmtNoCallsFromFunctionTable Skip F M F'.
+    StmtNoCallsFromFunctionTable Skip F M F'
+  | NC_Expr : forall e F M F',
+    ExprNoCallsFromFunctionTable e F M F' ->
+    StmtNoCallsFromFunctionTable (Expr e) F M F'
+  | NC_IfElse : forall cond s1 s2 F M F',
+    ExprNoCallsFromFunctionTable cond F M F' ->
+    StmtNoCallsFromFunctionTable s1 F M F' ->
+    StmtNoCallsFromFunctionTable s2 F M F' ->
+    StmtNoCallsFromFunctionTable (IfElse cond s1 s2) F M F'
+  | NC_While : forall cond s0 F M F',
+    ExprNoCallsFromFunctionTable cond F M F' ->
+    StmtNoCallsFromFunctionTable s0 F M F' ->
+    StmtNoCallsFromFunctionTable (While cond s0) F M F'
+  | NC_Compound_nil : forall F M F',
+    StmtNoCallsFromFunctionTable (Compound nil) F M F'
+  | NC_Compound_cons : forall s ss F M F',
+    StmtNoCallsFromFunctionTable s F M F' ->
+    StmtNoCallsFromFunctionTable (Compound ss) F M F' ->
+    StmtNoCallsFromFunctionTable (Compound (s::ss)) F M F'.
 
 
 (*  Simple way of saying that an expression does not call a specific
@@ -158,186 +176,431 @@ Scheme ExprNoCallsFromFunctionTable_mut := Induction for ExprNoCallsFromFunction
 with ExprListNoCallsFromFunctionTable_mut := Induction for ExprListNoCallsFromFunctionTable Sort Prop
 with StmtNoCallsFromFunctionTable_mut := Induction for StmtNoCallsFromFunctionTable Sort Prop.
 
+
 (*  If an expression contains no call to a function table, and the expression
     terminates under some context in which a function table it may
     contain calls from is updated with the function table it does not contain
     calls from, then it will terminate under the context in which its
     function table that it may contain calls from has not been updated with
     the table that it does not contain calls from *)
-Lemma EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr : forall e F M F',
+Lemma EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr : forall S E G F'' M e v S',
+  EvalExpr S E G F'' M e v S' ->
+  forall F F',
   ExprNoCallsFromFunctionTable e F M F' ->
-  forall S E G v S',
-  EvalExpr S E G (StringMapProperties.update F F') M e v S' <->
+  F'' = StringMapProperties.update F F' ->
   EvalExpr S E G F M e v S'.
 Proof.
-  split.
-  - revert e F M F' H S E G v S'.
-    apply (ExprNoCallsFromFunctionTable_mut
-      (fun e F M F' (h : ExprNoCallsFromFunctionTable e F M F') =>
-        forall S E G v S',
-        EvalExpr S E G (StringMapProperties.update F F') M e v S' ->
+  apply (EvalExpr_mut
+      (*  EvalExpr *)
+      (fun S E G F'' M e v S' (h : EvalExpr S E G F'' M e v S') =>
+        forall F F',
+        ExprNoCallsFromFunctionTable e F M F' ->
+        F'' = StringMapProperties.update F F' ->
         EvalExpr S E G F M e v S')
-      (fun es F M F' (h : ExprListNoCallsFromFunctionTable es F M F') =>
-        forall S E G params vs S' Ef Sargs l ls,
-        EvalExprList S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ls ->
-        EvalExprList S E G F M params es vs S' Ef Sargs l ls)
-      (fun stmt F M F' (h : StmtNoCallsFromFunctionTable stmt F M F') =>
-        forall S E G S',
-        EvalStmt S E G (StringMapProperties.update F F') M stmt S' ->
-        EvalStmt S E G F M stmt S')
-      ); intros; try constructor; auto.
-    +
-      inversion_clear H. constructor; auto.
-    +
-      inversion_clear H.
-      * econstructor; eauto.
-      * apply E_GlobalVar with l; auto.
-    +
-      inversion_clear H0; auto.
-    +
-      inversion_clear H0; constructor; auto.
-    +
-      inversion_clear H1. apply E_BinExpr with S'0; auto.
-    +
-      inversion_clear H0.
-      *
-        apply E_Assign_Local with l S'0; auto.
-      *
-        apply E_Assign_Global with l S'0; auto.
-    +
-      inversion_clear H2.
-      *
-        assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
-        { apply StringMapFacts.MapsTo_fun with F x; auto.
-          apply StringMapProperties.update_mapsto_iff in H4. destruct H4.
-          + apply StringMap_mapsto_in in H2. contradiction.
-          + apply H2.
-        } inversion H2; subst params0 fstmt0 fexpr0; clear H2.
-        apply E_FunctionCall with
-          params fstmt fexpr l ls Ef Sargs S'0 S'' S''' S'''' vs ; auto.
-      *
-        apply StringMap_mapsto_in in H3. contradiction.
-    +
-      inversion_clear H2.
-      *
-        apply StringMap_mapsto_in in m. contradiction.
-      *
-        assert ((params, mexpr) = (params0, mexpr0)).
-        { apply StringMapFacts.MapsTo_fun with M x; auto. }
-        inversion H2; subst params0 mexpr0; clear H2.
-        assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
-        subst ef0.
-        apply E_MacroInvocation with params mexpr M' ef; subst; auto.
-    +
-      inversion_clear H. constructor; auto.
-    +
-      inversion_clear H1. apply E_ExprList_cons with Snext; auto.
-    +
-      inversion_clear H; auto.
-  -
-    revert e F M F' H S E G v S'.
-    apply (ExprNoCallsFromFunctionTable_mut
-    (fun e F M F' (h : ExprNoCallsFromFunctionTable e F M F') =>
-      forall S E G v S',
-      EvalExpr S E G F M e v S' ->
-      EvalExpr S E G (StringMapProperties.update F F') M e v S')
-    (fun es F M F' (h : ExprListNoCallsFromFunctionTable es F M F') =>
-      forall S E G params vs S' Ef Sargs l ls,
-      EvalExprList S E G F M params es vs S' Ef Sargs l ls ->
-      EvalExprList S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ls)
-    (fun stmt F M F' (h : StmtNoCallsFromFunctionTable stmt F M F') =>
-      forall S E G S',
-      EvalStmt S E G F M stmt S' ->
-      EvalStmt S E G (StringMapProperties.update F F') M stmt S')
-    ); intros; try constructor; auto.
-    +
-      inversion_clear H. constructor; auto.
-    +
-      inversion_clear H.
-      * econstructor; eauto.
-      * apply E_GlobalVar with l; auto.
-    +
-      inversion_clear H0; auto.
-    +
-      inversion_clear H0; constructor; auto.
-    +
-      inversion_clear H1. apply E_BinExpr with S'0; auto.
-    +
-      inversion_clear H0.
-      *
-        apply E_Assign_Local with l S'0; auto.
-      *
-        apply E_Assign_Global with l S'0; auto.
-    +
-      inversion_clear H2.
-      *
-        assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
-        { apply StringMapFacts.MapsTo_fun with F x; auto. }
+      (*  EvalStmt *)
+      (fun S E G F'' M s S' (h : EvalStmt S E G F'' M s S') =>
+        forall F F',
+        StmtNoCallsFromFunctionTable s F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalStmt S E G F M s S')
+      (*  EvalExprList *)
+      (fun Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls
+        (h : EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls) =>
+        forall F F',
+        ExprListNoCallsFromFunctionTable es F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls)
+    ); intros; auto.
+  - constructor; auto.
+  - econstructor 2; eauto.
+  - econstructor 3; eauto.
+  - inversion_clear H0. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H0. econstructor 7; eauto.
+  - inversion_clear H0. econstructor 8; eauto.
+  - inversion_clear H2.
+    * assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. subst F.
+        apply StringMapProperties.update_mapsto_iff. right. auto. }
         inversion H2; subst params0 fstmt0 fexpr0; clear H2.
-        apply E_FunctionCall with
-          params fstmt fexpr l ls Ef Sargs S'0 S'' S''' S'''' vs; auto.
-        apply StringMapProperties.update_mapsto_iff. right. auto.
-      *
-        apply StringMap_mapsto_in in H3. contradiction.
-    +
-      inversion_clear H2.
-      *
-        apply StringMap_mapsto_in in m. contradiction.
-      *
-        assert ((params, mexpr) = (params0, mexpr0)).
-        { apply StringMapFacts.MapsTo_fun with M x; auto. }
-        inversion H2; subst params0 mexpr0; clear H2.
-        assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
-        subst ef0.
-        apply E_MacroInvocation with params mexpr M' ef; subst; auto.
-    + inversion_clear H. constructor; auto.
-    + inversion_clear H1. apply E_ExprList_cons with Snext; auto.
-    + inversion_clear H; auto.
+      apply E_FunctionCall with
+        params fstmt fexpr l ls Ef Sargs S' S'' S''' S'''' vs ; auto.
+        -- apply H with F'; auto.
+        -- apply H0 with F'; auto.
+        -- apply H1 with F'; auto.
+    * apply StringMap_mapsto_in in H6. contradiction.
+  - inversion_clear H0.
+    + apply StringMap_mapsto_in in m. contradiction.
+    + assert ((params, mexpr) = (params0, mexpr0)).
+      { apply StringMapFacts.MapsTo_fun with M x; auto. }
+      inversion H0; subst params0 mexpr0; clear H0.
+      assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+      subst ef0.
+      apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+      apply H with F'; auto.
+  - econstructor; eauto.
+  - inversion_clear H0. econstructor; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H1. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion H2. subst. econstructor 6; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor 8; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor; eauto.
 Qed.
 
-(*  Above, but for expression lists *)
-Lemma EvalExprListNoCallsFromFunctionTable_update_EvalExprListNoCallsFromFunctionTable: forall es F M F',
+
+(*  If an expression contains no call to a function table, and the expression
+    terminates under some context, then it will terminate under the context in
+    which its function table that it may contain calls from has been updated
+    with the table that it does not contain calls from *)
+Lemma EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr : forall S E G F M e v S',
+  EvalExpr S E G F M e v S' ->
+  forall F' F'',
+  ExprNoCallsFromFunctionTable e F M F' ->
+  F'' = StringMapProperties.update F F' ->
+  EvalExpr S E G F'' M e v S'.
+Proof.
+  apply (EvalExpr_mut
+      (*  EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S') =>
+        forall F' F'',
+        ExprNoCallsFromFunctionTable e F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExpr S E G F'' M e v S')
+      (*  EvalStmt *)
+      (fun S E G F M s S' (h : EvalStmt S E G F M s S') =>
+        forall F' F'',
+        StmtNoCallsFromFunctionTable s F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalStmt S E G F'' M s S')
+      (*  EvalExprList *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls
+        (h : EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls) =>
+        forall F' F'',
+        ExprListNoCallsFromFunctionTable es F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls)
+    ); intros; auto.
+  - constructor; auto.
+  - econstructor 2; eauto.
+  - econstructor 3; eauto.
+  - inversion_clear H0. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H0. econstructor 7; eauto.
+  - inversion_clear H0. econstructor 8; eauto.
+  - inversion_clear H2.
+    * assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. }
+      inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+      apply E_FunctionCall with
+        params fstmt fexpr l ls Ef Sargs S' S'' S''' S'''' vs ; auto.
+        -- rewrite H3. apply StringMapProperties.update_mapsto_iff.
+           right. auto.
+        -- apply H with F'; auto.
+        -- apply H0 with F'; auto.
+        -- apply H1 with F'; auto.
+    * apply StringMap_mapsto_in in H6. contradiction.
+  - inversion_clear H0.
+    + apply StringMap_mapsto_in in m. contradiction.
+    + assert ((params, mexpr) = (params0, mexpr0)).
+      { apply StringMapFacts.MapsTo_fun with M x; auto. }
+      inversion H0; subst params0 mexpr0; clear H0.
+      assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+      subst ef0.
+      apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+      apply H with F'; auto.
+  - econstructor; eauto.
+  - inversion_clear H0. econstructor; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H1. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion H2. subst. econstructor 6; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor 8; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor; eauto.
+Qed.
+
+
+Lemma EvalExprList_update_F_ExprListNoCallsFromFunctionTable_EvalExprList : forall Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls,
+  EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls ->
+  forall F F',
   ExprListNoCallsFromFunctionTable es F M F' ->
-  forall S E G params vs S' Ef Sargs l ls,
-  EvalExprList S E G (StringMapProperties.update F F') M params es vs S' Ef Sargs l ls <->
-  EvalExprList S E G F M params es vs S' Ef Sargs l ls.
+  F'' = StringMapProperties.update F F' ->
+  EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls.
 Proof.
-  intros es F M F' H.
-  remember (StringMapProperties.update F F'). split.
-  -
-    intros. induction H0.
-    +
-      constructor; auto.
-    +
-      subst F0. inversion_clear H. 
-      apply E_ExprList_cons with Snext; auto.
-      apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr with F';
-        auto.
-  - intros. induction H0.
-    +
-      constructor; auto.
-    +
-      subst t. inversion_clear H.
-      apply E_ExprList_cons with Snext; auto.
-      apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
+  apply (EvalExprList_mut
+      (*  EvalExpr *)
+      (fun S E G F'' M e v S' (h : EvalExpr S E G F'' M e v S') =>
+        forall F F',
+        ExprNoCallsFromFunctionTable e F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExpr S E G F M e v S')
+      (*  EvalStmt *)
+      (fun S E G F'' M s S' (h : EvalStmt S E G F'' M s S') =>
+        forall F F',
+        StmtNoCallsFromFunctionTable s F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalStmt S E G F M s S')
+      (*  EvalExprList *)
+      (fun Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls
+        (h : EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls) =>
+        forall F F',
+        ExprListNoCallsFromFunctionTable es F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls)
+    ); intros; auto.
+  - constructor; auto.
+  - econstructor 2; eauto.
+  - econstructor 3; eauto.
+  - inversion_clear H0. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H0. econstructor 7; eauto.
+  - inversion_clear H0. econstructor 8; eauto.
+  - inversion_clear H2.
+    * assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. subst F.
+        apply StringMapProperties.update_mapsto_iff. right. auto. }
+        inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+      apply E_FunctionCall with
+        params fstmt fexpr l ls Ef Sargs S' S'' S''' S'''' vs ; auto.
+        -- apply H with F'; auto.
+        -- apply H0 with F'; auto.
+        -- apply H1 with F'; auto.
+    * apply StringMap_mapsto_in in H6. contradiction.
+  - inversion_clear H0.
+    + apply StringMap_mapsto_in in m. contradiction.
+    + assert ((params, mexpr) = (params0, mexpr0)).
+      { apply StringMapFacts.MapsTo_fun with M x; auto. }
+      inversion H0; subst params0 mexpr0; clear H0.
+      assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+      subst ef0.
+      apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+      apply H with F'; auto.
+  - econstructor; eauto.
+  - inversion_clear H0. econstructor; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H1. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion H2. subst. econstructor 6; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor 8; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor; eauto.
 Qed.
 
 
-(*  Above, but for statements *)
-Lemma EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable: forall stmt F M F',
-  StmtNoCallsFromFunctionTable stmt F M F' ->
-  forall S E G S',
-  EvalStmt S E G (StringMapProperties.update F F') M stmt S' <->
-  EvalStmt S E G F M stmt S'.
+Lemma EvalExprList_ExprNoCallsFromFunctionTable_update_F_EvalExprList : forall Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls,
+  EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls ->
+  forall F' F'',
+  ExprListNoCallsFromFunctionTable es F M F' ->
+  F'' = StringMapProperties.update F F' ->
+  EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls.
 Proof.
-  intros es F M F' H.
-  remember (StringMapProperties.update F F'). split.
-  -
-    intros. induction H0.
-    + constructor; auto.
-  -
-    intros. induction H0.
-    + constructor; auto.
+  apply (EvalExprList_mut
+      (*  EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S') =>
+        forall F' F'',
+        ExprNoCallsFromFunctionTable e F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExpr S E G F'' M e v S')
+      (*  EvalStmt *)
+      (fun S E G F M s S' (h : EvalStmt S E G F M s S') =>
+        forall F' F'',
+        StmtNoCallsFromFunctionTable s F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalStmt S E G F'' M s S')
+      (*  EvalExprList *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls
+        (h : EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls) =>
+        forall F' F'',
+        ExprListNoCallsFromFunctionTable es F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls)
+    ); intros; auto.
+  - constructor; auto.
+  - econstructor 2; eauto.
+  - econstructor 3; eauto.
+  - inversion_clear H0. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H0. econstructor 7; eauto.
+  - inversion_clear H0. econstructor 8; eauto.
+  - inversion_clear H2.
+    * assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. }
+      inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+      apply E_FunctionCall with
+        params fstmt fexpr l ls Ef Sargs S' S'' S''' S'''' vs ; auto.
+        -- rewrite H3. apply StringMapProperties.update_mapsto_iff.
+           right. auto.
+        -- apply H with F'; auto.
+        -- apply H0 with F'; auto.
+        -- apply H1 with F'; auto.
+    * apply StringMap_mapsto_in in H6. contradiction.
+  - inversion_clear H0.
+    + apply StringMap_mapsto_in in m. contradiction.
+    + assert ((params, mexpr) = (params0, mexpr0)).
+      { apply StringMapFacts.MapsTo_fun with M x; auto. }
+      inversion H0; subst params0 mexpr0; clear H0.
+      assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+      subst ef0.
+      apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+      apply H with F'; auto.
+  - econstructor; eauto.
+  - inversion_clear H0. econstructor; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H1. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion H2. subst. econstructor 6; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor 8; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor; eauto.
+Qed.
+
+
+Lemma EvalStmt_update_F_StmtNoCallsFromFunctionTable_EvalStmt : forall S E G F'' M s S',
+  EvalStmt S E G F'' M s S' ->
+  forall F F',
+  StmtNoCallsFromFunctionTable s F M F' ->
+  F'' = StringMapProperties.update F F' ->
+  EvalStmt S E G F M s S'.
+Proof.
+  apply (EvalStmt_mut
+      (*  EvalExpr *)
+      (fun S E G F'' M e v S' (h : EvalExpr S E G F'' M e v S') =>
+        forall F F',
+        ExprNoCallsFromFunctionTable e F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExpr S E G F M e v S')
+      (*  EvalStmt *)
+      (fun S E G F'' M s S' (h : EvalStmt S E G F'' M s S') =>
+        forall F F',
+        StmtNoCallsFromFunctionTable s F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalStmt S E G F M s S')
+      (*  EvalExprList *)
+      (fun Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls
+        (h : EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls) =>
+        forall F F',
+        ExprListNoCallsFromFunctionTable es F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls)
+    ); intros; auto.
+  - constructor; auto.
+  - econstructor 2; eauto.
+  - econstructor 3; eauto.
+  - inversion_clear H0. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H0. econstructor 7; eauto.
+  - inversion_clear H0. econstructor 8; eauto.
+  - inversion_clear H2.
+    * assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. subst F.
+        apply StringMapProperties.update_mapsto_iff. right. auto. }
+        inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+      apply E_FunctionCall with
+        params fstmt fexpr l ls Ef Sargs S' S'' S''' S'''' vs ; auto.
+        -- apply H with F'; auto.
+        -- apply H0 with F'; auto.
+        -- apply H1 with F'; auto.
+    * apply StringMap_mapsto_in in H6. contradiction.
+  - inversion_clear H0.
+    + apply StringMap_mapsto_in in m. contradiction.
+    + assert ((params, mexpr) = (params0, mexpr0)).
+      { apply StringMapFacts.MapsTo_fun with M x; auto. }
+      inversion H0; subst params0 mexpr0; clear H0.
+      assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+      subst ef0.
+      apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+      apply H with F'; auto.
+  - econstructor; eauto.
+  - inversion_clear H0. econstructor; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H1. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion H2. subst. econstructor 6; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor 8; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor; eauto.
+Qed.
+
+
+Lemma EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt: forall S E G F M s S',
+  EvalStmt S E G F M s S' ->
+  forall F' F'',
+  StmtNoCallsFromFunctionTable s F M F' ->
+  F'' = StringMapProperties.update F F' ->
+  EvalStmt S E G F'' M s S'.
+Proof.
+  apply (EvalStmt_mut
+      (*  EvalExpr *)
+      (fun S E G F M e v S' (h : EvalExpr S E G F M e v S') =>
+        forall F' F'',
+        ExprNoCallsFromFunctionTable e F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExpr S E G F'' M e v S')
+      (*  EvalStmt *)
+      (fun S E G F M s S' (h : EvalStmt S E G F M s S') =>
+        forall F' F'',
+        StmtNoCallsFromFunctionTable s F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalStmt S E G F'' M s S')
+      (*  EvalExprList *)
+      (fun Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls
+        (h : EvalExprList Sprev Ecaller G F M ps es vs Snext Ef Sargs l ls) =>
+        forall F' F'',
+        ExprListNoCallsFromFunctionTable es F M F' ->
+        F'' = StringMapProperties.update F F' ->
+        EvalExprList Sprev Ecaller G F'' M ps es vs Snext Ef Sargs l ls)
+    ); intros; auto.
+  - constructor; auto.
+  - econstructor 2; eauto.
+  - econstructor 3; eauto.
+  - inversion_clear H0. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H0. econstructor 7; eauto.
+  - inversion_clear H0. econstructor 8; eauto.
+  - inversion_clear H2.
+    * assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
+      { apply StringMapFacts.MapsTo_fun with F x; auto. }
+      inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+      apply E_FunctionCall with
+        params fstmt fexpr l ls Ef Sargs S' S'' S''' S'''' vs ; auto.
+        -- rewrite H3. apply StringMapProperties.update_mapsto_iff.
+           right. auto.
+        -- apply H with F'; auto.
+        -- apply H0 with F'; auto.
+        -- apply H1 with F'; auto.
+    * apply StringMap_mapsto_in in H6. contradiction.
+  - inversion_clear H0.
+    + apply StringMap_mapsto_in in m. contradiction.
+    + assert ((params, mexpr) = (params0, mexpr0)).
+      { apply StringMapFacts.MapsTo_fun with M x; auto. }
+      inversion H0; subst params0 mexpr0; clear H0.
+      assert (ef = ef0). { apply MacroSubst_deterministic with params es mexpr; auto. }
+      subst ef0.
+      apply E_MacroInvocation with params mexpr M' ef; subst; auto.
+      apply H with F'; auto.
+  - econstructor; eauto.
+  - inversion_clear H0. econstructor; eauto.
+  - inversion_clear H1. econstructor; eauto.
+  - inversion_clear H1. econstructor 4; eauto.
+  - inversion_clear H0. econstructor 5; eauto.
+  - inversion H2. subst. econstructor 6; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor 8; eauto.
+  - inversion_clear H. constructor; auto.
+  - inversion_clear H1. econstructor; eauto.
 Qed.
 
 
