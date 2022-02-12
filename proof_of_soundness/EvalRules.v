@@ -304,11 +304,16 @@ with EvalStmt :
     EvalStmt S E G F M (While cond s0) S'
   (*  A while whose condition evaluates to true evaluates
       its body, then is evaluated again *)
-  | E_WhileTrue: forall S E G F M cond v S' s0 S'',
+  | E_WhileTrue: forall S E G F M cond v S' s0 S'' S''',
     EvalExpr S E G F M cond v S' ->
     v <> 0%Z ->
-    EvalStmt S' E G F M (While cond s0) S'' ->
-    EvalStmt S E G F M (While cond s0) S''
+    EvalStmt S' E G F M s0 S'' ->
+    (*  NOTE: The fact that while loops are inductively define
+        by themselves can cause problems with proods. When
+        possible, try to induct over the evaluation relation,
+        not any other relation your hypothesis includes *)
+    EvalStmt S'' E G F M (While cond s0) S''' ->
+    EvalStmt S E G F M (While cond s0) S'''
   (*  An empty compound statement does not change the state *)
   | E_CompoundStmt_nil: forall S E G F M S',
     NatMap.Equal S S' ->
@@ -457,7 +462,7 @@ Proof.
   - apply E_IfElseFalse with v S'; auto.
   - apply E_IfElseTrue with v S'; auto.
   - apply E_WhileFalse with v; auto.
-  - apply E_WhileTrue with v S'; auto.
+  - apply E_WhileTrue with v S' S''; auto.
   - apply E_CompoundStmt_cons with S'; auto.
   - apply E_ExprList_cons with Snext; auto.
 Qed.
@@ -506,7 +511,7 @@ Proof.
   - econstructor; eauto.
   - apply E_IfElseTrue with v S'; auto.
   - econstructor; eauto.
-  - apply E_WhileTrue with v S'; auto.
+  - apply E_WhileTrue with v S' S''; auto.
   - apply E_CompoundStmt_cons with S'; auto.
   - apply E_ExprList_cons with Snext; auto.
 Qed.
@@ -930,6 +935,74 @@ Proof.
 Qed.
 
 
+(*  If a statement s terminates under some context with a final store S',
+    and some other store S'2 is equal to S', then s will also terminate
+    under the original context where S' has been replaced with S'2 *)
+Lemma S'_Equal_EvalStmt : forall S E G F M s S'_1,
+  EvalStmt S E G F M s S'_1 ->
+  forall S'_2,
+  NatMap.Equal S'_1 S'_2 ->
+  EvalStmt S E G F M s S'_2.
+Proof.
+  apply (EvalStmt_mut
+      (*  EvalExpr *)
+      (fun S E G F M e v S'_1 (h : EvalExpr S E G F M e v S'_1 ) =>
+        forall S'_2,
+        NatMap.Equal S'_1 S'_2 ->
+        EvalExpr S E G F M e v S'_2)
+      (*  EvalStmt *)
+      (fun S E G F M stmt S'_1 (h : EvalStmt S E G F M stmt S'_1 ) =>
+        forall S'_2,
+        NatMap.Equal S'_1 S'_2 ->
+        EvalStmt S E G F M stmt S'_2)
+      (*  EvalExprList *)
+      (fun S Ecaller G F M ps es vs Snext_1 Ef Sargs l ls
+        (h : EvalExprList S Ecaller G F M ps es vs Snext_1 Ef Sargs l ls) =>
+        forall Snext_2,
+        NatMap.Equal Snext_1 Snext_2 ->
+        EvalExprList S Ecaller G F M ps es vs Snext_2 Ef Sargs l ls)
+    ); intros.
+  - (*  Num *)
+    rewrite H in e. constructor; auto.
+  - (*  Local var *)
+    rewrite H in e. apply E_LocalVar with l; auto.
+  - (*  Global var *)
+     rewrite H in e; apply E_GlobalVar with l; auto.
+  - (*  ParenExpr *)
+     constructor. apply H; auto.
+  - (*  UnExpr *)
+     constructor. apply H; auto.
+  - (*  BinExpr *)
+      apply E_BinExpr with S'.
+      * (*  Left operand *)
+        apply H. reflexivity.
+      * (*  Right operand *)
+        apply H0. auto.
+  - (*  Local assignment *)
+    rewrite H0 in e1. apply E_Assign_Local with l S'; auto.
+  - (*  Global assignment *)
+    rewrite H0 in e1. apply E_Assign_Global with l S'; auto.
+  - (*  Function call *)
+    rewrite H2 in e5.
+    apply E_FunctionCall with params fstmt fexpr l ls Ef Sargs S' S'' S''' S'''' vs; auto.
+  - (*  Macro invocation *)
+    apply E_MacroInvocation with params mexpr M' ef; auto.
+  - (*  Statements *)
+    constructor. rewrite H in e; auto.
+  - econstructor 2; eauto.
+  - econstructor 3; eauto.
+  - econstructor 4; eauto.
+  - econstructor 5; eauto.
+  - econstructor 6; eauto.
+  - econstructor 7; eauto. rewrite e. auto.
+  - econstructor 8; eauto.
+  - (*  ExprList (nil) *)
+    constructor. rewrite H in e; auto.
+  - (*  ExprList (cons) *)
+    apply E_ExprList_cons with Snext; auto.
+Qed.
+
+
 (*  If an expression list es terminates under some context with an
     initial store S, and some other store S2 is equal to S, then es
     will also terminate under the original context where S has been
@@ -1273,10 +1346,12 @@ Proof.
   - inversion_clear H0.
     + apply H with v0 S'2 in H1. destruct H1. auto.
     + apply H with v0 S'0 in H1. destruct H1. subst v0. contradiction.
-  - inversion_clear H1.
-    + apply H with v0 S'2 in H2; auto. destruct H2. subst v0. contradiction.
-    + apply H with v0 S'0 in H2; auto. destruct H2. subst v0.
-      apply S_Equal_EvalStmt with (S_2:=S') in H4; auto. symmetry. auto.
+  - inversion_clear H2.
+    + apply H with v0 S'2 in H3; auto. destruct H3. subst v0. contradiction.
+    + apply H with v0 S'0 in H3; auto. destruct H3. subst v0.
+      apply S_Equal_EvalStmt with (S_2:=S') in H5. 2 : { symmetry; auto. }
+      apply H0 with S''0 in H5. apply H1. eapply S_Equal_EvalStmt; eauto.
+      symmetry. auto.
   - inversion_clear H. transitivity S; auto. symmetry; auto.
   - inversion_clear H1. apply H in H2.
     apply S_Equal_EvalStmt with (S_2:=S') in H3; auto.
