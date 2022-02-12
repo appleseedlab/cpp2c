@@ -265,12 +265,12 @@ Proof.
       EvalExprList S Ecaller G F' M ps1 es' vs2 Snext2 Ef2 Sargs2 l2 ls2 ->
       vs1 = vs2 /\ NatMap.Equal Snext1 Snext2 /\ StringMap.Equal Ef1 Ef2 /\ NatMap.Equal Sargs1 Sargs2 /\ l1 = l2 /\ ls1 = ls2)
     (* Induction rule for TransformStmt *)
-    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
+    (fun M F s F' s' (h : TransformStmt M F s F' s') =>
     forall S E G S'1 S'2,
-      EvalStmt S E G F M stmt S'1 ->
-      EvalStmt S E G F' M stmt' S'2 ->
-      NatMap.Equal S'1 S'2
-      )); intros; auto.
+      EvalStmt S E G F M s S'1 ->
+      EvalStmt S E G F' M s' S'2 ->
+      NatMap.Equal S'1 S'2)
+      ); intros; auto.
 
   - (* Num *)
     inversion H. inversion H0. subst. split.
@@ -313,14 +313,13 @@ Proof.
 
     (* Prove that transformation of left operand is sound *)
     rewrite e0 in H1.
-    apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr in H1; auto.
+    apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F:=F') (F':=F2result) in H1; auto.
     eapply H in H1; eauto.
     destruct H1.
     subst v4.
 
     (* Prove that transformation of the right operand is sound *)
-    eapply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr in H4; eauto.
-    rewrite <- e in H4.
+    eapply EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr in H4; eauto.
     apply H0 with (v1:=v3) (S'1:=S'1) in H5; auto.
     destruct H5. subst v5. auto.
     apply S_Equal_EvalExpr with (S_1:=S'); auto.
@@ -360,14 +359,15 @@ Proof.
 
         (* Prove argument transformation is sound *)
         rewrite e10 in H17.
-        apply EvalExprListNoCallsFromFunctionTable_update_EvalExprListNoCallsFromFunctionTable in H17;
+        apply EvalExprList_update_F_ExprListNoCallsFromFunctionTable_EvalExprList with
+          (F:=F''') (F':=(StringMap.add x newdef (StringMap.empty function_definition))) in H17;
           auto.
         rewrite e1 in H17.
-        apply EvalExprListNoCallsFromFunctionTable_update_EvalExprListNoCallsFromFunctionTable in H17;
-          auto.
+        apply EvalExprList_update_F_ExprListNoCallsFromFunctionTable_EvalExprList with
+          (F:=F'') (F':=Fexprresult) in H17; auto.
         rewrite e0 in H17.
-        apply EvalExprListNoCallsFromFunctionTable_update_EvalExprListNoCallsFromFunctionTable in H17;
-          auto.
+        apply EvalExprList_update_F_ExprListNoCallsFromFunctionTable_EvalExprList with
+          (F:=F') (F':=Fstmtresult) in H17; auto.
         apply H with (vs1:=vs) (Snext1:=S') (Ef1:=Ef) (Sargs1:=Sargs) (l1:=l) (ls1:=ls) in H17; auto.
         destruct H17. destruct H25. destruct H26. destruct H27. destruct H28.
         subst vs0 ls0.
@@ -379,25 +379,27 @@ Proof.
 
         (* Prove statement transformation is sound *)
         rewrite e10 in H22.
-        apply EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable in H22;
+        apply EvalStmt_update_F_StmtNoCallsFromFunctionTable_EvalStmt with
+          (F:=F''') (F':=(StringMap.add x newdef (StringMap.empty function_definition))) in H22;
           auto.
         rewrite e1 in H22.
-        apply EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable in H22;
-          auto.
+        apply EvalStmt_update_F_StmtNoCallsFromFunctionTable_EvalStmt with
+          (F:=F'') (F':=Fexprresult) in H22; auto.
         apply H0 with (S'1:=S''') in H22; auto.
         2 : {
           subst F'.
-          apply EvalStmtNoCallsFromFunctionTable_update_EvalStmtNoCallsFromFunctionTable; auto.
+          eapply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt; eauto.
           apply S_Equal_EvalStmt with (S_1:=S''); auto.
           apply E_Equal_EvalStmt with (E_1:=Ef); auto. }
 
         (* Prove expression transformation is sound *)
         rewrite e10 in H23.
-        apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr in H23; auto.
+        eapply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr in H23; eauto.
         apply H1 with (v1:=v1) (S'1:=S'''') in H23; auto.
         2 : {
-          subst F''. apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
-          subst F'. apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
+          subst F''. apply EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr with
+          (F:=F') (F':=Fstmtresult); auto.
+          subst F'. eapply EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr; eauto.
           apply S_Equal_EvalExpr with (S_1:=S'''); auto.
           apply E_Equal_EvalExpr with (E_1:=Ef); auto. }
 
@@ -482,7 +484,7 @@ Proof.
             (l:=l) (ls:=ls) (S'''0:=S''''); auto.
             ++ apply e0 with (S:=S) (G:=G) (v:=v) (S':=S'); auto.
             ++ (* Prove that the macro body terminates under the updated function table *)
-               rewrite e2. apply EvalExpr_ExprNoCallsFromFunctionTable_update_EvalExpr; auto.
+               rewrite e2. eapply EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr; eauto.
                apply not_ExprHasSideEffects_ExprNoCallsFromFunctionTable; auto.
             ++ rewrite H5. apply ExprListNoMacroInvocations_remove_EvalExprList; auto.
                 constructor. apply not_ExprHasSideEffects_ExprNoMacroInvocations; auto.
@@ -594,29 +596,115 @@ Proof.
                  --- rewrite <- H26. rewrite H2. auto.
               ** apply TransformExpr_ExprNoMacroInvocations_ExprNoMacroInvocations with F mexpr; auto.
         -- reflexivity.
-      * (* Transformed is a macro invocation (contradiction) *)
+      * (*  Transformed is a macro invocation (contradiction) *)
         apply StringMap_mapsto_in in H18. contradiction.
 
-  - (* ExprList nil *)
+  - (*  ExprList nil *)
     inversion H. inversion H0. subst. split; auto.
     split. rewrite <- H1, H8. reflexivity.
     split. reflexivity. split. reflexivity.
     auto.
 
-  - (* ExprList cons *)
+  - (*  ExprList cons *)
     inversion H1. inversion H2.
     destruct H with
       S Ecaller G v v0 Snext Snext0; auto. subst. inversion H32. subst.
+    eapply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr in H24; eauto.
     destruct H0 with
       Snext0 Ecaller G ps vs vs0 Snext1 Snext2 Ef' Ef'0 Sargs' Sargs'0 l1 l2 ls ls0; auto.
-    apply S_Equal_EvalExprList with (S_1:=Snext); auto.
-    destruct H4. destruct H8. destruct H9. destruct H10. subst.
-    split; auto. split. rewrite <- H4. reflexivity.
-    split. rewrite H8. reflexivity. split. rewrite H9. reflexivity.
-    auto.
+    + apply S_Equal_EvalExprList with (S_1:=Snext); auto.
+      rewrite e0. eapply EvalExprList_ExprNoCallsFromFunctionTable_update_F_EvalExprList; eauto.
+    + subst ps1. inversion H32. subst p0 ps0. auto.
+    + destruct H44. destruct H45. destruct H46. destruct H47. subst.
+      split; auto. split. rewrite <- H44. reflexivity.
+      split. inversion H32. subst p0 ps0. rewrite H45. reflexivity.
+      split. rewrite H46. reflexivity.
+      auto.
 
-  - (* Stmt *)
+  - (*  Skip *)
     inversion H. inversion H0. subst. rewrite <- H1, <- H7. reflexivity.
+
+  - (*  Expr *)
+    inversion H0. inversion H1. subst.
+    destruct H with S E G v v0 S'1 S'2; auto.
+
+  - (*  IfElse *)
+    inversion_clear H2.
+    + inversion_clear H3.
+      * destruct H with S E G v v0 S' S'0; auto.
+        -- apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs1result) (F'':=F''); auto.
+           apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs2result) (F'':=F'''); auto.
+        -- apply S_Equal_EvalStmt with (S_2:=S') in H8; auto. 2 : { symmetry. auto. }
+           destruct H1 with S' E G S'1 S'2 0; auto.
+           ++ apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with (F:=F') (F':=Fs1result); auto.
+              apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with (F:=F) (F':=Fcondresult); auto.
+           ++ apply H1 with S' E G; auto.
+              apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with (F:=F') (F':=Fs1result); auto.
+              apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with (F:=F) (F':=Fcondresult); auto.
+      * destruct H with S E G v v0 S' S'0; auto.
+        -- apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs1result) (F'':=F''); auto.
+           apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs2result) (F'':=F'''); auto.
+        -- subst. contradiction.
+    + inversion_clear H3.
+      * destruct H with S E G v v0 S' S'0; auto.
+        -- apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs1result) (F'':=F''); auto.
+           apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs2result) (F'':=F'''); auto.
+        -- subst. contradiction.
+      * destruct H with S E G v v0 S' S'0; auto.
+        -- apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs1result) (F'':=F''); auto.
+           apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with (F':=Fs2result) (F'':=F'''); auto.
+        -- apply S_Equal_EvalStmt with (S_2:=S') in H8; auto. 2 : { symmetry. auto. }
+           destruct H0 with S' E G S'1 S'2 0; auto.
+           ++ apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with (F:=F) (F':=Fcondresult); auto.
+           ++ apply EvalStmt_update_F_StmtNoCallsFromFunctionTable_EvalStmt with (F':=Fs2result) (F'':=F'''); auto.
+           ++ apply H0 with S' E G; auto.
+              ** eapply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt; eauto.
+              ** eapply EvalStmt_update_F_StmtNoCallsFromFunctionTable_EvalStmt; eauto.
+
+  - (*  While *)
+    inversion_clear H2.
+    + inversion_clear H3.
+      * apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with
+        (F:=F') (F':=Fs0result) in H2; auto.
+        destruct H with S E G v v0 S'1 S'2; auto.
+      * apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with
+        (F:=F') (F':=Fs0result) in H2; auto.
+        destruct H with S E G v v0 S'1 S'; auto.
+        subst. contradiction.
+    + inversion_clear H3.
+      * apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with
+        (F:=F') (F':=Fs0result) in H2; auto.
+        destruct H with S E G v v0 S' S'2; auto.
+        subst. contradiction.
+      * apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with
+        (F:=F') (F':=Fs0result) in H2; auto.
+        destruct H with S E G v v0 S' S'0; auto.
+        apply S_Equal_EvalStmt with (S_2:=S') in H9. 2 : { symmetry; auto. }
+        assert (NatMap.Equal S'' S''0). {
+          apply H0 with S' E G; auto.
+          apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with
+            (F:=F) (F':=Fcondresult); auto.
+          }
+        apply S_Equal_EvalStmt with (S_2:=S'') in H10. 2 : { symmetry; auto. }
+        subst v0.
+        apply H1 with S E G v S' S'' S'' E G; auto.
+        -- eapply S'_Equal_EvalExpr; eauto. symmetry; auto.
+        -- eapply S'_Equal_EvalStmt; eauto. symmetry; auto.
+
+  - (*  Compound nil *)
+    inversion_clear H. inversion_clear H0.
+    rewrite <- H1, <- H. reflexivity.
+
+  - (*  Compound cons *)
+    inversion H1. inversion H2.
+    subst S0 E0 G0 F0 M0 s2 ss0 S'1 S1 E1 G1 F1 M1 s3 ss1 S'2.
+    assert (NatMap.Equal S' S'0).
+    { apply H with S E G; auto.
+      apply EvalStmt_update_F_StmtNoCallsFromFunctionTable_EvalStmt with
+        (F':=Fssresult) (F'':=F''); auto. }
+    apply S_Equal_EvalStmt with (S_2:=S') in H22. 2 : { symmetry; auto. }
+    apply H0 with S' E G; auto.
+    eapply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt; eauto.
 Qed.
 
 (* Issues:
