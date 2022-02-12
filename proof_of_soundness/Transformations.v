@@ -84,6 +84,8 @@ Inductive TransformExpr :
 
     ~ StringMap.In x M ->
     StringMap.MapsTo x (params, fstmt, fexpr) F ->
+    (*  We have not already transformed this function *)
+    ~StringMap.MapsTo x (params, fstmt', fexpr') F ->
 
     (* Transform function arguments *)
     TransformExprList M F es F' es' ->
@@ -220,20 +222,122 @@ with TransformExprList :
     TransformExprList M F nil F nil
 
   (* There are arguments left to transform *)
-  | TransformExprList_Cons : forall M F e es F' e' es',
+  | TransformExprList_Cons : forall M F e es F' F'' e' es' Feresult Fesresult,
     (* Transform the first expression *)
     TransformExpr M F e F' e' ->
+    F' = StringMapProperties.update F Feresult ->
 
     (* Transform the remaining expressions *)
-    TransformExprList M F es F' es' ->
+    TransformExprList M F' es F'' es' ->
+    F'' = StringMapProperties.update F' Fesresult ->
 
-    TransformExprList M F (e::es) F' (e'::es')
+    (*  TODO: Add comments *)
+    ExprNoCallsFromFunctionTable e' F' M Fesresult ->
+
+    (*  None of the untransformed expressions called a function that was added
+        while transforming the first expression *)
+    ExprListNoCallsFromFunctionTable es F M Feresult ->
+
+    TransformExprList M F (e::es) F'' (e'::es')
 with TransformStmt :
   macro_table -> function_table -> stmt ->
   function_table -> stmt -> Prop :=
 
   | Transform_Skip : forall M F,
-    TransformStmt M F Skip F Skip.
+    TransformStmt M F Skip F Skip
+
+  | Transform_Expr : forall M F e F' e',
+    (*  Transform the inner expression *)
+    TransformExpr M F e F' e' ->
+    TransformStmt M F (Expr e) F' (Expr e')
+
+  | Transform_If : forall M F cond s1 s2 F' F'' F''' cond' s1' s2' Fcondresult Fs1result Fs2result,
+    (*  Transform the condition *)
+    TransformExpr M F cond F' cond' ->
+    F' = StringMapProperties.update F Fcondresult ->
+
+    (*  Transform the true branch *)
+    TransformStmt M F' s1 F'' s1' ->
+    F'' = StringMapProperties.update F' Fs1result ->
+
+    (*  Transform the false branch *)
+    TransformStmt M F'' s2 F''' s2' ->
+    F''' = StringMapProperties.update F'' Fs2result ->
+
+    (*  TODO: Add comments *)
+    ExprNoCallsFromFunctionTable cond' F' M Fs1result ->
+    ExprNoCallsFromFunctionTable cond' F'' M Fs2result ->
+
+    (*  TODO: Add comments *)
+    StmtNoCallsFromFunctionTable s1 F M Fcondresult ->
+    StmtNoCallsFromFunctionTable s1' F'' M Fs2result ->
+
+    (*  TODO: Add comments *)
+    StmtNoCallsFromFunctionTable s2 F M Fcondresult ->
+    StmtNoCallsFromFunctionTable s2 F' M Fs1result ->
+
+    TransformStmt M F (IfElse cond s1 s2) F''' (IfElse cond' s1' s2')
+
+  | Transform_While : forall M F cond s0 F' F'' cond' s0' Fcondresult Fs0result,
+    (*  Transform the condition *)
+    TransformExpr M F cond F' cond' ->
+    F' = StringMapProperties.update F Fcondresult ->
+
+    (*  Transform the body *)
+    TransformStmt M F' s0 F'' s0' ->
+    F'' = StringMapProperties.update F' Fs0result ->
+
+    (*  TODO: Add comments *)
+    ExprNoCallsFromFunctionTable cond F M Fcondresult ->
+    ExprNoCallsFromFunctionTable cond F' M Fs0result ->
+    ExprNoCallsFromFunctionTable cond' F' M Fs0result ->
+
+    (*  TODO: Add comments *)
+    StmtNoCallsFromFunctionTable s0 F M Fcondresult ->
+    StmtNoCallsFromFunctionTable s0 F' M Fs0result ->
+
+    (*  This premise looks weird, but is needed for the transformation
+        soundness proof to work.
+        Since while loops are inductively defined by themselves,
+        the transformation for them must be as well.
+        We consider the transformation a success if its untransformed
+        and transformed expression evaluate to the same value and store,
+        and its transformed statement evaluate to the same store. *)
+    (
+      forall S E G v S' S'',
+
+      (*  Untransformed *)
+      EvalExpr S E G F M cond v S' ->
+      EvalStmt S' E G F M s0 S'' ->
+
+      (*  Transformed *)
+      EvalExpr S E G F' M cond' v S' ->
+      EvalStmt S' E G F'' M s0' S'' ->
+      TransformStmt M F (While cond s0) F'' (While cond' s0')
+    ) ->
+
+    TransformStmt M F (While cond s0) F'' (While cond' s0')
+
+  | Transform_Compound_nil : forall M F,
+    TransformStmt M F (Compound nil) F (Compound nil)
+
+  | Transform_Compound_cons : forall M F s ss F' F'' s' ss' Fsresult Fssresult,
+    (*  Transform first statement *)
+    TransformStmt M F s F' s' ->
+    F' = StringMapProperties.update F Fsresult ->
+
+    (*  Transform the remaining statements *)
+    TransformStmt M F' (Compound ss) F'' (Compound ss') ->
+    F'' = StringMapProperties.update F' Fssresult ->
+
+    (*  TODO: Add comments *)
+    StmtNoCallsFromFunctionTable s' F' M Fssresult ->
+
+    (*  TODO: Add comments *)
+    StmtNoCallsFromFunctionTable (Compound ss) F M Fsresult ->
+
+    TransformStmt M F (Compound (s::ss)) F'' (Compound (s'::ss')).
+
 
 (*  Custom induction scheme *)
 Scheme TransformExpr_mut := Induction for TransformExpr Sort Prop
@@ -258,8 +362,10 @@ Proof.
       ExprListNoMacroInvocations es F M ->
       es = es')
     (* TransformStmt *)
-    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
-      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+    (fun M F s F' s' (h : TransformStmt M F s F' s') =>
+      StmtNoMacroInvocations s F M ->
+      s = s')
+    ); intros; auto.
   - (* ParenExpr *)
     f_equal. inversion_clear H0; auto.
   - (* UnExpr *)
@@ -280,7 +386,23 @@ Proof.
     inversion_clear H0.  apply StringMap_mapsto_in in m. contradiction.
   - (* ExprList *)
     inversion_clear H1. f_equal; auto.
+    apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations with
+      (F':=Feresult) in H3; auto. rewrite <- e0 in H3. auto.
+  - inversion_clear H0. f_equal; auto.
+  - inversion_clear H2. f_equal; auto.
+    + apply H0. rewrite e.
+      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+    + apply H1. rewrite e0. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+      rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+  - inversion_clear H2. f_equal; auto.
+    apply H0. rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+  - inversion_clear H1. f_equal; auto. f_equal; auto.
+    assert (Compound ss = Compound ss').
+    { apply H0. rewrite e.
+      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto. }
+    inversion H1. auto.
 Qed.
+
 
 (*  If an expression does not contain macro invocations, then after
     transformation it does not contain macro invocations *)
@@ -299,8 +421,9 @@ Proof.
       ExprListNoMacroInvocations es F M ->
       ExprListNoMacroInvocations es' F' M)
     (* TransformStmt *)
-    (fun M F stmt F' stmt' (h : TransformStmt M F stmt F' stmt') =>
-      True (* TODO: Fix this later once we add more statements *))); intros; auto.
+    (fun M F s F' s' (h : TransformStmt M F s F' s') =>
+      StmtNoMacroInvocations s F M ->
+      StmtNoMacroInvocations s' F' M)); intros; auto.
   - (* ParenExpr *)
     inversion_clear H0. constructor; auto.
   - (* UnExpr *)
@@ -330,6 +453,12 @@ Proof.
          function table *)
       subst F'''' newdef. apply StringMapFacts.add_mapsto_iff.
       left. auto.
+    +
+      rewrite e10.
+      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+      rewrite e1. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+      apply H0.
+      rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
     + (* Prove that the transformed function expression does not contain
          macro invocations *)
       subst F''''. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
@@ -344,4 +473,25 @@ Proof.
     intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
   - (* ExprList *)
     intros. inversion_clear H1. constructor; auto.
+    + subst F''. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
+    + apply H0. rewrite e0.
+      apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
+  - inversion_clear H0. constructor; auto.
+  - inversion_clear H2. constructor.
+    + rewrite e1. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
+      rewrite e0. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
+    + rewrite e1. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+      apply H0. rewrite e.
+      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+    + apply H1. rewrite e0.
+      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+      rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+  - inversion_clear H2. constructor; auto.
+    + rewrite e0. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
+    + apply H0. rewrite e.
+      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+  - inversion_clear H1. constructor.
+    + rewrite e0. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
+    + apply H0. rewrite e.
+      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
 Qed.
