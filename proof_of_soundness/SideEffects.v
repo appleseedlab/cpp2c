@@ -14,7 +14,7 @@ From Cpp2C Require Import
   Syntax.
 
 
-(*  Checks if a function has side-effects and returns a Boolean
+(*  Checks if an expression has side-effects and returns a Boolean
     indicating the result *)
 Fixpoint expr_has_side_effects (e: expr) : bool :=
   match e with
@@ -30,7 +30,7 @@ Fixpoint expr_has_side_effects (e: expr) : bool :=
 end.
 
 
-(*  Checks if a function has side-effects and returns Prop indicating
+(*  Checks if an expression has side-effects and returns Prop indicating
     the result *)
 Fixpoint ExprHasSideEffects (e : expr) : Prop :=
   match e with
@@ -106,7 +106,7 @@ Lemma Skip_S_Equal : forall S E G F M S',
   EvalStmt S E G F M Skip S' ->
   NatMap.Equal S S'.
 Proof.
-  intros. induction H. auto.
+  intros. inversion_clear H. auto.
 Qed.
 
 
