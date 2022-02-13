@@ -231,7 +231,8 @@ with TransformExprList :
     TransformExprList M F' es F'' es' ->
     F'' = StringMapProperties.update F' Fesresult ->
 
-    (*  TODO: Add comments *)
+    (*  The transformed expression does not call any functions that
+        were added while transforming the rest of the the expressions *)
     ExprNoCallsFromFunctionTable e' F' M Fesresult ->
 
     (*  None of the untransformed expressions called a function that was added
@@ -264,15 +265,20 @@ with TransformStmt :
     TransformStmt M F'' s2 F''' s2' ->
     F''' = StringMapProperties.update F'' Fs2result ->
 
-    (*  TODO: Add comments *)
+    (*  The transformed condition does not call any functions
+        that were added while transforming the true and false branches *)
     ExprNoCallsFromFunctionTable cond' F' M Fs1result ->
     ExprNoCallsFromFunctionTable cond' F'' M Fs2result ->
 
-    (*  TODO: Add comments *)
+    (*  The original true branch does not call any functions that were added
+        while transforming the condition, and the transformed true branch
+        does not call any functions that were added while transforming the
+        false branch *)
     StmtNoCallsFromFunctionTable s1 F M Fcondresult ->
     StmtNoCallsFromFunctionTable s1' F'' M Fs2result ->
 
-    (*  TODO: Add comments *)
+    (*  The original false branch does not call any functions that were added
+        while transforming the condition or true branch *)
     StmtNoCallsFromFunctionTable s2 F M Fcondresult ->
     StmtNoCallsFromFunctionTable s2 F' M Fs1result ->
 
@@ -287,12 +293,16 @@ with TransformStmt :
     TransformStmt M F' s0 F'' s0' ->
     F'' = StringMapProperties.update F' Fs0result ->
 
-    (*  TODO: Add comments *)
+    (*  The original condition does not call any function that were
+        added while transforming the condition or while body, and
+        the transformed condition does not call any functions that were
+        added while transforming the while body *)
     ExprNoCallsFromFunctionTable cond F M Fcondresult ->
     ExprNoCallsFromFunctionTable cond F' M Fs0result ->
     ExprNoCallsFromFunctionTable cond' F' M Fs0result ->
 
-    (*  TODO: Add comments *)
+    (*  The original while body does not call any functions that were added
+        while transforming the condition or the while body *)
     StmtNoCallsFromFunctionTable s0 F M Fcondresult ->
     StmtNoCallsFromFunctionTable s0 F' M Fs0result ->
 
@@ -330,10 +340,12 @@ with TransformStmt :
     TransformStmt M F' (Compound ss) F'' (Compound ss') ->
     F'' = StringMapProperties.update F' Fssresult ->
 
-    (*  TODO: Add comments *)
+    (*  The transformed first statement does not call any functions
+        that were added while transforming the remaining statements *)
     StmtNoCallsFromFunctionTable s' F' M Fssresult ->
 
-    (*  TODO: Add comments *)
+    (*  The original remaining statement don't call any functions that
+        were added while transforming the first statement *)
     StmtNoCallsFromFunctionTable (Compound ss) F M Fsresult ->
 
     TransformStmt M F (Compound (s::ss)) F'' (Compound (s'::ss')).
