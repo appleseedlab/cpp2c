@@ -308,8 +308,8 @@ with EvalStmt :
     EvalExpr S E G F M cond v S' ->
     v <> 0%Z ->
     EvalStmt S' E G F M s0 S'' ->
-    (*  NOTE: The fact that while loops are inductively define
-        by themselves can cause problems with proods. When
+    (*  NOTE: The fact that while loops are inductively defined
+        by themselves can cause problems with proofs. When
         possible, try to induct over the evaluation relation,
         not any other relation your hypothesis includes *)
     EvalStmt S'' E G F M (While cond s0) S''' ->
@@ -318,7 +318,7 @@ with EvalStmt :
   | E_CompoundStmt_nil: forall S E G F M S',
     NatMap.Equal S S' ->
     EvalStmt S E G F M (Compound nil) S'
-  (*  A  non-empty compound statement evaluates its head,
+  (*  A non-empty compound statement evaluates its head,
       then evaluates its remaining statements *)
   | E_CompoundStmt_cons: forall S E G F M s ss S' S'',
     EvalStmt S E G F M s S' ->
