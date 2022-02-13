@@ -377,37 +377,18 @@ Proof.
     (fun M F s F' s' (h : TransformStmt M F s F' s') =>
       StmtNoMacroInvocations s F M ->
       s = s')
-    ); intros; auto.
-  - (* ParenExpr *)
-    f_equal. inversion_clear H0; auto.
-  - (* UnExpr *)
-    f_equal. inversion_clear H0; auto.
+    ); intros; auto;
+      try (solve [inversion_clear H0; f_equal; auto]);
+      try (solve [inversion_clear H2; f_equal; subst; auto using
+      StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations]);
+      try (inversion_clear H0; apply StringMap_mapsto_in in m; contradiction).
   - (* BinExpr *)
-    inversion_clear H1.
-    f_equal; auto.
-    apply H0. subst F'.
-    apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations;
-      auto.
-  - (* Assign *)
-    inversion_clear H0. f_equal; auto.
-  - (* Function call *)
-    inversion_clear H2. f_equal; auto.
-  - (* Macro invocation (contradiction) *)
-    inversion_clear H0.  apply StringMap_mapsto_in in m. contradiction.
-  - (* Macro invocation (contradiction) *)
-    inversion_clear H0.  apply StringMap_mapsto_in in m. contradiction.
+    inversion_clear H1; subst; f_equal; auto using
+      ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations.
   - (* ExprList *)
     inversion_clear H1. f_equal; auto.
     apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations with
       (F':=Feresult) in H3; auto. rewrite <- e0 in H3. auto.
-  - inversion_clear H0. f_equal; auto.
-  - inversion_clear H2. f_equal; auto.
-    + apply H0. rewrite e.
-      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-    + apply H1. rewrite e0. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-      rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-  - inversion_clear H2. f_equal; auto.
-    apply H0. rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
   - inversion_clear H1. f_equal; auto. f_equal; auto.
     assert (Compound ss = Compound ss').
     { apply H0. rewrite e.
@@ -435,75 +416,28 @@ Proof.
     (* TransformStmt *)
     (fun M F s F' s' (h : TransformStmt M F s F' s') =>
       StmtNoMacroInvocations s F M ->
-      StmtNoMacroInvocations s' F' M)); intros; auto.
-  - (* ParenExpr *)
-    inversion_clear H0. constructor; auto.
-  - (* UnExpr *)
-    inversion_clear H0. constructor; auto.
-  - (* BinExpr *)
-    inversion_clear H1. constructor; auto.
-    + subst F''.
-      apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations;
-        auto.
-    + apply H0.
-      subst F'.
-      apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations;
-        auto.
-  - (* Assign *)
-    inversion_clear H0. constructor; auto.
+      StmtNoMacroInvocations s' F' M)); intros; auto;
+        try (inversion_clear H0; solve [econstructor; eauto]);
+        try (inversion_clear H0; apply StringMap_mapsto_in in m; contradiction);
+        try (inversion_clear H1; constructor; subst; auto using
+          ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations,
+          StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations,
+          ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations);
+        try (inversion_clear H2; constructor; subst; auto using
+          ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations,
+          StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations,
+          ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations).
   - (* Function call *)
     inversion_clear H2.
     assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
     { apply StringMapFacts.MapsTo_fun with F x; auto. }
     inversion H2; subst params0 fstmt0 fexpr0; clear H2.
-    apply NM_CallOrInvocation with params fstmt' fexpr'; auto.
-    + (* Prove that transformed arguments don't contain macro invocations *)
-      subst F''''. apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
-      subst F'''. apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
-      subst F''. apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
-    + (* Prove that the function can actually be found in the tranformed
+    apply NM_CallOrInvocation with params fstmt' fexpr'; subst; auto using
+      ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations,
+      StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations,
+      ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations.
+    + (* Prove that the function can actually be found in the transformed
          function table *)
-      subst F'''' newdef. apply StringMapFacts.add_mapsto_iff.
+      apply StringMapFacts.add_mapsto_iff.
       left. auto.
-    +
-      rewrite e10.
-      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-      rewrite e1. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-      apply H0.
-      rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-    + (* Prove that the transformed function expression does not contain
-         macro invocations *)
-      subst F''''. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
-      apply H1.
-      subst F''. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
-      subst F'. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
-  - (* Macro invocation 
-    (can't happen since we are assuming no macro invocations *)
-    intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
-  - (* Macro invocation 
-    (can't happen since we are assuming no macro invocations *)
-    intros. inversion_clear H0. apply StringMap_mapsto_in in m. contradiction.
-  - (* ExprList *)
-    intros. inversion_clear H1. constructor; auto.
-    + subst F''. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
-    + apply H0. rewrite e0.
-      apply ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations; auto.
-  - inversion_clear H0. constructor; auto.
-  - inversion_clear H2. constructor.
-    + rewrite e1. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
-      rewrite e0. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
-    + rewrite e1. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-      apply H0. rewrite e.
-      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-    + apply H1. rewrite e0.
-      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-      rewrite e. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-  - inversion_clear H2. constructor; auto.
-    + rewrite e0. apply ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations; auto.
-    + apply H0. rewrite e.
-      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-  - inversion_clear H1. constructor.
-    + rewrite e0. apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
-    + apply H0. rewrite e.
-      apply StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations; auto.
 Qed.
