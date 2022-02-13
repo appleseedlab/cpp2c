@@ -706,10 +706,3 @@ Proof.
     apply H0 with S' E G; auto.
     eapply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt; eauto.
 Qed.
-
-(* Issues:
-           1) Proving evaluation equivalence under call-by-name and call-by-value
-
-           Solutions:
-           1) For now just prove for macros that have one argument.
-*)
