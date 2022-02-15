@@ -306,25 +306,11 @@ with TransformStmt :
     StmtNoCallsFromFunctionTable s0 F M Fcondresult ->
     StmtNoCallsFromFunctionTable s0 F' M Fs0result ->
 
-    (*  This premise looks weird, but is needed for the transformation
-        soundness proof to work.
-        Since while loops are inductively defined by themselves,
-        the transformation for them must be as well.
-        We consider the transformation a success if its untransformed
-        and transformed expression evaluate to the same value and store,
-        and its transformed statement evaluate to the same store. *)
-    (
-      forall S E G v S' S'',
-
-      (*  Untransformed *)
-      EvalExpr S E G F M cond v S' ->
-      EvalStmt S' E G F M s0 S'' ->
-
-      (*  Transformed *)
-      EvalExpr S E G F' M cond' v S' ->
-      EvalStmt S' E G F'' M s0' S'' ->
-      TransformStmt M F (While cond s0) F'' (While cond' s0')
-    ) ->
+    (*  If we were to transform the original while loop again
+        under the transformed function table, then we would get
+        the same transformed condition and statement and not add
+        any new functions to the function table *)
+    TransformStmt M F'' (While cond s0) F'' (While cond' s0') ->
 
     TransformStmt M F (While cond s0) F'' (While cond' s0')
 
