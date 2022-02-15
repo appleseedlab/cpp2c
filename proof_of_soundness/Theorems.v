@@ -339,7 +339,7 @@ Proof.
         destruct H with S E G v1 v2 S' S'0; auto.
         subst. split. auto. rewrite H14, H18. reflexivity.
 
-  - (* CallOrInvocation *)
+  - (* Function call whose transformed is the not same as untransformed *)
     inversion_clear H2.
     + (* Transformed is a function call *)
       inversion_clear H3.
@@ -404,6 +404,75 @@ Proof.
           apply E_Equal_EvalExpr with (E_1:=Ef); auto. }
 
         destruct H23. subst v2. rewrite H24. rewrite <- H29. auto.
+
+      * (* Transformed is a macro invocation  *)
+        apply StringMap_mapsto_in in H2. contradiction.
+    + (* Transformed is a macro invocation (contradiction) *)
+      apply StringMap_mapsto_in in H4. contradiction.
+
+  - (*  Function call whose transformed is the same as untransformed *)
+    inversion e13; subst es' fstmt' fexpr'; clear e13.
+    inversion_clear H2.
+    + (* Transformed is a function call *)
+      inversion_clear H3.
+      * (* Transformed is a function call *)
+
+        assert ((params1, fstmt1, fexpr1) = (params, fstmt, fexpr)).
+        { apply StringMapFacts.MapsTo_fun with F''' x; auto.
+          subst F''' F'' F'.
+          repeat (apply StringMapProperties.update_mapsto_iff; right; split; auto). }
+        inversion H3; subst params1 fstmt1 fexpr1; clear H3.
+
+        assert ((params0, fstmt0, fexpr0) = (params, fstmt, fexpr)).
+        { apply StringMapFacts.MapsTo_fun with F x; auto. }
+        inversion H3; subst params0 fstmt0 fexpr0; clear H3.
+
+        (* Prove argument transformation is sound *)
+        rewrite e1 in H17.
+        apply EvalExprList_update_F_ExprListNoCallsFromFunctionTable_EvalExprList with
+          (F:=F'') (F':=Fexprresult) in H17;
+          auto.
+        rewrite e0 in H17.
+        apply EvalExprList_update_F_ExprListNoCallsFromFunctionTable_EvalExprList with
+          (F:=F') (F':=Fstmtresult) in H17; auto.
+        apply H with (vs1:=vs) (Snext1:=S') (Ef1:=Ef) (Sargs1:=Sargs) (l1:=l) (ls1:=ls) in H17; auto.
+        destruct H17. destruct H17. destruct H25. destruct H26. destruct H27.
+        subst vs0 ls0.
+
+        assert (NatMap.Equal S'' S''0).
+        { rewrite H11. rewrite H21.
+          rewrite H17, H26. reflexivity. }
+        rewrite <- H17 in *.
+
+        (* Prove statement transformation is sound *)
+        rewrite e1 in H22.
+        apply EvalStmt_update_F_StmtNoCallsFromFunctionTable_EvalStmt with
+          (F:=F'') (F':=Fexprresult) in H22; auto.
+        apply H0 with (S'1:=S''') in H22; auto.
+        2 : {
+          subst F'.
+          eapply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt; eauto.
+          apply S_Equal_EvalStmt with (S_1:=S''); auto.
+          apply E_Equal_EvalStmt with (E_1:=Ef); auto. }
+
+        (* Prove expression transformation is sound *)
+        rewrite e1 in H23.
+        apply EvalExpr_update_F_ExprNoCallsFromFunctionTable_EvalExpr with
+          (F:=F'') (F':=Fexprresult) in H23; auto.
+        apply E_Equal_EvalExpr with (E_2:=Ef) in H23; auto.
+        2 : { symmetry; auto. }
+        apply EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr with
+          (F':=Fexprresult) (F'':=F''') in H23; auto.
+        apply H1 with (v1:=v1) (S'1:=S'''') in H23; auto.
+        2 : {
+          subst F''. apply EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr with
+          (F:=F') (F':=Fstmtresult); auto.
+          subst F'.
+          apply EvalExpr_ExprNoCallsFromFunctionTable_update_F_EvalExpr with
+          (F:=F) (F':=Fesresult); auto.
+          apply S_Equal_EvalExpr with (S_1:=S'''); auto. }
+
+        destruct H23. subst v2. rewrite H24. rewrite <- H28. auto.
 
       * (* Transformed is a macro invocation  *)
         apply StringMap_mapsto_in in H2. contradiction.
