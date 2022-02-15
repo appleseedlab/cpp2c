@@ -687,9 +687,13 @@ Proof.
           }
         apply S_Equal_EvalStmt with (S_2:=S'') in H10. 2 : { symmetry; auto. }
         subst v0.
-        apply H1 with S E G v S' S'' S'' E G; auto.
-        -- eapply S'_Equal_EvalExpr; eauto. symmetry; auto.
-        -- eapply S'_Equal_EvalStmt; eauto. symmetry; auto.
+        apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with
+            (F'':=F') (F':=Fcondresult) in H7; auto.
+        2 : { constructor; auto. }
+        apply EvalStmt_StmtNoCallsFromFunctionTable_update_F_EvalStmt with
+            (F'':=F'') (F':=Fs0result) in H7; auto.
+        2 : { constructor; auto. }
+        apply H1 with S'' E G; auto.
 
   - (*  Compound nil *)
     inversion_clear H. inversion_clear H0.
