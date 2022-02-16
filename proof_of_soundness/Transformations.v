@@ -24,23 +24,28 @@ Inductive TransformExpr :
   macro_table -> function_table -> expr ->
   function_table -> expr -> Prop :=
 
+
   | Transform_Num : forall M F z,
     (* Identity transformation *)
     TransformExpr M F (Num z) F (Num z)
 
+
   | Transform_Var : forall M F x,
     (* Identity transformation *)
     TransformExpr M F (Var x) F (Var x)
+
 
   | Transform_ParenExpr : forall M F e0 F' e0',
     (* Transform the inner expression *)
     TransformExpr M F e0 F' e0' ->
     TransformExpr M F (ParenExpr e0) F' (ParenExpr e0')
 
+
   | Transform_UnExpr : forall M F e0 F' e0' uo,
     (* Transform the inner expression *)
     TransformExpr M F e0 F' e0' ->
     TransformExpr M F (UnExpr uo e0) F' (UnExpr uo e0')
+
 
   | Transform_BinExpr : forall bo M F e1 e2 F' F'' F1result F2result e1' e2',
 
@@ -52,13 +57,6 @@ Inductive TransformExpr :
     TransformExpr M F' e2 F'' e2' ->
     F'' = StringMapProperties.update F' F2result ->
 
-    (* What I find interesting here is what we *don't* need to add
-       as premises in order for the proof to work *)
-
-    (* e1 does not contain calls are to functions that were added
-       while transforming e2 *)
-    (* ExprNoCallsFromFunctionTable e1 F M F2result -> *)
-
     (* e1' does not contain calls to functions that were added
        while transforming e2 *)
     ExprNoCallsFromFunctionTable e1' F' M F2result ->
@@ -67,148 +65,44 @@ Inductive TransformExpr :
        while transforming e1 *)
     ExprNoCallsFromFunctionTable e2 F M F1result ->
 
-    (* e2' does not contain calls to functions that were added
-       while transforming e1 *)
-    (* ExprNoCallsFromFunctionTable e2' F'' M F1result -> *)
-
     TransformExpr M F (BinExpr bo e1 e2) F'' (BinExpr bo e1' e2')
 
+
   | Transform_Assign : forall M F x e F' e',
+    (* Transform the inner expression *)
     TransformExpr M F e F' e' ->
     TransformExpr M F (Assign x e) F' (Assign x e')
 
-  | Transform_FunctionCallTransformedNotExists :
-    forall   F M x es F' F'' F''' F'''' es' newdef
-             params fstmt fexpr fstmt' fexpr'
-             Fesresult Fstmtresult Fexprresult,
 
+  | Transform_FunctionCall :
+    forall   F M x es F' es' Fesresult params fstmt fexpr,
+
+    (*  The callee is not a macro and is in the function table *)
     ~ StringMap.In x M ->
     StringMap.MapsTo x (params, fstmt, fexpr) F ->
 
-    (* Transform function arguments *)
+    (*  Transform function arguments *)
     TransformExprList M F es F' es' ->
     F' = StringMapProperties.update F Fesresult ->
 
-    (* Transform function statement *)
-    TransformStmt M F' fstmt F'' fstmt' ->
-    F'' = StringMapProperties.update F' Fstmtresult ->
-
-    (* Transform function return expression *)
-    TransformExpr M F'' fexpr F''' fexpr' ->
-    F''' =  StringMapProperties.update F'' Fexprresult ->
-
-    (* Create the new definition of the function *)
-    newdef = (params, fstmt', fexpr') ->
-
-    (* es' does not contain calls to functions that
-       were added while transforming fstmt or fexpr or
-       the transformed function *)
-    ExprListNoCallsFromFunctionTable es' F' M Fstmtresult ->
-    ExprListNoCallsFromFunctionTable es' F'' M Fexprresult ->
-    ExprListFunctionNotCalled es' F''' M x newdef ->
-
-    (* fstmt' does not contain calls to functions that
-       were added while transforming fexpr or the transformed function *)
-    StmtNoCallsFromFunctionTable fstmt' F'' M Fexprresult ->
-    StmtFunctionNotCalled fstmt' F''' M x newdef ->
-
-    (* fexpr' does not contain a call to the transformed function or
-       to functions that were added while transforming fstmt *)
-    ExprFunctionNotCalled fexpr' F''' M x newdef ->
-
-    (* fexpr does not contain calls to functions that were added
-       while transforming fstmt or es *)
-    ExprNoCallsFromFunctionTable fexpr F M Fstmtresult ->
-    ExprNoCallsFromFunctionTable fexpr F' M Fstmtresult ->
-    ExprNoCallsFromFunctionTable fexpr F M Fesresult ->
-
-    (* fstmt does not contain calls to functions that were added
-       while transforming es *)
+    (*  fstmt does not contain calls to functions that were added
+        while transforming es *)
     StmtNoCallsFromFunctionTable fstmt F M Fesresult ->
 
-    (*  We have not already transformed this function *)
-    (forall x',
-      ~StringMap.MapsTo x' newdef F) ->
-
-    (* Add the transformed function back to the function table under a new name *)
-    F'''' = StringMapProperties.update F'''
-      (StringMap.add x newdef (StringMap.empty function_definition)) ->
-
-    TransformExpr M F (CallOrInvocation x es) F'''' (CallOrInvocation x es')
-
-  (*  We try to transform a function, and find that the transformed
-      function is the same and the untransformed function. In this case,
-      we don't change the call *)
-  | Transform_FunctionCallTransformedSameAsUntransformed :
-    forall   F M x es F' F'' F''' es' newdef
-             params fstmt fexpr fstmt' fexpr'
-             Fesresult Fstmtresult Fexprresult,
-
-    ~ StringMap.In x M ->
-    StringMap.MapsTo x (params, fstmt, fexpr) F ->
-
-    (* Transform function arguments *)
-    TransformExprList M F es F' es' ->
-    F' = StringMapProperties.update F Fesresult ->
-
-    (* Transform function statement *)
-    TransformStmt M F' fstmt F'' fstmt' ->
-    F'' = StringMapProperties.update F' Fstmtresult ->
-
-    (* Transform function return expression *)
-    TransformExpr M F'' fexpr F''' fexpr' ->
-    F''' =  StringMapProperties.update F'' Fexprresult ->
-
-    (* Create the new definition of the function *)
-    newdef = (params, fstmt', fexpr') ->
-
-    (* es' does not contain calls to functions that
-       were added while transforming fstmt or fexpr or
-       the transformed function *)
-    ExprListNoCallsFromFunctionTable es' F' M Fstmtresult ->
-    ExprListNoCallsFromFunctionTable es' F'' M Fexprresult ->
-
-    (* fstmt' does not contain calls to functions that
-       were added while transforming fexpr or the transformed function *)
-    StmtNoCallsFromFunctionTable fstmt' F'' M Fexprresult ->
-    StmtFunctionNotCalled fstmt' F''' M x newdef ->
-
-    (* fexpr' does not contain a call to the transformed function or
-       to functions that were added while transforming fstmt *)
-    ExprFunctionNotCalled fexpr' F''' M x newdef ->
-
-    (*  es does not contain calls to functions that were added while
-        transforming es, fstmt, or fexpr *)
-    ExprListNoCallsFromFunctionTable es F M Fesresult ->
-    ExprListNoCallsFromFunctionTable es F' M Fstmtresult ->
-    ExprListNoCallsFromFunctionTable es F'' M Fexprresult ->
-
-    (* fexpr does not contain calls to functions that were added
-       while transforming fstmt or es *)
-    ExprNoCallsFromFunctionTable fexpr F M Fstmtresult ->
-    ExprNoCallsFromFunctionTable fexpr F' M Fstmtresult ->
+    (*  fexpr does not contain calls to functions that were added
+        while transforming es *)
     ExprNoCallsFromFunctionTable fexpr F M Fesresult ->
-    ExprNoCallsFromFunctionTable fexpr F'' M Fexprresult ->
 
-    (* fstmt does not contain calls to functions that were added
-       while transforming es *)
-    StmtNoCallsFromFunctionTable fstmt F M Fesresult ->
+    (*  None of the functions that were added while transforming es have
+        the same name as the callee *)
+    ~ StringMap.In (elt:=function_definition) x Fesresult ->
 
-    (*  The transformed version of this function is identical
-        to the untransformed version *)
-    (es, fstmt, fexpr) = (es', fstmt', fexpr') ->
+    (*  Note that we don't transform the function definition here. That is
+        because we transform a function when we encounter its definition,
+        not a call to it. This lets us transform recursive functions
+        more easily. *)
+    TransformExpr M F (CallOrInvocation x es) F' (CallOrInvocation x es')
 
-    (*  The original function name is not in any of the intermediate results *)
-    ~ StringMap.In x Fesresult ->
-    ~ StringMap.In x Fstmtresult ->
-    ~ StringMap.In x Fexprresult ->
-
-    (*  Note that we still update F. This is because the es, fstmt, or fexpr
-        may be syntactically the same as their transformed counterparts,
-        but may have involved function calls that needed to be transformed
-        (see the previous case). This also covers the case where transforming
-        the parts of the expression did not actually update F. *)
-    TransformExpr M F (CallOrInvocation x es) F''' (CallOrInvocation x es)
 
   | Transform_MacroIdentity :
     forall F M x es params mexpr,
@@ -232,6 +126,10 @@ Inductive TransformExpr :
 
     TransformExpr M F (CallOrInvocation x es) F (CallOrInvocation x es)
 
+  (*  Note: This could potentially recurse infinitely if the argument contains
+      a macro invocation. Since we stipulate that the argument is side-effect
+      free, however, and treat all macro invocations as having side-effects,
+      this cannot happen. *)
   | Transform_FunctionLikeMacroBodyIsVarNoSharedVars1ArgNoSideEffects :
     forall F M x y p e e' F' fname newdef,
 
@@ -490,29 +388,15 @@ Proof.
           StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations,
           ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations).
   - (*  Function call (the transformed function does not already exist) *)
-    inversion_clear H2.
+    inversion_clear H0.
     assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
     { apply StringMapFacts.MapsTo_fun with F x; auto. }
-    inversion H2; subst params0 fstmt0 fexpr0; clear H2.
-    apply NM_CallOrInvocation with params fstmt' fexpr'; subst; auto using
+    inversion H0; subst params0 fstmt0 fexpr0; clear H0.
+    apply NM_CallOrInvocation with params fstmt fexpr; subst; auto using
       ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations,
       StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations,
       ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations.
     + (* Prove that the function can actually be found in the transformed
          function table *)
-      apply StringMapFacts.add_mapsto_iff.
-      left. auto.
-  - (*  Function call (the transformed function already exists) *)
-    inversion e13; subst es' fstmt' fexpr'; clear e13.
-    inversion_clear H2.
-    assert ((params, fstmt, fexpr) = (params0, fstmt0, fexpr0)).
-    { apply StringMapFacts.MapsTo_fun with F x; auto. }
-    inversion H2; subst params0 fstmt0 fexpr0; clear H2.
-    apply NM_CallOrInvocation with params fstmt fexpr; subst; auto using
-      ExprNoMacroInvocations_update_ExprNoCallFromFunctionTable_ExprNoMacroInvocations,
-      StmtNoMacroInvocations_update_StmtNoCallFromFunctionTable_StmtNoMacroInvocations,
-      ExprListNoMacroInvocations_update_ExprListNoCallsFromFunctionTableExprList_ExprListNoMacroInvocations.
-    apply StringMapProperties.update_mapsto_iff; right; split; auto.
-    apply StringMapProperties.update_mapsto_iff; right; split; auto.
-    apply StringMapProperties.update_mapsto_iff; right; split; auto.
+      apply StringMapProperties.update_mapsto_iff. right. auto.
 Qed.
