@@ -1,0 +1,39 @@
+#!/bin/bash
+
+argc=$#
+argv=("$@")
+
+clang_args=()
+function clang_arg() {
+    clang_args+=(-Xclang -plugin-arg-cpp-to-c -Xclang "$1")
+}
+
+compile=false
+for (( j=0; j<argc; j++ )); do
+    if [ "${argv[j]}" = "-c" ]; then
+        compile=true;
+    elif [ "${argv[j]}" = "-o" ]; then
+        output="${argv[j+1]}";
+    elif [ "${argv[j]}" = "-v" ]; then
+        clang_arg -v
+    elif [ "${argv[j]}" = "/dev/null" ]; then
+        exec gcc "$@"
+    fi
+done
+
+
+if [ $compile = true ]; then
+    clang_arg -o
+    clang_arg "$output".macros
+fi
+
+exec @CLANG_C_COMPILER@ -fplugin=@PROJECT_BINARY_DIR@/lib/libCppToC.so \
+     -Wno-address-of-packed-member \
+     -Wno-unused-argument \
+     "${clang_args[@]}" \
+     "$@" \
+     -Wno-unused-parameter \
+     -Wno-sign-compare \
+     -Wno-initializer-overrides
+
+
