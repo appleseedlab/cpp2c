@@ -1217,7 +1217,7 @@ Proof.
 Qed.
 
 
-(*  Given the same context and expression, a program will terminate to the
+(*  Given the same context, an expression will terminate to the
     same value and final store every time *)
 Lemma EvalExpr_deterministic : forall S E G F M e v1 S'1,
   EvalExpr S E G F M e v1 S'1 ->
@@ -1226,6 +1226,161 @@ Lemma EvalExpr_deterministic : forall S E G F M e v1 S'1,
   v1 = v2 /\ NatMap.Equal S'1 S'2.
 Proof.
   apply (EvalExpr_mut
+      (*  EvalExpr *)
+      (fun S E G F M e v1 S'1 (h : EvalExpr S E G F M e v1 S'1 ) =>
+        forall v2 S'2,
+          EvalExpr S E G F M e v2 S'2 ->
+          v1 = v2 /\ NatMap.Equal S'1 S'2)
+      (*  EvalStmt *)
+      (fun S E G F M stmt S'1 (h : EvalStmt S E G F M stmt S'1 ) =>
+        forall S'2,
+          EvalStmt S E G F M stmt S'2 ->
+          NatMap.Equal S'1 S'2)
+      (*  EvalExprList *)
+      (fun Sprev Ecaller G F M ps es vs1 Snext1 Ef1 Sargs1 l1 ls1
+        (h : EvalExprList Sprev Ecaller G F M ps es vs1 Snext1 Ef1 Sargs1 l1 ls1) =>
+        forall vs2 Snext2 Ef2 Sargs2 l2 ls2,
+          EvalExprList Sprev Ecaller G F M ps es vs2 Snext2 Ef2 Sargs2 l2 ls2 ->
+          vs1 = vs2 /\ NatMap.Equal Snext1 Snext2 /\ StringMap.Equal Ef1 Ef2 /\ NatMap.Equal Sargs1 Sargs2 /\ l1 = l2 /\ ls1 = ls2)
+    ); intros; auto.
+  - (*  Num *)
+    inversion_clear H. split; auto.
+    rewrite H0 in e. symmetry in e. auto.
+  - (*  Local Var *)
+    inversion_clear H.
+    + (*  Local *)
+      assert (l=l0). { eapply StringMapFacts.MapsTo_fun; eauto. }
+      subst l0.
+      assert (v=v2). { eapply NatMapFacts.MapsTo_fun; eauto. }
+      subst v2; split; auto. rewrite <- e. auto.
+    + (*  Global (contradiction *)
+      apply StringMap_mapsto_in in m. contradiction.
+  - (*  Global Var *)
+    inversion_clear H.
+    + (*  Local *)
+      apply StringMap_mapsto_in in H1. contradiction.
+    + (*  Global (contradiction *)
+      assert (l=l0). { eapply StringMapFacts.MapsTo_fun; eauto. }
+      subst l0.
+      assert (v=v2). { eapply NatMapFacts.MapsTo_fun; eauto. }
+      subst v2; split; auto. rewrite <- H0. symmetry. auto.
+  - (*  ParenExpr *)
+    inversion_clear H0; auto.
+  - (*  UnExpr *)
+      inversion_clear H0.
+      destruct H with v0 S'2; auto. subst. auto.
+  - (*  BinExpr *)
+    inversion_clear H1.
+    (*  Left operand*)
+    assert (v1 = v3 /\ NatMap.Equal S' S'0). { auto. }
+    destruct H1; subst.
+    (*  Right operand *)
+    assert (v2 = v4 /\ NatMap.Equal S'' S'2).
+    { apply H0. apply S_Equal_EvalExpr with S'0; auto. symmetry. auto. }
+    destruct H1; subst.
+    auto.
+  - (*  Local Assignment *)
+    inversion_clear H0.
+    + (*  Local assignment *)
+      assert (v = v2 /\ NatMap.Equal S' S'0). { auto. }
+      destruct H0. subst v2.
+      assert (l0 = l). { eapply StringMapFacts.MapsTo_fun; eauto. }
+      subst. rewrite <- H3 in e1. auto.
+    + (*  Global assignment (contradiction) *)
+      apply StringMap_mapsto_in in m. contradiction.
+  - (*  Global Assignment *)
+    inversion_clear H0.
+    + (*  Local assignment (contradiction) *)
+      apply StringMap_mapsto_in in H1. contradiction.
+    + (*  Global assignment *)
+      assert (v = v2 /\ NatMap.Equal S' S'0). { auto. }
+      destruct H0. subst v2.
+      assert (l0 = l). { eapply StringMapFacts.MapsTo_fun; eauto. }
+      subst. auto. rewrite <- H4 in e1. auto.
+  - (*  Function call *)
+    inversion_clear H2.
+    + (*  Function call *)
+      assert ((params0, fstmt0, fexpr0) = (params, fstmt, fexpr)).
+      { eapply StringMapFacts.MapsTo_fun; eauto. }
+      inversion H2; subst params0 fstmt0 fexpr0; clear H2.
+      assert (vs = vs0 /\ NatMap.Equal S' S'0 /\ StringMap.Equal Ef Ef0 /\ NatMap.Equal Sargs Sargs0 /\ l = l0 /\ ls = ls0). { auto. }
+      destruct H2. destruct H14. destruct H15. destruct H16. destruct H17. subst vs0 l0 ls0.
+      assert (NatMap.Equal S'' S''0).
+      { rewrite <- H14 in H10. rewrite <- H16 in H10. rewrite <- e2 in H10. symmetry. auto. }
+      assert (NatMap.Equal S''' S'''0). symmetry in H2. symmetry in H15.
+      { apply S_Equal_EvalStmt with (S_2:=S'') in H11; auto.
+        apply E_Equal_EvalStmt with (E_2:=Ef) in H11; auto. }
+      assert (v = v2 /\ NatMap.Equal S'''' S''''0).
+      symmetry in H17. symmetry in H15.
+      { apply S_Equal_EvalExpr with (S_2:=S''') in H12; auto. 
+        apply E_Equal_EvalExpr with (E_2:=Ef) in H12; auto. }
+      destruct H18. subst v2. rewrite H19 in e5.
+      rewrite <- e5 in H13. symmetry in H13. auto.
+    + (*  Macro invocation (contradiction) *)
+      apply StringMap_mapsto_in in H3. contradiction.
+  - (*  Macro invocation *)
+    inversion_clear H0.
+    + (*  Function call (contradiction) *)
+      apply StringMap_mapsto_in in m. contradiction.
+    + (*  Macro invocation *)
+      assert ((params0, mexpr0) = (params, mexpr)).
+      { eapply StringMapFacts.MapsTo_fun; eauto. }
+      inversion H0. subst params0 mexpr0. clear H0.
+      assert (ef = ef0).
+      { eapply MacroSubst_deterministic; eauto. }
+      subst ef0.
+      assert (M' = M'0). { rewrite e, H2. reflexivity. }
+      subst M'0. apply H; auto. rewrite H0. auto.
+  - (*  Statements *)
+    inversion_clear H. rewrite e in H0. auto.
+  - inversion_clear H0. destruct H with v0 S'2; auto.
+  - inversion_clear H1.
+    + destruct H with v0 S'0; auto. subst v0.
+      apply H0; auto. symmetry in H5.
+      apply S_Equal_EvalStmt with (S_1:=S'0); auto.
+    + destruct H with v0 S'0; auto. subst v0. contradiction.
+  - apply H0. inversion_clear H1.
+    + apply H with v0 S'0 in H2. destruct H2. subst v0. contradiction.
+    + apply H with v0 S'0 in H2. destruct H2. subst v0.
+      symmetry in H2. apply S_Equal_EvalStmt with (S_1:=S'0); auto.
+  - inversion_clear H0.
+    + apply H with v0 S'2 in H1. destruct H1. auto.
+    + apply H with v0 S'0 in H1. destruct H1. subst v0. contradiction.
+  - inversion_clear H2.
+    + apply H with v0 S'2 in H3; auto. destruct H3. subst v0. contradiction.
+    + apply H with v0 S'0 in H3; auto. destruct H3. subst v0.
+      apply S_Equal_EvalStmt with (S_2:=S') in H5. 2 : { symmetry; auto. }
+      apply H0 with S''0 in H5. apply H1. eapply S_Equal_EvalStmt; eauto.
+      symmetry. auto.
+  - inversion_clear H. transitivity S; auto. symmetry; auto.
+  - inversion_clear H1. apply H in H2.
+    apply S_Equal_EvalStmt with (S_2:=S') in H3; auto.
+    symmetry. auto.
+  - (*  EvalExprList nil *)
+    inversion_clear H. rewrite e in H0. repeat (split; auto; try reflexivity).
+  - (*  EvalExprList cons *)
+    inversion_clear H1.
+    assert (v = v0 /\ NatMap.Equal Snext Snext0). { auto. }
+    destruct H1. subst v0.
+    assert (vs = vs0 /\ NatMap.Equal Sfinal Snext2 /\ StringMap.Equal Ef' Ef'0 /\ NatMap.Equal Sargs' Sargs'0 /\ l = l2 /\ ls = ls0).
+    { symmetry in H7. apply S_Equal_EvalExprList with (S_2:=Snext) in H3; auto. }
+    destruct H1. destruct H8. destruct H9. destruct H10. destruct H11. subst.
+    split; auto. split; auto.
+    split. rewrite H9. reflexivity.
+    split. rewrite H10. reflexivity.
+    auto.
+Qed.
+
+
+(*  Given the same context, a statement will terminate to the
+    same value and final store every time *)
+Lemma EvalStmt_deterministic : forall S E G F M s S'1,
+  EvalStmt S E G F M s S'1 ->
+  forall S'2,
+  EvalStmt S E G F M s S'2 ->
+  NatMap.Equal S'1 S'2.
+Proof.
+  apply (EvalStmt_mut
       (*  EvalExpr *)
       (fun S E G F M e v1 S'1 (h : EvalExpr S E G F M e v1 S'1 ) =>
         forall v2 S'2,
