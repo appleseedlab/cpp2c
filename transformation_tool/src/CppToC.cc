@@ -71,6 +71,7 @@ private:
     set<string> FunctionNames;
     MacroNameToInfoPtrMap *MacroNamesToMacroInfo;
     LineNumberToMacroNameMap *LineNumbersToMacroNames;
+    set<string> RewrittenMacros;
 
 public:
     explicit CppToCVisitor(
@@ -115,6 +116,15 @@ public:
         string MacroName = Entry->second;
         MacroInfo *MI = MacroNamesToMacroInfo->find(MacroName)->second;
 
+        // Only perform one transformation per invocation
+        if (RewrittenMacros.find(MacroName) != RewrittenMacros.end())
+        {
+            // TODO: Replace the invocation if the literal we are looking
+            // at is not part of an expanded invocation we have already
+            // transformed
+            return true;
+        }
+
         // Only transform function-like macros
         if (!MI->isFunctionLike())
         {
@@ -156,8 +166,6 @@ public:
         // macro has no parameters), plus one more space for the start of
         // the first token in the macro's definition
         DefBegin = DefBegin.getLocWithOffset(MacroName.length() + 3);
-        // errs() << "\n"
-        //        << DefBegin.printToString(*SM) << "\n";
 
         // Get the end of the macro's definition
         SourceLocation StartOfTokenAtDefEnd(MI->getDefinitionEndLoc());
@@ -168,17 +176,41 @@ public:
         string MacroBody(
             SM->getCharacterData(DefBegin),
             SM->getCharacterData(DefEnd) - SM->getCharacterData(DefBegin));
-        // errs() << MacroBody << "\n";
 
-        // TODO: Add the new function definition to the source
-        // code and list of function names in the program instead
-        // of replacing the macro definition
+        // Generate a unique name for the transformed macro
+        string FunctionName(MacroName + "_function");
+        // Keep incrementing the number at the end of the function name
+        // until the name becomes unique
+        for (int i = 0;
+             FunctionNames.find(FunctionName) != FunctionNames.end();
+             i++)
+        {
+            FunctionName = MacroName + "_function" + to_string(i);
+        }
 
-        // FIXME: If a macro contains multiple integers then we perform
-        // multiple replacements. We should only perform one
-        RW.ReplaceText(
-            DefCharSourceRange,
-            "int " + MacroName + "() { return " + MacroBody + "; }");
+        string FunctionDef(
+            "int " + FunctionName + "() { return " + MacroBody + "; }");
+
+        // Add the new function definition to the source code.
+        RW.InsertTextAfterToken(StartOfTokenAtDefEnd, "\n" + FunctionDef);
+
+        // Compute the range of source code that includes the macro invocation
+        // NOTE: For some reason, we have to add 1 to the length of MacroName.
+        // I would think we would add two (one for opening paren and one for
+        // closing paren), but this does not seem to work...
+        SourceLocation EL(SM->getExpansionLoc(SL));
+        SourceRange MacroInvocationRange(
+            EL, EL.getLocWithOffset(MacroName.length() + 1));
+
+        // Replace macro invocation with function call
+        RW.ReplaceText(MacroInvocationRange, FunctionName + "()");
+
+        // Add the new function to the list of functions defined in the program
+        FunctionNames.insert(FunctionName);
+
+        // Add the macro to this list of macros that have been transformed
+        RewrittenMacros.insert(MacroName);
+
         return true;
     }
 
