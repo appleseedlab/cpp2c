@@ -23,7 +23,7 @@ using LineNumberToMacroNameMap = map<unsigned int, string>;
 Rewriter RW;
 
 // Kinds of smart pointers;
-// https://docs.microsoft.com/en-us/cpp/cpp/smart-pointers-modern-cpp?view=msvc-170#kinds-of-smart-pointers
+// https://tinyurl.com/y8hbbdwq
 
 // Visitor class which collects the names of all functions declared in a
 // program
@@ -188,6 +188,11 @@ public:
             FunctionName = MacroName + "_function" + to_string(i);
         }
 
+        // Generate the definition of the transformed function.
+        // Since we are transforming an int, we know that the return type
+        // of this invocation is int.
+        // TODO: Determine how we can use Dietrich's algorithm and
+        // implementation to infer the types of non-integer macros.
         string FunctionDef(
             "int " + FunctionName + "() { return " + MacroBody + "; }");
 
