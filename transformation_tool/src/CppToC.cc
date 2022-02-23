@@ -182,7 +182,9 @@ public:
         // Keep incrementing the number at the end of the function name
         // until the name becomes unique
         for (int i = 0;
-             FunctionNames.find(FunctionName) != FunctionNames.end();
+             FunctionNames.find(FunctionName) != FunctionNames.end() ||
+             MacroNamesToMacroInfo->find(FunctionName) !=
+                 MacroNamesToMacroInfo->end();
              i++)
         {
             FunctionName = MacroName + "_function" + to_string(i);
@@ -263,6 +265,13 @@ public:
             SourceLocation DL = PP.getMacroInfo(II)->getDefinitionLoc();
 
             // Is this macro defined in the source file?
+            // FIXME: We actually want the names of all macro that are defined,
+            // not just those defined in the program. This would let us check
+            // if the name of a transformed function we would generate
+            // conflicts with the name of an existing macro.
+            // If we do this, however, then we would have to check in the
+            // transformation visitor if the macro is defined in the source
+            // file before transforming.
             if (SM.isInFileID(DL, MFID))
             {
                 string MacroName = Macro.getFirst()->getName().str();
@@ -274,7 +283,6 @@ public:
 
                 MacroNamesToMacroInfo->insert(MNMIEntry);
                 LineNumbersToMacroNames->insert(LNMNEntry);
-                // errs() << MacroName << "\n";
             }
         }
 
