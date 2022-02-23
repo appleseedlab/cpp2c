@@ -19,6 +19,10 @@ using namespace std;
 using MacroNameToInfoPtrMap = map<string, MacroInfo *>;
 using LineNumberToMacroNameMap = map<unsigned int, string>;
 
+// TODO: We may want to transform object-like macro as well, as they see
+// more usage than nullary function-like macros. Ideally we would add the
+// soundness of this proof to the transformation as well.
+
 // Source code rewriter
 Rewriter RW;
 
