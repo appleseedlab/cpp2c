@@ -111,6 +111,14 @@ public:
         MacroInfo *MI = MacroNamesToMacroInfo->find(MacroName)->second;
 
         SourceLocation EL(SM->getExpansionLoc(SL));
+        unsigned int ELN(SM->getExpansionLineNumber(SL));
+
+        // If this macro was invoked before it was defined, don't transform it
+        // NOTE: This check may be superfluous? Can this even happen?
+        if (ELN < SpLN)
+        {
+            return true;
+        }
 
         // If we have already transformed this expansion (i.e., this
         // invocation), don't transform it again
