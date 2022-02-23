@@ -71,7 +71,7 @@ private:
     set<string> FunctionNames;
     MacroNameToInfoPtrMap *MacroNamesToMacroInfo;
     LineNumberToMacroNameMap *LineNumbersToMacroNames;
-    set<string> RewrittenMacros;
+    set<SourceLocation> RewrittenInvocationLocations;
 
 public:
     explicit CppToCVisitor(
@@ -86,12 +86,6 @@ public:
         RW.setSourceMgr(*SM, CI->getLangOpts());
     }
 
-    // Step 1:  Visit function definitions
-    //          This is done by the superclass
-    // Step 2:  Visit expressions and statements
-    //          (In Clang, expression is a type of statement)
-
-    // Identity transform
     virtual bool VisitIntegerLiteral(IntegerLiteral *I)
     {
         SourceLocation SL = I->getLocation();
@@ -116,12 +110,13 @@ public:
         string MacroName = Entry->second;
         MacroInfo *MI = MacroNamesToMacroInfo->find(MacroName)->second;
 
-        // Only perform one transformation per invocation
-        if (RewrittenMacros.find(MacroName) != RewrittenMacros.end())
+        SourceLocation EL(SM->getExpansionLoc(SL));
+
+        // If we have already transformed this expansion (i.e., this
+        // invocation), don't transform it again
+        if (RewrittenInvocationLocations.find(EL) !=
+            RewrittenInvocationLocations.end())
         {
-            // TODO: Replace the invocation if the literal we are looking
-            // at is not part of an expanded invocation we have already
-            // transformed
             return true;
         }
 
@@ -205,7 +200,6 @@ public:
         // NOTE: For some reason, we have to add 1 to the length of MacroName.
         // I would think we would add two (one for opening paren and one for
         // closing paren), but this does not seem to work...
-        SourceLocation EL(SM->getExpansionLoc(SL));
         SourceRange MacroInvocationRange(
             EL, EL.getLocWithOffset(MacroName.length() + 1));
 
@@ -215,8 +209,8 @@ public:
         // Add the new function to the list of functions defined in the program
         FunctionNames.insert(FunctionName);
 
-        // Add the macro to this list of macros that have been transformed
-        RewrittenMacros.insert(MacroName);
+        // Add the expansion/invocation to the set of those already transformed
+        RewrittenInvocationLocations.insert(EL);
 
         return true;
     }
