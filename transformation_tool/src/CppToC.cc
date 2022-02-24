@@ -76,6 +76,7 @@ private:
     MacroNameToInfoPtrMap *MacroNamesToMacroInfo;
     LineNumberToMacroNameMap *LineNumbersToMacroNames;
     set<SourceLocation> RewrittenInvocationLocations;
+    list<SourceRange> ConstantExpressionRanges;
 
 public:
     explicit CppToCVisitor(
@@ -88,6 +89,53 @@ public:
           LineNumbersToMacroNames(LineNumbersToMacroNames)
     {
         RW.setSourceMgr(*SM, CI->getLangOpts());
+    }
+
+    // Record locations of case labels and bit fields
+    // to prevent transforming them
+    virtual bool VisitConstantExpr(ConstantExpr *CE)
+    {
+        // Get the source range for this constant expression
+        SourceRange SR(CE->getSourceRange());
+
+        // Get the range of characters over which the
+        // expression was ultimately expanded
+        CharSourceRange ECR(SM->getExpansionRange(SR));
+
+        // Conver the char range to a source range
+        SourceRange ESR(ECR.getAsRange());
+
+        // Add this source range to this list of source ranges for
+        // constant expressions visited so far
+        ConstantExpressionRanges.push_back(ESR);
+
+        return true;
+    }
+
+    // Record the locations of global variable declarations
+    // and array declarations to prevent transforming them
+    virtual bool VisitVarDecl(VarDecl *VD)
+    {
+        // Check if we have encountered a top level declaration
+        // or an array declaration
+        if (!VD->isLocalVarDecl() || isa<ConstantArrayType>(VD->getType()))
+        {
+            // Get the source range for this declaration
+            SourceRange SR(VD->getSourceRange());
+
+            // Get the range of characters over which the
+            // declaration was ultimately expanded
+            CharSourceRange ECR(SM->getExpansionRange(SR));
+
+            // Conver the char range to a source range
+            SourceRange ESR(ECR.getAsRange());
+
+            // Add this source range to this list of source ranges for
+            // constant expressions visited so far
+            ConstantExpressionRanges.push_back(ESR);
+        }
+
+        return true;
     }
 
     virtual bool VisitIntegerLiteral(IntegerLiteral *I)
@@ -140,8 +188,16 @@ public:
             return true;
         }
 
-        // TODO: Don't transform if the macro is invoked where
-        // a constant expression is expected
+        // Don't transform this expansion if it is within a constant expression
+        // TODO: There is likely a better data structure suited to this
+        // task than a list; I'm thinking a range query data structure?
+        for (SourceRange &SR : ConstantExpressionRanges)
+        {
+            if (SR.fullyContains(EL))
+            {
+                return true;
+            }
+        }
 
         // Get the start of the macro definition line
         SourceLocation DefLineBegin = SM->translateLineCol(
@@ -225,14 +281,6 @@ public:
         // Add the expansion/invocation to the set of those already transformed
         RewrittenInvocationLocations.insert(EL);
 
-        return true;
-    }
-
-    // Identity transform: We can't transform macros into functions
-    // where a constant expression is expected
-    // TODO: Find out if this prevents transformation of children
-    virtual bool VisitConstantExpr(ConstantExpr *CE)
-    {
         return true;
     }
 
