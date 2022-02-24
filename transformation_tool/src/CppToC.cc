@@ -119,6 +119,8 @@ public:
 
         // If this macro was invoked before it was defined, don't transform it
         // NOTE: This check may be superfluous? Can this even happen?
+        // I think this may account for multiply defined macros
+        // (at least in cases we care about)
         if (ELN < SpLN)
         {
             return true;
@@ -132,17 +134,14 @@ public:
             return true;
         }
 
-        // Only transform function-like macros
-        if (!MI->isFunctionLike())
+        // Only transform object-like macros and nullary function-like macros
+        if (!MI->isObjectLike() && !MI->param_empty())
         {
             return true;
         }
 
-        // Only transform function-like macros with no arguments
-        if (!MI->param_empty())
-        {
-            return true;
-        }
+        // TODO: Don't transform if the macro is invoked where
+        // a constant expression is expected
 
         // Get the start of the macro definition line
         SourceLocation DefLineBegin = SM->translateLineCol(
@@ -169,10 +168,13 @@ public:
         // The starting point we get from MI->getDefinitionLoc is the start
         // of the defined macro's name.
         // We want the point just beyond the macro's name, plus its open
-        // and close parens for formals (since by this point we know the
-        // macro has no parameters), plus one more space for the start of
-        // the first token in the macro's definition
-        DefBegin = DefBegin.getLocWithOffset(MacroName.length() + 3);
+        // and close parens for formals (if it's a function-like macro,
+        // since by this point we know the macro has no parameters),
+        // plus one more space for the start of the first token in the
+        // macro's definition
+        unsigned int offset = MI->isObjectLike() ? 1 : 3;
+        DefBegin = DefBegin.getLocWithOffset(
+            MacroName.length() + offset);
 
         // Get the end of the macro's definition
         SourceLocation StartOfTokenAtDefEnd(MI->getDefinitionEndLoc());
@@ -209,11 +211,10 @@ public:
         RW.InsertTextAfterToken(StartOfTokenAtDefEnd, "\n" + FunctionDef);
 
         // Compute the range of source code that includes the macro invocation
-        // NOTE: For some reason, we have to add 1 to the length of MacroName.
-        // I would think we would add two (one for opening paren and one for
-        // closing paren), but this does not seem to work...
+        // NOTE: For some reason we have to subtract one here? Not sure why...
+        offset = MI->isObjectLike() ? 0 : 2;
         SourceRange MacroInvocationRange(
-            EL, EL.getLocWithOffset(MacroName.length() + 1));
+            EL, EL.getLocWithOffset(MacroName.length() + offset - 1));
 
         // Replace macro invocation with function call
         RW.ReplaceText(MacroInvocationRange, FunctionName + "()");
