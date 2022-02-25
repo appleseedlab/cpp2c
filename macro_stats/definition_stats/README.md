@@ -22,7 +22,7 @@ Run the script `collect_macro_definition_stats_all.sh`
 ### Collecting Macro Definition Statistics for a Single Program
 Run the command
 ```bash
-$ collect_macro_definition_stats.sh <PROGRAM_DIR_NAME>
+$ bash collect_macro_definition_stats.sh <PROGRAM_DIR_NAME>
 ```
 where PROGRAM_DIR_NAME is the name of the directory containing the program
 to collect macro definition statistics for
