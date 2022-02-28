@@ -1,12 +1,21 @@
+'''collect_macro_invocations.py
+
+Collects data on macro invocations in a given C file
+and writes the results to a CSV file.
+'''
+
 from typing import Dict, Literal, Set
 
+import begin
 from clang import cindex as ci
-
 
 # TODO: Make sure that multiply-defined macros are treated properly when
 #       recording invocations stats
 # NOTE: For now we assume that if a macro contains comments,
 #       the comments will only appear at the end of the definition
+# NOTE: Maybe we should just collect data on the number of transformations
+#       performed in the transformer directly? What have we to gain by
+#       using a separate tool?
 
 
 def collect_invocation_stats(fn: str):
@@ -94,26 +103,31 @@ def collect_invocation_stats(fn: str):
             # Found an include: Process it before proceeding
             file_to_include: str = cur.spelling
             file_to_include = file_to_include.strip('"')
-            w, x, y, z = collect_invocation_stats(file_to_include)
+            num_object_like_integer_invocations_from_include, \
+                num_function_like_integer_invocations_from_include, \
+                macro_names_types_from_include, \
+                integer_macro_names_from_include \
+                = collect_invocation_stats(file_to_include)
             # Add the list of macro definitions found to the list of macros
             # that could be invoked in this file, and the number of
             # invocations found in the included file to the cumulative
             # results in this file
-            num_object_like_integer_invocations += w
-            num_function_like_integer_invocations += x
-            macro_names_types |= y
-            integer_macro_names |= z
+            num_object_like_integer_invocations += num_object_like_integer_invocations_from_include
+            num_function_like_integer_invocations += num_function_like_integer_invocations_from_include
+            macro_names_types |= macro_names_types_from_include
+            integer_macro_names |= integer_macro_names_from_include
 
     return num_object_like_integer_invocations, \
         num_function_like_integer_invocations, \
         macro_names_types, integer_macro_names
 
 
-def main():
-    fn = 'test.c'
-    w, x, y, z = collect_invocation_stats(fn)
-    print(w, x, y, z)
-
-
-if __name__ == '__main__':
-    main()
+@begin.start
+def main(filename: str):
+    num_object_like_integer_invocations, \
+        num_function_like_integer_invocations, _, _ \
+        = collect_invocation_stats(filename)
+    print("Object-like integer invocations,",
+          "Function-like integer invocations")
+    print(num_object_like_integer_invocations,
+          num_function_like_integer_invocations)
