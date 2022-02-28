@@ -1,6 +1,6 @@
 #define ONE() 1
 
-int ONE_function() { return 0; }
+int ONE_function() { return 1; }
 
 int main(void)
 {
