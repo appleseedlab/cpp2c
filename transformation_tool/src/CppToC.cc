@@ -78,6 +78,20 @@ private:
     set<SourceLocation> RewrittenInvocationLocations;
     list<SourceRange> ConstantExpressionRanges;
 
+    struct RewriteInfo
+    {
+        // Expansion location
+        SourceLocation EL;
+        // Spelling line number
+        unsigned int SpLN;
+        // Macro info
+        MacroInfo *MI;
+        // Macro name
+        string MacroName;
+    };
+
+    list<RewriteInfo> RewriteInfos;
+
 public:
     explicit CppToCVisitor(
         CompilerInstance *CI,
@@ -138,13 +152,22 @@ public:
         return true;
     }
 
-    virtual bool VisitIntegerLiteral(IntegerLiteral *I)
+    virtual bool VisitExpr(Expr *E)
     {
-        SourceLocation SL = I->getLocation();
-        unsigned int SpLN = SM->getSpellingLineNumber(SL);
 
-        // If this integer did not come from a macro, don't transform it
-        if (!SL.isMacroID())
+        // TODO: Fix this to work for macros defined across multiple lines?
+
+        // If this invocations has side-effects, don't transform it
+        if (E->HasSideEffects(*Ctx))
+        {
+            return true;
+        }
+
+        SourceLocation EBL = E->getBeginLoc();
+        unsigned int SpLN = SM->getSpellingLineNumber(EBL);
+
+        // If this expression did not come from a macro, don't transform it
+        if (!EBL.isMacroID())
         {
             return true;
         }
@@ -162,8 +185,8 @@ public:
         string MacroName = Entry->second;
         MacroInfo *MI = MacroNamesToMacroInfo->find(MacroName)->second;
 
-        SourceLocation EL(SM->getExpansionLoc(SL));
-        unsigned int ELN(SM->getExpansionLineNumber(SL));
+        SourceLocation EL(SM->getExpansionLoc(EBL));
+        unsigned int ELN(SM->getExpansionLineNumber(EL));
 
         // If this macro was invoked before it was defined, don't transform it
         // NOTE: This check may be superfluous? Can this even happen?
@@ -174,114 +197,150 @@ public:
             return true;
         }
 
-        // If we have already transformed this expansion (i.e., this
-        // invocation), don't transform it again
-        if (RewrittenInvocationLocations.find(EL) !=
-            RewrittenInvocationLocations.end())
-        {
-            return true;
-        }
-
         // Only transform object-like macros and nullary function-like macros
         if (!MI->isObjectLike() && !MI->param_empty())
         {
             return true;
         }
 
-        // Don't transform this expansion if it is within a constant expression
-        // TODO: There is likely a better data structure suited to this
-        // task than a list; I'm thinking a range query data structure?
-        for (SourceRange &SR : ConstantExpressionRanges)
+        // TODO: For this to work with macros that have arguments, it will
+        // have to check that the number of tokens in the definition
+        // and expansion match, not the number of characters
+        SourceLocation BeginPlusDefLen(
+            EBL.getLocWithOffset(MI->getDefinitionLength(*SM) - 1));
+        SourceLocation EEL(E->getEndLoc());
+        if (BeginPlusDefLen != EEL)
         {
-            if (SR.fullyContains(EL))
+            return true;
+        }
+
+        // Record this rewrite in the list of potential rewrites
+        // to perform
+        struct RewriteInfo ri =
             {
-                return true;
-            }
-        }
-
-        // Get the start of the macro definition line
-        SourceLocation DefLineBegin = SM->translateLineCol(
-            SM->getMainFileID(), SpLN, 1);
-
-        // TODO: Find a more stable way of getting the end of
-        // the macro definition line.
-        // Right now this won't work if the macro definition
-        // contains more than 1000 characters
-        SourceLocation DefLineEnd = SM->translateLineCol(
-            SM->getMainFileID(), SpLN, 1000);
-
-        LangOptions LO = Ctx->getLangOpts();
-
-        // Convert the location to a character range for replacement
-        CharSourceRange DefCharSourceRange =
-            Lexer::getAsCharRange(DefLineBegin, *SM, LO);
-
-        // Set the end of the range to the end of the macro definition line
-        DefCharSourceRange.setEnd(DefLineEnd);
-
-        // Get the start of the macro definition
-        SourceLocation DefBegin(MI->getDefinitionLoc());
-        // The starting point we get from MI->getDefinitionLoc is the start
-        // of the defined macro's name.
-        // We want the point just beyond the macro's name, plus its open
-        // and close parens for formals (if it's a function-like macro,
-        // since by this point we know the macro has no parameters),
-        // plus one more space for the start of the first token in the
-        // macro's definition
-        unsigned int offset = MI->isObjectLike() ? 1 : 3;
-        DefBegin = DefBegin.getLocWithOffset(
-            MacroName.length() + offset);
-
-        // Get the end of the macro's definition
-        SourceLocation StartOfTokenAtDefEnd(MI->getDefinitionEndLoc());
-        SourceLocation DefEnd(
-            Lexer::getLocForEndOfToken(StartOfTokenAtDefEnd, 0, *SM, LO));
-
-        // Get the macro body as a string
-        string MacroBody(
-            SM->getCharacterData(DefBegin),
-            SM->getCharacterData(DefEnd) - SM->getCharacterData(DefBegin));
-
-        // Generate a unique name for the transformed macro
-        string FunctionName(MacroName + "_function");
-        // Keep incrementing the number at the end of the function name
-        // until the name becomes unique
-        for (int i = 0;
-             FunctionNames.find(FunctionName) != FunctionNames.end() ||
-             MacroNamesToMacroInfo->find(FunctionName) !=
-                 MacroNamesToMacroInfo->end();
-             i++)
-        {
-            FunctionName = MacroName + "_function" + to_string(i);
-        }
-
-        // Generate the definition of the transformed function.
-        // Since we are transforming an int, we know that the return type
-        // of this invocation is int.
-        // TODO: Determine how we can use Dietrich's algorithm and
-        // implementation to infer the types of non-integer macros.
-        string FunctionDef(
-            "int " + FunctionName + "() { return " + MacroBody + "; }");
-
-        // Add the new function definition to the source code.
-        RW.InsertTextAfterToken(StartOfTokenAtDefEnd, "\n" + FunctionDef);
-
-        // Compute the range of source code that includes the macro invocation
-        // NOTE: For some reason we have to subtract one here? Not sure why...
-        offset = MI->isObjectLike() ? 0 : 2;
-        SourceRange MacroInvocationRange(
-            EL, EL.getLocWithOffset(MacroName.length() + offset - 1));
-
-        // Replace macro invocation with function call
-        RW.ReplaceText(MacroInvocationRange, FunctionName + "()");
-
-        // Add the new function to the list of functions defined in the program
-        FunctionNames.insert(FunctionName);
-
-        // Add the expansion/invocation to the set of those already transformed
-        RewrittenInvocationLocations.insert(EL);
+                .EL = EL,
+                .SpLN = SpLN,
+                .MI = MI,
+                .MacroName = MacroName};
+        RewriteInfos.push_back(ri);
 
         return true;
+    }
+
+    void performRewrites()
+    {
+        LangOptions LO = Ctx->getLangOpts();
+
+        for (auto &&ri : RewriteInfos)
+        {
+
+            // If we have already transformed this expansion (i.e., this
+            // invocation), don't transform it again
+            if (RewrittenInvocationLocations.find(ri.EL) !=
+                RewrittenInvocationLocations.end())
+            {
+                continue;
+            }
+
+            // Only rewrite macro expansions which don't overlap
+            // with a constant expression
+            bool WithinConstExpr = false;
+            for (SourceRange &SR : ConstantExpressionRanges)
+            {
+                errs() << "CE source range" << SR.printToString(*SM) << "\n";
+                if (SM->isPointWithin(ri.EL, SR.getBegin(), SR.getEnd()))
+                {
+                    WithinConstExpr = true;
+                    break;
+                }
+            }
+            if (WithinConstExpr)
+            {
+                continue;
+            }
+            errs() << "Expr begin source location" << ri.EL.printToString(*SM)
+                   << "\n";
+
+            // Get the start of the macro definition line
+            SourceLocation DefLineBegin = SM->translateLineCol(
+                SM->getMainFileID(), ri.SpLN, 1);
+
+            // TODO: Find a more stable way of getting the end of
+            // the macro definition line.
+            // Right now this won't work if the macro definition
+            // contains more than 1000 characters
+            SourceLocation DefLineEnd = SM->translateLineCol(
+                SM->getMainFileID(), ri.SpLN, 1000);
+
+            // Convert the location to a character range for replacement
+            CharSourceRange DefCharSourceRange =
+                Lexer::getAsCharRange(DefLineBegin, *SM, LO);
+
+            // Set the end of the range to the end of the macro definition line
+            DefCharSourceRange.setEnd(DefLineEnd);
+
+            // Get the start of the macro definition
+            SourceLocation DefBegin(ri.MI->getDefinitionLoc());
+            // The starting point we get from MI->getDefinitionLoc is the start
+            // of the defined macro's name.
+            // We want the point just beyond the macro's name, plus its open
+            // and close parens for formals (if it's a function-like macro,
+            // since by this point we know the macro has no parameters),
+            // plus one more space for the start of the first token in the
+            // macro's definition
+            unsigned int offset = ri.MI->isObjectLike() ? 1 : 3;
+            DefBegin = DefBegin.getLocWithOffset(
+                ri.MacroName.length() + offset);
+
+            // Get the end of the macro's definition
+            SourceLocation StartOfTokenAtDefEnd(ri.MI->getDefinitionEndLoc());
+            SourceLocation DefEnd(
+                Lexer::getLocForEndOfToken(StartOfTokenAtDefEnd, 0, *SM, LO));
+
+            // Get the macro body as a string
+            string MacroBody(
+                SM->getCharacterData(DefBegin),
+                SM->getCharacterData(DefEnd) - SM->getCharacterData(DefBegin));
+
+            // Generate a unique name for the transformed macro
+            string FunctionName(ri.MacroName + "_function");
+            // Keep incrementing the number at the end of the function name
+            // until the name becomes unique
+            for (int i = 0;
+                 FunctionNames.find(FunctionName) != FunctionNames.end() ||
+                 MacroNamesToMacroInfo->find(FunctionName) !=
+                     MacroNamesToMacroInfo->end();
+                 i++)
+            {
+                FunctionName = ri.MacroName + "_function" + to_string(i);
+            }
+
+            // Generate the definition of the transformed function.
+            // Since we are transforming an int, we know that the return type
+            // of this invocation is int.
+            // TODO: Determine how we can use Dietrich's algorithm and
+            // implementation to infer the types of non-integer macros.
+            string FunctionDef(
+                "int " + FunctionName + "() { return " + MacroBody + "; }");
+
+            // Add the new function definition to the source code.
+            RW.InsertTextAfterToken(StartOfTokenAtDefEnd, "\n" + FunctionDef);
+
+            // Compute the range of source code that includes the macro invocation
+            // NOTE: For some reason we have to subtract one here? Not sure why...
+            offset = ri.MI->isObjectLike() ? 0 : 2;
+            SourceRange MacroInvocationRange(
+                ri.EL, ri.EL.getLocWithOffset(ri.MacroName.length() + offset - 1));
+
+            // Replace macro invocation with function call
+            RW.ReplaceText(MacroInvocationRange, FunctionName + "()");
+
+            // Add the new function to the list of functions defined in the program
+            FunctionNames.insert(FunctionName);
+
+            // Add the expansion/invocation to the set of those already transformed
+            RewrittenInvocationLocations.insert(ri.EL);
+        }
     }
 
     void setFunctionNames(set<string> FunctionNames)
@@ -351,8 +410,11 @@ public:
         // Give the transformer the set of declared functions
         CTCvisitor->setFunctionNames(CFVvisitor->getFunctionNames());
 
-        // Run the transformer
+        // Gather transformations
         CTCvisitor->TraverseDecl(Ctx.getTranslationUnitDecl());
+
+        // Perform the transformations
+        CTCvisitor->performRewrites();
 
         // TODO: Give the CTC visitor the set of functions defined
         // in the program, and call its visit method to transform all the
