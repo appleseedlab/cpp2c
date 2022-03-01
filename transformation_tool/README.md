@@ -25,19 +25,19 @@ To ease your development setup, we provide a Docker container to build
 and test the plugin:
 
 -  Start the Docker container
-   ```console
-   # ./docker-container.sh
-   ```
+  ```console
+  # ./docker-container.sh
+  ```
 - Run `build.sh` to build the plugin and the wrapper
-   ```console
-   $ ./build.sh
-   ```
+  ```console
+  $ ./build.sh
+  ```
 
 ## Run CPP To C
 
 - From within the Docker container, run the wrapper script
   ```console
-   $ ./build/bin/cpp-to-c -fsyntax-only ./tests/foo_bar.c
-   ```
+  $ ./build/bin/cpp-to-c -fsyntax-only ./tests/object_like_macro_body_literal_1.c
+  ```
 
-`-fsyntax-only` tells Clang not to compile the target file(s)
+`-fsyntax-only` tells Clang not to compile the target file(s).
