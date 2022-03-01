@@ -37,9 +37,6 @@ class CollectFunctionNamesVisitor
 private:
     ASTContext *Ctx;
     // Set of all function names declared in a program
-    // We use a shared_ptr smart pointer so that:
-    // a) The freeing of memory is handled automatically
-    // b) We can share this pointer across objects
     set<string> FunctionNames;
 
 public:
@@ -77,6 +74,8 @@ private:
     LineNumberToMacroNameMap *LineNumbersToMacroNames;
     set<SourceLocation> RewrittenInvocationLocations;
     list<SourceRange> ConstantExpressionRanges;
+    unsigned int NumTransformedObjectLikeMacroInvocations = 0;
+    unsigned int NumTransformedFunctionLikeMacroInvocations = 0;
 
     struct RewriteInfo
     {
@@ -152,6 +151,8 @@ public:
         return true;
     }
 
+    // Gather a list of expressions that were expanded from a macro
+    // invocation that could potentially be transformed
     virtual bool VisitExpr(Expr *E)
     {
 
@@ -227,6 +228,8 @@ public:
         return true;
     }
 
+    // Transform invocations which meet our criteria and rewrite the
+    // code stored in the buffer to match
     void performRewrites()
     {
         LangOptions LO = Ctx->getLangOpts();
@@ -326,26 +329,51 @@ public:
             // Add the new function definition to the source code.
             RW.InsertTextAfterToken(StartOfTokenAtDefEnd, "\n" + FunctionDef);
 
-            // Compute the range of source code that includes the macro invocation
-            // NOTE: For some reason we have to subtract one here? Not sure why...
+            // Compute the range of source code that includes the
+            // macro invocation
+            // NOTE: For some reason we have to subtract one here?
+            // Not sure why...
             offset = ri.MI->isObjectLike() ? 0 : 2;
+            offset += ri.MacroName.length() - 1;
             SourceRange MacroInvocationRange(
-                ri.EL, ri.EL.getLocWithOffset(ri.MacroName.length() + offset - 1));
+                ri.EL, ri.EL.getLocWithOffset(offset));
 
             // Replace macro invocation with function call
             RW.ReplaceText(MacroInvocationRange, FunctionName + "()");
 
-            // Add the new function to the list of functions defined in the program
+            // Add the new function to the list of functions defined
+            // in the program
             FunctionNames.insert(FunctionName);
 
-            // Add the expansion/invocation to the set of those already transformed
+            // Add the expansion/invocation to the set of those
+            // already transformed
             RewrittenInvocationLocations.insert(ri.EL);
+
+            // Increment the number of successfully transformed invocations
+            if (ri.MI->isObjectLike())
+            {
+                NumTransformedObjectLikeMacroInvocations += 1;
+            }
+            else
+            {
+                NumTransformedFunctionLikeMacroInvocations += 1;
+            }
         }
     }
 
     void setFunctionNames(set<string> FunctionNames)
     {
         this->FunctionNames = FunctionNames;
+    }
+
+    unsigned int getNumTransformedObjectLikeMacroInvocations()
+    {
+        return NumTransformedObjectLikeMacroInvocations;
+    }
+
+    unsigned int getNumTransformedFunctionLikeMacroInvocations()
+    {
+        return NumTransformedFunctionLikeMacroInvocations;
     }
 };
 
@@ -416,15 +444,21 @@ public:
         // Perform the transformations
         CTCvisitor->performRewrites();
 
-        // TODO: Give the CTC visitor the set of functions defined
-        // in the program, and call its visit method to transform all the
-        // function definitions in the program
         // Print the results of the rewriting for the current file
         const RewriteBuffer *RewriteBuf =
             RW.getRewriteBufferFor(Ctx.getSourceManager().getMainFileID());
         if (RewriteBuf != nullptr)
         {
             RewriteBuf->write(outs());
+            errs()
+                << "Transformed Object-like Macros"
+                << ", "
+                << "Transformed Function-like Macros"
+                << "\n"
+                << CTCvisitor->getNumTransformedObjectLikeMacroInvocations()
+                << ", "
+                << CTCvisitor->getNumTransformedFunctionLikeMacroInvocations()
+                << "\n";
         }
         else
         {
