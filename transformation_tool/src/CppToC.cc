@@ -392,6 +392,8 @@ public:
 
     virtual void HandleTranslationUnit(ASTContext &Ctx)
     {
+        auto begin_time = std::chrono::high_resolution_clock::now();
+
         // Collect the names of all the macros defined in the program
         Preprocessor &PP = CI->getPreprocessor();
         SourceManager &SM = CI->getSourceManager();
@@ -464,6 +466,13 @@ public:
         {
             outs() << "No changes to AST\n";
         }
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                            end_time - begin_time)
+                            .count();
+        errs() << "Finished in " << duration << " microseconds."
+               << "\n";
 
         delete MacroNamesToMacroInfo;
         delete LineNumbersToMacroNames;
