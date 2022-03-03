@@ -270,6 +270,51 @@ CSubsetExpr ClassifyExpr(Expr *E)
     return CSubsetExpr::INVALID;
 }
 
+// Determines if an expression is a result of macro expansion,
+// and if so, then tries to transform the invocation into a function call.
+// Returns true if the invocation was transformed; false if the expression
+// was not the result of a macro expansion or if the invocation was not
+// transformed
+// TODO
+bool TransformEntireExpr(Expr *E)
+{
+    CSubsetExpr CSE = ClassifyExpr(E);
+    // Check if the expresssion is the result of a macro invocation
+    // May want to use this instead:
+    // https://clang.llvm.org/doxygen/classclang_1_1Preprocessor.html#ad20c09f394071b2fb0c230e9b26c614f
+    if (E->getBeginLoc().isMacroID())
+    {
+        // Check that the invoked macro is an object-like macro or a nullary
+        // function-like macro
+        // TODO: Allow for function-like macros with 1 argument whose
+        // body is a single variable
+    }
+
+    // Check that the expression does not have side-effects
+    if (CSE == CSubsetExpr::Assign || CSE == CSubsetExpr::CallOrInvocation)
+    {
+        return false;
+    }
+
+    // Check that the expression does not contain nested macro invocations
+    // TODO
+
+    // Check that the expression does not share variables with the
+    // caller environment
+    // TODO
+
+    // Transform the expansion into a function call
+    // TODO
+
+    // Define the called function and add it to the list of functions
+    // defined in the program.
+    // Make sure to give it a unique name.
+    // TODO: Transform object-like macros into global variables instead?
+    // TODO
+
+    return false;
+}
+
 // NOTE:
 // These functions are it - The trick now is to extract potential
 // macro invocations from expressions
@@ -285,10 +330,9 @@ void TransformExpr(Expr *E)
     CSubsetExpr CSE = ClassifyExpr(E);
 
     // Step 2: Try to transform the entire expression
-    // TODO
-    bool transformedE = false;
     errs() << "Transforming a "
            << CSubsetExprToString(CSE) << "\n";
+    bool transformedE = TransformEntireExpr(E);
 
     // Step 3: If we could not transform the entire expression,
     // then try to transform its subexpressions.
