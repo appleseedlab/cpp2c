@@ -2,6 +2,8 @@
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ParentMapContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Lex/PPCallbacks.h"
@@ -16,8 +18,7 @@ using namespace clang;
 using namespace llvm;
 using namespace std;
 
-using MacroNameToInfoPtrMap = map<string, MacroInfo *>;
-using LineNumberToMacroNameMap = map<unsigned int, string>;
+using namespace clang::ast_matchers;
 
 // TODO: We may want to transform object-like macro as well, as they see
 // more usage than nullary function-like macros. Ideally we would add the
@@ -61,406 +62,233 @@ public:
     }
 };
 
-// Visitor class which performs the CppToC transformation
-// Visits and transforms the body of each function defined in the program
-class CppToCVisitor
-    : public RecursiveASTVisitor<CppToCVisitor>
+// Preprocessor callback for collecting macro definitions
+class MacroDefinitionCollector : public PPCallbacks
 {
-private:
-    ASTContext *Ctx;
-    SourceManager *SM;
-    set<string> FunctionNames;
-    MacroNameToInfoPtrMap *MacroNamesToMacroInfo;
-    LineNumberToMacroNameMap *LineNumbersToMacroNames;
-    set<SourceLocation> RewrittenInvocationLocations;
-    list<SourceRange> ConstantExpressionRanges;
-    unsigned int NumTransformedObjectLikeMacroInvocations = 0;
-    unsigned int NumTransformedFunctionLikeMacroInvocations = 0;
-
-    struct RewriteInfo
-    {
-        // Expansion location
-        SourceLocation EL;
-        // Spelling line number
-        unsigned int SpLN;
-        // Macro info
-        MacroInfo *MI;
-        // Macro name
-        string MacroName;
-    };
-
-    list<RewriteInfo> RewriteInfos;
-
 public:
-    explicit CppToCVisitor(
-        CompilerInstance *CI,
-        MacroNameToInfoPtrMap *MacroNamesToMacroInfo,
-        LineNumberToMacroNameMap *LineNumbersToMacroNames)
-        : Ctx(&(CI->getASTContext())),
-          SM(&(CI->getSourceManager())),
-          MacroNamesToMacroInfo(MacroNamesToMacroInfo),
-          LineNumbersToMacroNames(LineNumbersToMacroNames)
+    map<string, const MacroDirective *> MacroNameToDirective;
+    set<string> MultiplyDefinedMacros;
+
+    /// Hook called whenever a macro definition is seen.
+    void MacroDefined(const Token &MacroNameTok, const MacroDirective *MD)
     {
-        RW.setSourceMgr(*SM, CI->getLangOpts());
-    }
+        IdentifierInfo *II = MacroNameTok.getIdentifierInfo();
+        string MacroName = II->getName().str();
 
-    // Record locations of case labels and bit fields
-    // to prevent transforming them
-    virtual bool VisitConstantExpr(ConstantExpr *CE)
-    {
-        // Get the source range for this constant expression
-        SourceRange SR(CE->getSourceRange());
-
-        // Get the range of characters over which the
-        // expression was ultimately expanded
-        CharSourceRange ECR(SM->getExpansionRange(SR));
-
-        // Conver the char range to a source range
-        SourceRange ESR(ECR.getAsRange());
-
-        // Add this source range to this list of source ranges for
-        // constant expressions visited so far
-        ConstantExpressionRanges.push_back(ESR);
-
-        return true;
-    }
-
-    // Record the locations of global variable declarations
-    // and array declarations to prevent transforming them
-    virtual bool VisitVarDecl(VarDecl *VD)
-    {
-        // Check if we have encountered a top level declaration
-        // or an array declaration
-        if (!VD->isLocalVarDecl() || isa<ConstantArrayType>(VD->getType()))
+        // Check if this macros is multiply-defined
+        if (MD->getPrevious() == nullptr)
         {
-            // Get the source range for this declaration
-            SourceRange SR(VD->getSourceRange());
-
-            // Get the range of characters over which the
-            // declaration was ultimately expanded
-            CharSourceRange ECR(SM->getExpansionRange(SR));
-
-            // Conver the char range to a source range
-            SourceRange ESR(ECR.getAsRange());
-
-            // Add this source range to this list of source ranges for
-            // constant expressions visited so far
-            ConstantExpressionRanges.push_back(ESR);
+            MultiplyDefinedMacros.insert(MacroName);
         }
 
-        return true;
-    }
-
-    // Gather a list of expressions that were expanded from a macro
-    // invocation that could potentially be transformed
-    virtual bool VisitExpr(Expr *E)
-    {
-
-        // TODO: Fix this to work for macros defined across multiple lines?
-
-        // If this invocations has side-effects, don't transform it
-        if (E->HasSideEffects(*Ctx))
-        {
-            return true;
-        }
-
-        SourceLocation EBL = E->getBeginLoc();
-        unsigned int SpLN = SM->getSpellingLineNumber(EBL);
-
-        // If this expression did not come from a macro, don't transform it
-        if (!EBL.isMacroID())
-        {
-            return true;
-        }
-
-        std::map<unsigned int, std::string>::iterator Entry =
-            LineNumbersToMacroNames->find(SpLN);
-
-        // If this macro was not defined in the source file, don't
-        // transform it
-        if (Entry == LineNumbersToMacroNames->end())
-        {
-            return true;
-        }
-
-        string MacroName = Entry->second;
-        MacroInfo *MI = MacroNamesToMacroInfo->find(MacroName)->second;
-
-        SourceLocation EL(SM->getExpansionLoc(EBL));
-        unsigned int ELN(SM->getExpansionLineNumber(EL));
-
-        // If this macro was invoked before it was defined, don't transform it
-        // NOTE: This check may be superfluous? Can this even happen?
-        // I think this may account for multiply defined macros
-        // (at least in cases we care about)
-        if (ELN < SpLN)
-        {
-            return true;
-        }
-
-        // Only transform object-like macros and nullary function-like macros
-        if (!MI->isObjectLike() && !MI->param_empty())
-        {
-            return true;
-        }
-
-        // TODO: For this to work with macros that have arguments, it will
-        // have to check that the number of tokens in the definition
-        // and expansion match, not the number of characters
-        SourceLocation BeginPlusDefLen(
-            EBL.getLocWithOffset(MI->getDefinitionLength(*SM) - 1));
-        SourceLocation EEL(E->getEndLoc());
-        if (BeginPlusDefLen != EEL)
-        {
-            return true;
-        }
-
-        // Record this rewrite in the list of potential rewrites
-        // to perform
-        struct RewriteInfo ri =
-            {
-                .EL = EL,
-                .SpLN = SpLN,
-                .MI = MI,
-                .MacroName = MacroName};
-        RewriteInfos.push_back(ri);
-
-        return true;
-    }
-
-    // Transform invocations which meet our criteria and rewrite the
-    // code stored in the buffer to match
-    void performRewrites()
-    {
-        LangOptions LO = Ctx->getLangOpts();
-
-        for (auto &&ri : RewriteInfos)
-        {
-
-            // If we have already transformed this expansion (i.e., this
-            // invocation), don't transform it again
-            if (RewrittenInvocationLocations.find(ri.EL) !=
-                RewrittenInvocationLocations.end())
-            {
-                continue;
-            }
-
-            // Only rewrite macro expansions which don't overlap
-            // with a constant expression
-            bool WithinConstExpr = false;
-            for (SourceRange &SR : ConstantExpressionRanges)
-            {
-                errs() << "CE source range" << SR.printToString(*SM) << "\n";
-                if (SM->isPointWithin(ri.EL, SR.getBegin(), SR.getEnd()))
-                {
-                    WithinConstExpr = true;
-                    break;
-                }
-            }
-            if (WithinConstExpr)
-            {
-                continue;
-            }
-            errs() << "Expr begin source location" << ri.EL.printToString(*SM)
-                   << "\n";
-
-            // Get the start of the macro definition line
-            SourceLocation DefLineBegin = SM->translateLineCol(
-                SM->getMainFileID(), ri.SpLN, 1);
-
-            // TODO: Find a more stable way of getting the end of
-            // the macro definition line.
-            // Right now this won't work if the macro definition
-            // contains more than 1000 characters
-            SourceLocation DefLineEnd = SM->translateLineCol(
-                SM->getMainFileID(), ri.SpLN, 1000);
-
-            // Convert the location to a character range for replacement
-            CharSourceRange DefCharSourceRange =
-                Lexer::getAsCharRange(DefLineBegin, *SM, LO);
-
-            // Set the end of the range to the end of the macro definition line
-            DefCharSourceRange.setEnd(DefLineEnd);
-
-            // Get the start of the macro definition
-            SourceLocation DefBegin(ri.MI->getDefinitionLoc());
-            // The starting point we get from MI->getDefinitionLoc is the start
-            // of the defined macro's name.
-            // We want the point just beyond the macro's name, plus its open
-            // and close parens for formals (if it's a function-like macro,
-            // since by this point we know the macro has no parameters),
-            // plus one more space for the start of the first token in the
-            // macro's definition
-            unsigned int offset = ri.MI->isObjectLike() ? 1 : 3;
-            DefBegin = DefBegin.getLocWithOffset(
-                ri.MacroName.length() + offset);
-
-            // Get the end of the macro's definition
-            SourceLocation StartOfTokenAtDefEnd(ri.MI->getDefinitionEndLoc());
-            SourceLocation DefEnd(
-                Lexer::getLocForEndOfToken(StartOfTokenAtDefEnd, 0, *SM, LO));
-
-            // Get the macro body as a string
-            string MacroBody(
-                SM->getCharacterData(DefBegin),
-                SM->getCharacterData(DefEnd) - SM->getCharacterData(DefBegin));
-
-            // Generate a unique name for the transformed macro
-            string FunctionName(ri.MacroName + "_function");
-            // Keep incrementing the number at the end of the function name
-            // until the name becomes unique
-            for (int i = 0;
-                 FunctionNames.find(FunctionName) != FunctionNames.end() ||
-                 MacroNamesToMacroInfo->find(FunctionName) !=
-                     MacroNamesToMacroInfo->end();
-                 i++)
-            {
-                FunctionName = ri.MacroName + "_function" + to_string(i);
-            }
-
-            // Generate the definition of the transformed function.
-            // Since we are transforming an int, we know that the return type
-            // of this invocation is int.
-            // TODO: Determine how we can use Dietrich's algorithm and
-            // implementation to infer the types of non-integer macros.
-            string FunctionDef(
-                "int " + FunctionName + "() { return " + MacroBody + "; }");
-
-            // Add the new function definition to the source code.
-            RW.InsertTextAfterToken(StartOfTokenAtDefEnd, "\n" + FunctionDef);
-
-            // Compute the range of source code that includes the
-            // macro invocation
-            // NOTE: For some reason we have to subtract one here?
-            // Not sure why...
-            offset = ri.MI->isObjectLike() ? 0 : 2;
-            offset += ri.MacroName.length() - 1;
-            SourceRange MacroInvocationRange(
-                ri.EL, ri.EL.getLocWithOffset(offset));
-
-            // Replace macro invocation with function call
-            RW.ReplaceText(MacroInvocationRange, FunctionName + "()");
-
-            // Add the new function to the list of functions defined
-            // in the program
-            FunctionNames.insert(FunctionName);
-
-            // Add the expansion/invocation to the set of those
-            // already transformed
-            RewrittenInvocationLocations.insert(ri.EL);
-
-            // Increment the number of successfully transformed invocations
-            if (ri.MI->isObjectLike())
-            {
-                NumTransformedObjectLikeMacroInvocations += 1;
-            }
-            else
-            {
-                NumTransformedFunctionLikeMacroInvocations += 1;
-            }
-        }
-    }
-
-    void setFunctionNames(set<string> FunctionNames)
-    {
-        this->FunctionNames = FunctionNames;
-    }
-
-    unsigned int getNumTransformedObjectLikeMacroInvocations()
-    {
-        return NumTransformedObjectLikeMacroInvocations;
-    }
-
-    unsigned int getNumTransformedFunctionLikeMacroInvocations()
-    {
-        return NumTransformedFunctionLikeMacroInvocations;
+        // Record this macro 's definition
+        MacroNameToDirective.emplace(MacroName, MD);
     }
 };
 
+// Matcher callback that collects all function definitions
+class FunctionDefinitionCollector : public MatchFinder::MatchCallback
+{
+public:
+    vector<const Decl *> &Definitions;
+
+    FunctionDefinitionCollector(vector<const Decl *> &Definitions)
+        : Definitions(Definitions){};
+
+    virtual void run(const MatchFinder::MatchResult &Result) final
+    {
+        if (auto D = Result.Nodes.getNodeAs<Decl>("FDecl"))
+        {
+            Definitions.push_back(D);
+        }
+    }
+};
+
+// NOTE:
+// These functions are it - The trick now is extract the macro invocation
+// from each of them
+void TransformExpr(Expr *E);
+void TransformStmt(Stmt *S);
+
+// Transforms all eligible macro invocations in the given expression into
+// C function calls
+void TransformExpr(Expr *E)
+{
+    // Num
+    if (auto Num = dyn_cast<IntegerLiteral>(E))
+    {
+        errs() << "Transformed a Num\n";
+    }
+    // Var
+    else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
+    {
+        errs() << "Transformed a Var\n";
+    }
+    // ParenExpr
+    else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
+    {
+        if (auto E0 = ParenExpr_->getSubExpr())
+        {
+            errs() << "Transforming a ParenExpr\n";
+            TransformStmt(E0);
+        }
+    }
+    // UnExpr
+    else if (auto UnExpr = dyn_cast<clang::UnaryOperator>(E))
+    {
+        auto OC = UnExpr->getOpcode();
+        if (OC == UO_Plus || OC == UO_Minus)
+        {
+            if (auto E0 = UnExpr->getSubExpr())
+            {
+                errs() << "Transforming a UnExpr\n";
+                TransformExpr(E0);
+            }
+        }
+    }
+    // BinExpr
+    else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
+    {
+        auto OC = BinExpr->getOpcode();
+        if (OC == BO_Add || OC == BO_Sub || OC == BO_Mul || OC == BO_Div)
+        {
+            auto E1 = BinExpr->getLHS();
+            auto E2 = BinExpr->getRHS();
+            if (E1 && E2)
+            {
+                errs() << "Transforming a BinExpr\n";
+                TransformExpr(E1);
+                TransformExpr(E2);
+            }
+        }
+        // AssignExpr
+        else if (OC == BO_Assign)
+        {
+            // Can the LHS be null?
+            if (auto X = dyn_cast_or_null<DeclRefExpr>(BinExpr->getLHS()))
+            {
+                errs() << "Transforming an AssignExpr\n";
+                auto E2 = BinExpr->getRHS();
+                TransformExpr(E2);
+            }
+        }
+    }
+    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
+    {
+        errs() << "Transforming a CallOrInvocation (function call)\n";
+        for (auto &&Arg : CallOrInvocation->arguments())
+        {
+            TransformExpr(Arg);
+        }
+    }
+    // CallOrInvocation (function call)
+}
+
+// Transforms all eligible macro invocations in the given statement into
+// C function calls
+void TransformStmt(Stmt *S)
+{
+    // Is this right?
+    // ExprStmt
+    if (auto ES = dyn_cast<Expr>(S))
+    {
+        errs() << "Transforming an ExprStmt\n";
+        TransformExpr(ES);
+    }
+    // IfElseStmt
+    else if (auto IfElseStmt = dyn_cast<IfStmt>(S))
+    {
+        // Check for else branch
+        Expr *E = IfElseStmt->getCond();
+        Stmt *S1 = IfElseStmt->getThen();
+        Stmt *S2 = IfElseStmt->getElse();
+        if (E && S1 && S2)
+        {
+            errs() << "Transforming an IfElseStmt\n";
+            TransformExpr(E);
+            TransformStmt(S1);
+            TransformStmt(S2);
+        }
+    }
+    // WhileStmt
+    else if (auto WhileStmt_ = dyn_cast<WhileStmt>(S))
+    {
+        Expr *E = WhileStmt_->getCond();
+        Stmt *S1 = WhileStmt_->getBody();
+        if (E && S1)
+        {
+            errs() << "Transforming a WhileStmt\n";
+            TransformExpr(E);
+            TransformStmt(S1);
+        }
+    }
+    // CompoundStmt
+    else if (auto CS = dyn_cast<CompoundStmt>(S))
+    {
+        errs() << "Transforming a CompoundStmt\n";
+        for (auto &&S : CS->children())
+        {
+            TransformStmt(S);
+        }
+    }
+}
+
 // AST consumer which calls the visitor class to perform the transformation
-class CppToCConsumer : public clang::ASTConsumer
+class CppToCConsumer : public ASTConsumer
 {
 private:
     CompilerInstance *CI;
-    CollectFunctionNamesVisitor *CFVvisitor;
-    CppToCVisitor *CTCvisitor;
 
 public:
     explicit CppToCConsumer(CompilerInstance *CI)
-        : CI(CI),
-          CFVvisitor(new CollectFunctionNamesVisitor(CI)) {}
+        : CI(CI) {}
 
     virtual void HandleTranslationUnit(ASTContext &Ctx)
     {
         auto begin_time = std::chrono::high_resolution_clock::now();
 
-        // Collect the names of all the macros defined in the program
-        Preprocessor &PP = CI->getPreprocessor();
-        SourceManager &SM = CI->getSourceManager();
-        FileID MFID = SM.getMainFileID();
+        // Collect the names of all the functions defined in the program
+        CollectFunctionNamesVisitor CFVvisitor(CI);
+        CFVvisitor.TraverseDecl(Ctx.getTranslationUnitDecl());
 
-        MacroNameToInfoPtrMap *MacroNamesToMacroInfo =
-            new MacroNameToInfoPtrMap();
-        LineNumberToMacroNameMap *LineNumbersToMacroNames =
-            new LineNumberToMacroNameMap();
-        for (auto &&Macro : PP.macros())
+        // Match the AST for function definitions
+        errs() << "Step 1: Find function definitions\n";
+        vector<const Decl *> FDs;
         {
-            const IdentifierInfo *II = Macro.getFirst();
-            SourceLocation DL = PP.getMacroInfo(II)->getDefinitionLoc();
+            MatchFinder Finder;
+            FunctionDefinitionCollector callback(FDs);
+            auto FDeclMatcher =
+                functionDecl(
+                    isExpansionInMainFile(),
+                    isDefinition(),
+                    hasBody(compoundStmt()))
+                    .bind("FDecl");
+            Finder.addMatcher(FDeclMatcher, &callback);
+            Finder.matchAST(Ctx);
+        }
 
-            // Is this macro defined in the source file?
-            // FIXME: We actually want the names of all macro that are defined,
-            // not just those defined in the program. This would let us check
-            // if the name of a transformed function we would generate
-            // conflicts with the name of an existing macro.
-            // If we do this, however, then we would have to check in the
-            // transformation visitor if the macro is defined in the source
-            // file before transforming.
-            if (SM.isInFileID(DL, MFID))
+        errs() << "Found " << FDs.size() << " function(s):\n";
+        for (auto &&FD : FDs)
+        {
+            if (auto ND = dyn_cast<NamedDecl>(FD))
             {
-                string MacroName = Macro.getFirst()->getName().str();
-                MacroInfo *MI = PP.getMacroInfo(II);
-
-                unsigned int SpLN = SM.getSpellingLineNumber(DL);
-                auto MNMIEntry = pair<string, MacroInfo *>(MacroName, MI);
-                auto LNMNEntry = pair<unsigned int, string>(SpLN, MacroName);
-
-                MacroNamesToMacroInfo->insert(MNMIEntry);
-                LineNumbersToMacroNames->insert(LNMNEntry);
+                errs() << "    " << ND->getNameAsString() << "\n";
             }
         }
 
-        // Collect the names of all the functions defined in the program
-        CFVvisitor->TraverseDecl(Ctx.getTranslationUnitDecl());
+        // Step 2: Traverse definitions and only check those nodes which
+        // are a part of our language subset
+        for (auto &&FD : FDs)
+        {
+            Stmt *Body = FD->getBody();
+            TransformStmt(Body);
+        }
 
-        CTCvisitor = new CppToCVisitor(CI,
-                                       MacroNamesToMacroInfo,
-                                       LineNumbersToMacroNames);
-
-        // Give the transformer the set of declared functions
-        CTCvisitor->setFunctionNames(CFVvisitor->getFunctionNames());
-
-        // Gather transformations
-        CTCvisitor->TraverseDecl(Ctx.getTranslationUnitDecl());
-
-        // Perform the transformations
-        CTCvisitor->performRewrites();
-
-        // Print the results of the rewriting for the current file
+        // Step 3: Print the results of the rewriting for the current file
         const RewriteBuffer *RewriteBuf =
             RW.getRewriteBufferFor(Ctx.getSourceManager().getMainFileID());
         if (RewriteBuf != nullptr)
         {
-            RewriteBuf->write(outs());
-            errs()
-                << "Transformed Object-like Macros"
-                << ", "
-                << "Transformed Function-like Macros"
-                << "\n"
-                << CTCvisitor->getNumTransformedObjectLikeMacroInvocations()
-                << ", "
-                << CTCvisitor->getNumTransformedFunctionLikeMacroInvocations()
-                << "\n";
         }
         else
         {
@@ -473,9 +301,6 @@ public:
                             .count();
         errs() << "Finished in " << duration << " microseconds."
                << "\n";
-
-        delete MacroNamesToMacroInfo;
-        delete LineNumbersToMacroNames;
     }
 };
 
@@ -488,6 +313,9 @@ protected:
     CreateASTConsumer(CompilerInstance &CI,
                       StringRef file) override
     {
+        Preprocessor &PP = CI.getPreprocessor();
+        MacroDefinitionCollector *MDC = new MacroDefinitionCollector();
+        PP.addPPCallbacks(unique_ptr<PPCallbacks>(MDC));
         return make_unique<CppToCConsumer>(&CI);
     }
 
