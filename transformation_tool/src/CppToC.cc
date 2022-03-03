@@ -27,13 +27,53 @@ using namespace clang::ast_matchers;
 // Source code rewriter
 Rewriter RW;
 
+// Map for memoizing results of IsExprInCSubset
+map<Expr *, bool> EInCSub;
+
+// Enum for different types of expression included in our C language subset
+// Link: https://tinyurl.com/yc3mzv8o
+enum class CSubsetExpr
+{
+    // Use for initializers
+    INVALID,
+
+    Num,
+    Var,
+    ParenExpr,
+    UnExpr,
+    BinExpr,
+    Assign,
+    CallOrInvocation
+};
+constexpr const char *CSubsetExprToString(CSubsetExpr CSE)
+{
+    switch (CSE)
+    {
+    case CSubsetExpr::Num:
+        return "Num";
+    case CSubsetExpr::Var:
+        return "Var";
+    case CSubsetExpr::ParenExpr:
+        return "ParenExpr";
+    case CSubsetExpr::UnExpr:
+        return "UnExpr";
+    case CSubsetExpr::BinExpr:
+        return "BinExpr";
+    case CSubsetExpr::Assign:
+        return "Assign";
+    case CSubsetExpr::CallOrInvocation:
+        return "CallOrInvocation";
+    default:
+        throw std::invalid_argument("Unimplemented CSubsetExpr");
+    }
+}
+
 // Kinds of smart pointers;
 // https://tinyurl.com/y8hbbdwq
 
 // Visitor class which collects the names of all functions declared in a
 // program
-class CollectFunctionNamesVisitor
-    : public RecursiveASTVisitor<CollectFunctionNamesVisitor>
+class CollectFunctionNamesVisitor : public RecursiveASTVisitor<CollectFunctionNamesVisitor>
 {
 private:
     ASTContext *Ctx;
@@ -86,34 +126,37 @@ public:
     }
 };
 
-// NOTE:
-// These functions are it - The trick now is extract the macro invocation
-// from each of them
-void TransformExpr(Expr *E);
-void TransformStmt(Stmt *S);
-void TransformProgram(TranslationUnitDecl *TUD);
-
-// Transforms all eligible macro invocations in the given expression into
-// C function calls
-void TransformExpr(Expr *E)
+// Returns true if the given expression is in our C language subset,
+// false otherwise.
+bool IsExprInCSubset(Expr *E)
 {
+    // We use a map to memoize results
+    auto Entry = EInCSub.find(E);
+    if (Entry != EInCSub.end())
+    {
+        errs() << "Expression already checked: ";
+        E->dumpColor();
+        return Entry->second;
+    }
+
+    bool result = false;
+
     // Num
     if (auto Num = dyn_cast<IntegerLiteral>(E))
     {
-        errs() << "Transformed a Num\n";
+        result = true;
     }
     // Var
     else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
     {
-        errs() << "Transformed a Var\n";
+        result = true;
     }
     // ParenExpr
     else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
     {
         if (auto E0 = ParenExpr_->getSubExpr())
         {
-            errs() << "Transforming a ParenExpr\n";
-            TransformStmt(E0);
+            result = IsExprInCSubset(E0);
         }
     }
     // UnExpr
@@ -124,8 +167,7 @@ void TransformExpr(Expr *E)
         {
             if (auto E0 = UnExpr->getSubExpr())
             {
-                errs() << "Transforming a UnExpr\n";
-                TransformExpr(E0);
+                result = IsExprInCSubset(E0);
             }
         }
     }
@@ -139,32 +181,180 @@ void TransformExpr(Expr *E)
             auto E2 = BinExpr->getRHS();
             if (E1 && E2)
             {
-                errs() << "Transforming a BinExpr\n";
-                TransformExpr(E1);
-                TransformExpr(E2);
+                result = IsExprInCSubset(E1) && IsExprInCSubset(E2);
             }
         }
-        // AssignExpr
+        // Assign
         else if (OC == BO_Assign)
         {
-            // Can the LHS be null?
+            // Can we just use dyn_cast here (Can the LHS be NULL?)
             if (auto X = dyn_cast_or_null<DeclRefExpr>(BinExpr->getLHS()))
             {
-                errs() << "Transforming an AssignExpr\n";
                 auto E2 = BinExpr->getRHS();
-                TransformExpr(E2);
+                result = IsExprInCSubset(E2);
             }
-        }
-    }
-    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
-    {
-        errs() << "Transforming a CallOrInvocation (function call)\n";
-        for (auto &&Arg : CallOrInvocation->arguments())
-        {
-            TransformExpr(Arg);
         }
     }
     // CallOrInvocation (function call)
+    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
+    {
+        result = true;
+        for (auto &&Arg : CallOrInvocation->arguments())
+        {
+            if (!IsExprInCSubset(Arg))
+            {
+                result = false;
+            }
+            break;
+        }
+    }
+    EInCSub[E] = result;
+    return result;
+}
+
+// NOTE:
+// These functions are it - The trick now is to extract potential
+// macro invocations from expressions
+void TransformExpr(Expr *E);
+void TransformStmt(Stmt *S);
+void TransformProgram(TranslationUnitDecl *TUD);
+
+// Transforms all eligible macro invocations in the given expression into
+// C function calls
+void TransformExpr(Expr *E)
+{
+    // Check that the expression is in our language subset
+    if (!IsExprInCSubset(E))
+    {
+        return;
+    }
+
+    // Step 1: Classify the expression
+    CSubsetExpr CSE = CSubsetExpr::INVALID;
+    // Since at this point we already know the expression is in the
+    // language subset, we only need to perform a minimal number
+    // of checks to classify it
+    // Num
+    if (dyn_cast<IntegerLiteral>(E))
+    {
+        CSE = CSubsetExpr::Num;
+    }
+    // Var
+    else if (dyn_cast<clang::DeclRefExpr>(E))
+    {
+        CSE = CSubsetExpr::Var;
+    }
+    // ParenExpr
+    else if (dyn_cast<ParenExpr>(E))
+    {
+        CSE = CSubsetExpr::ParenExpr;
+    }
+    // UnExpr
+    else if (dyn_cast<clang::UnaryOperator>(E))
+    {
+        CSE = CSubsetExpr::UnExpr;
+    }
+    // BinExpr or Assign
+    else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
+    {
+        auto OC = BinExpr->getOpcode();
+
+        // BinExpr
+        if (OC != BO_Assign)
+        {
+            CSE = CSubsetExpr::BinExpr;
+        }
+        // Assign
+        else
+        {
+            CSE = CSubsetExpr::Assign;
+        }
+    }
+    // CallOrInvocation (function call)
+    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
+    {
+        CSE = CSubsetExpr::CallOrInvocation;
+    }
+
+    errs() << "Found a " << CSubsetExprToString(CSE) << "\n";
+
+    // Step 2: Try to transform the entire expression
+    // TODO
+    bool transformedE = false;
+    errs() << "Potentially transforming a "
+           << CSubsetExprToString(CSE) << "\n";
+
+    // Step 3: If we could not transform the entire expression,
+    // then try to transform its subexpressions.
+    // Note that we don't have to check subexpressions for being in
+    // the language subset since IsExprInCSubset handles that recursively
+    if (!transformedE)
+    {
+        errs() << "Did not transform a " << CSubsetExprToString(CSE) << "\n";
+        // Num
+        if (auto Num = dyn_cast<IntegerLiteral>(E))
+        {
+            // Do nothing since Num does not have any subexpressions
+        }
+        // Var
+        else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
+        {
+            // Do nothing since Var does not have any subexpressions
+        }
+        // ParenExpr
+        else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
+        {
+            if (auto E0 = ParenExpr_->getSubExpr())
+            {
+                TransformStmt(E0);
+            }
+        }
+        // UnExpr
+        else if (auto UnExpr = dyn_cast<clang::UnaryOperator>(E))
+        {
+            auto OC = UnExpr->getOpcode();
+            if (OC == UO_Plus || OC == UO_Minus)
+            {
+                if (auto E0 = UnExpr->getSubExpr())
+                {
+                    TransformExpr(E0);
+                }
+            }
+        }
+        // BinExpr
+        else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
+        {
+            auto OC = BinExpr->getOpcode();
+            if (OC == BO_Add || OC == BO_Sub || OC == BO_Mul || OC == BO_Div)
+            {
+                auto E1 = BinExpr->getLHS();
+                auto E2 = BinExpr->getRHS();
+                if (E1 && E2)
+                {
+                    TransformExpr(E1);
+                    TransformExpr(E2);
+                }
+            }
+            // Assign
+            else if (OC == BO_Assign)
+            {
+                // Can we just use dyn_cast here (Can the LHS be NULL?)
+                if (auto X = dyn_cast_or_null<DeclRefExpr>(BinExpr->getLHS()))
+                {
+                    auto E2 = BinExpr->getRHS();
+                    TransformExpr(E2);
+                }
+            }
+        }
+        // CallOrInvocation (function call)
+        else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
+        {
+            for (auto &&Arg : CallOrInvocation->arguments())
+            {
+                TransformExpr(Arg);
+            }
+        }
+    }
 }
 
 // Transforms all eligible macro invocations in the given statement into
