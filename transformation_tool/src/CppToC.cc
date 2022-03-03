@@ -212,6 +212,64 @@ bool IsExprInCSubset(Expr *E)
     return result;
 }
 
+// Returns the C language subset syntax node that this expression
+// corresponds to
+CSubsetExpr ClassifyExpr(Expr *E)
+{
+    // Check that the expression is in our language subset
+    if (!IsExprInCSubset(E))
+    {
+        return CSubsetExpr::INVALID;
+    }
+
+    // Since at this point we already know the expression is in the
+    // language subset, we only need to perform a minimal number
+    // of checks to classify it
+    // Num
+    if (dyn_cast<IntegerLiteral>(E))
+    {
+        return CSubsetExpr::Num;
+    }
+    // Var
+    else if (dyn_cast<clang::DeclRefExpr>(E))
+    {
+        return CSubsetExpr::Var;
+    }
+    // ParenExpr
+    else if (dyn_cast<ParenExpr>(E))
+    {
+        return CSubsetExpr::ParenExpr;
+    }
+    // UnExpr
+    else if (dyn_cast<clang::UnaryOperator>(E))
+    {
+        return CSubsetExpr::UnExpr;
+    }
+    // BinExpr or Assign
+    else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
+    {
+        auto OC = BinExpr->getOpcode();
+
+        // BinExpr
+        if (OC != BO_Assign)
+        {
+            return CSubsetExpr::BinExpr;
+        }
+        // Assign
+        else
+        {
+            return CSubsetExpr::Assign;
+        }
+    }
+    // CallOrInvocation (function call)
+    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
+    {
+        return CSubsetExpr::CallOrInvocation;
+    }
+
+    return CSubsetExpr::INVALID;
+}
+
 // NOTE:
 // These functions are it - The trick now is to extract potential
 // macro invocations from expressions
@@ -223,65 +281,13 @@ void TransformProgram(TranslationUnitDecl *TUD);
 // C function calls
 void TransformExpr(Expr *E)
 {
-    // Check that the expression is in our language subset
-    if (!IsExprInCSubset(E))
-    {
-        return;
-    }
-
     // Step 1: Classify the expression
-    CSubsetExpr CSE = CSubsetExpr::INVALID;
-    // Since at this point we already know the expression is in the
-    // language subset, we only need to perform a minimal number
-    // of checks to classify it
-    // Num
-    if (dyn_cast<IntegerLiteral>(E))
-    {
-        CSE = CSubsetExpr::Num;
-    }
-    // Var
-    else if (dyn_cast<clang::DeclRefExpr>(E))
-    {
-        CSE = CSubsetExpr::Var;
-    }
-    // ParenExpr
-    else if (dyn_cast<ParenExpr>(E))
-    {
-        CSE = CSubsetExpr::ParenExpr;
-    }
-    // UnExpr
-    else if (dyn_cast<clang::UnaryOperator>(E))
-    {
-        CSE = CSubsetExpr::UnExpr;
-    }
-    // BinExpr or Assign
-    else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
-    {
-        auto OC = BinExpr->getOpcode();
-
-        // BinExpr
-        if (OC != BO_Assign)
-        {
-            CSE = CSubsetExpr::BinExpr;
-        }
-        // Assign
-        else
-        {
-            CSE = CSubsetExpr::Assign;
-        }
-    }
-    // CallOrInvocation (function call)
-    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
-    {
-        CSE = CSubsetExpr::CallOrInvocation;
-    }
-
-    errs() << "Found a " << CSubsetExprToString(CSE) << "\n";
+    CSubsetExpr CSE = ClassifyExpr(E);
 
     // Step 2: Try to transform the entire expression
     // TODO
     bool transformedE = false;
-    errs() << "Potentially transforming a "
+    errs() << "Transforming a "
            << CSubsetExprToString(CSE) << "\n";
 
     // Step 3: If we could not transform the entire expression,
@@ -290,7 +296,7 @@ void TransformExpr(Expr *E)
     // the language subset since IsExprInCSubset handles that recursively
     if (!transformedE)
     {
-        errs() << "Did not transform a " << CSubsetExprToString(CSE) << "\n";
+        errs() << "No change made to " << CSubsetExprToString(CSE) << "\n";
         // Num
         if (auto Num = dyn_cast<IntegerLiteral>(E))
         {
@@ -361,7 +367,9 @@ void TransformExpr(Expr *E)
 // C function calls
 void TransformStmt(Stmt *S)
 {
-    // Is this right?
+    // Note: Should we not transfor a stmt at all if any of its
+    // substatements are not in the C language subset?
+
     // ExprStmt
     if (auto ES = dyn_cast<Expr>(S))
     {
