@@ -86,29 +86,12 @@ public:
     }
 };
 
-// Matcher callback that collects all function definitions
-class FunctionDefinitionCollector : public MatchFinder::MatchCallback
-{
-public:
-    vector<const Decl *> &Definitions;
-
-    FunctionDefinitionCollector(vector<const Decl *> &Definitions)
-        : Definitions(Definitions){};
-
-    virtual void run(const MatchFinder::MatchResult &Result) final
-    {
-        if (auto D = Result.Nodes.getNodeAs<Decl>("FDecl"))
-        {
-            Definitions.push_back(D);
-        }
-    }
-};
-
 // NOTE:
 // These functions are it - The trick now is extract the macro invocation
 // from each of them
 void TransformExpr(Expr *E);
 void TransformStmt(Stmt *S);
+void TransformProgram(TranslationUnitDecl *TUD);
 
 // Transforms all eligible macro invocations in the given expression into
 // C function calls
@@ -233,6 +216,39 @@ void TransformStmt(Stmt *S)
     }
 }
 
+// Transforms all eligible macro invocations in a program into C function calls
+void TransformProgram(TranslationUnitDecl *TUD, SourceManager &SM)
+{
+    // This probably won't happen, but to be safe
+    if (!TUD)
+    {
+        return;
+    }
+
+    // Visit all function definitions in the program
+    for (auto D : TUD->decls())
+    {
+        SourceLocation L = D->getLocation();
+        // Check that this definition is in the main file
+        // Not sure if we should use this condition or the one below it
+        // if (!SM.isWrittenInMainFile)
+        if (!SM.isInMainFile(L))
+        {
+            continue;
+        }
+
+        if (auto FD = dyn_cast<FunctionDecl>(D))
+        {
+            if (FD->isThisDeclarationADefinition())
+            {
+                errs() << "Transforming a function definition\n";
+                auto FBody = FD->getBody();
+                TransformStmt(FBody);
+            }
+        }
+    }
+}
+
 // AST consumer which calls the visitor class to perform the transformation
 class CppToCConsumer : public ASTConsumer
 {
@@ -247,44 +263,15 @@ public:
     {
         auto begin_time = std::chrono::high_resolution_clock::now();
 
+        TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
         // Collect the names of all the functions defined in the program
         CollectFunctionNamesVisitor CFVvisitor(CI);
-        CFVvisitor.TraverseDecl(Ctx.getTranslationUnitDecl());
+        CFVvisitor.TraverseDecl(TUD);
 
-        // Match the AST for function definitions
-        errs() << "Step 1: Find function definitions\n";
-        vector<const Decl *> FDs;
-        {
-            MatchFinder Finder;
-            FunctionDefinitionCollector callback(FDs);
-            auto FDeclMatcher =
-                functionDecl(
-                    isExpansionInMainFile(),
-                    isDefinition(),
-                    hasBody(compoundStmt()))
-                    .bind("FDecl");
-            Finder.addMatcher(FDeclMatcher, &callback);
-            Finder.matchAST(Ctx);
-        }
+        // Transform the program
+        TransformProgram(TUD, Ctx.getSourceManager());
 
-        errs() << "Found " << FDs.size() << " function(s):\n";
-        for (auto &&FD : FDs)
-        {
-            if (auto ND = dyn_cast<NamedDecl>(FD))
-            {
-                errs() << "    " << ND->getNameAsString() << "\n";
-            }
-        }
-
-        // Step 2: Traverse definitions and only check those nodes which
-        // are a part of our language subset
-        for (auto &&FD : FDs)
-        {
-            Stmt *Body = FD->getBody();
-            TransformStmt(Body);
-        }
-
-        // Step 3: Print the results of the rewriting for the current file
+        // Print the results of the rewriting for the current file
         const RewriteBuffer *RewriteBuf =
             RW.getRewriteBufferFor(Ctx.getSourceManager().getMainFileID());
         if (RewriteBuf != nullptr)
