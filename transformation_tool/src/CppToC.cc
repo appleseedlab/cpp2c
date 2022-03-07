@@ -20,9 +20,8 @@ using namespace std;
 
 using namespace clang::ast_matchers;
 
-// TODO: We may want to transform object-like macro as well, as they see
-// more usage than nullary function-like macros. Ideally we would add the
-// soundness of this proof to the transformation as well.
+// TODO: Add transformation of object-like macros to variables to soundness
+// proof
 
 // TODO: Refactor and remove global variables
 
