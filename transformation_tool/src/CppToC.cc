@@ -33,10 +33,14 @@ SourceManager *SM;
 
 Preprocessor *PP;
 
+LangOptions *LO;
+
+// Set of all variable nams declared in a program
+set<string> AllVarNames;
 // Set of all function names declared in a program
-set<string> FunctionNames;
+set<string> AllFunctionNames;
 // Set of all macro names declared in a program
-set<string> MacroNames;
+set<string> AllMacroNames;
 // Set of all multiply-defined macros
 set<string> MultiplyDefinedMacros;
 // List of all macro expansion ranges
@@ -51,11 +55,17 @@ set<SourceLocation> StartLocationsOFExpansionsContainedInOtherExpansion;
 // starting at that location
 map<SourceLocation, list<string>> ExpansionStartLocationToMacroNames;
 
+// Mapping from macro names to their directives
+map<string, const MacroDirective *> MacroNameToDirective;
+
 // Map for memoizing results of isExprInCSubset
 map<Expr *, bool> EInCSub;
 
 // Map for memoizing results of exprContainsLocalVars
 map<Expr *, bool> EContainsLocalVars;
+
+// Map for memoizing results of exprHasSideEffects
+map<Expr *, bool> EHasSideEffects;
 
 // Enum for different types of expression included in our C language subset
 // Link: https://tinyurl.com/yc3mzv8o
@@ -168,8 +178,6 @@ public:
 class MacroDefinitionCollector : public PPCallbacks
 {
 public:
-    map<string, const MacroDirective *> MacroNameToDirective;
-
     // Hook called whenever a macro definition is seen.
     void MacroDefined(const Token &MacroNameTok, const MacroDirective *MD)
     {
@@ -177,26 +185,31 @@ public:
         string MacroName = II->getName().str();
 
         // Add this macro name to the set of macro names used in the program
-        MacroNames.insert(MacroName);
+        AllMacroNames.insert(MacroName);
 
         // Check if this macros is multiply-defined
-        if (MD->getPrevious() == nullptr)
+        if (MD->getPrevious() != nullptr)
         {
             MultiplyDefinedMacros.insert(MacroName);
         }
+
+        // Map macro name to its directive
+        // It's fine if we overwrite a macro, because we only transform
+        // macros that are not multiply-defined
+        MacroNameToDirective[MacroName] = MD;
     }
 };
 
-// Visitor class which collects the names of all functions declared in a
-// program
-class CollectFunctionNamesVisitor
-    : public RecursiveASTVisitor<CollectFunctionNamesVisitor>
+// Visitor class which collects the names of all variables and functions
+// declared in a program
+class CollectDeclNamesVisitor
+    : public RecursiveASTVisitor<CollectDeclNamesVisitor>
 {
 private:
     ASTContext *Ctx;
 
 public:
-    explicit CollectFunctionNamesVisitor(CompilerInstance *CI)
+    explicit CollectDeclNamesVisitor(CompilerInstance *CI)
         : Ctx(&(CI->getASTContext()))
     {
     }
@@ -207,8 +220,16 @@ public:
                                   ->getNameInfo()
                                   .getName()
                                   .getAsString();
-        FunctionNames.insert(functionName);
+        AllFunctionNames.insert(functionName);
 
+        return true;
+    }
+
+    bool VisitVarDecl(VarDecl *VD)
+    {
+        string VarName = VD->getName().str();
+        errs() << VarName << "\n";
+        AllVarNames.insert(VarName);
         return true;
     }
 };
@@ -310,7 +331,7 @@ bool isGlobalVariable(VarDecl *VD)
 }
 
 // Returns true if the given expression contains any non-global variables,
-// false otherwise.
+// false otherwise
 bool exprContainsLocalVars(Expr *E)
 {
     // We use a map to memoize results
@@ -414,6 +435,90 @@ bool exprContainsLocalVars(Expr *E)
     return result;
 }
 
+// Returns true if the given expression may have side-effects, false otherwise.
+// Clang offers this function, but we use our own implementation for two
+// reasons: 1) To ensure that we match the formal work. 2) To avoid passing the
+// AST context to all transformation functions
+bool exprHasSideEffects(Expr *E)
+{
+    // We use a map to memoize results
+    auto Entry = EHasSideEffects.find(E);
+    if (Entry != EHasSideEffects.end())
+    {
+        return Entry->second;
+    }
+
+    bool result = true;
+
+    // IMPLICIT
+    if (auto Imp = dyn_cast<ImplicitCastExpr>(E))
+    {
+        if (auto E0 = Imp->getSubExpr())
+        {
+            result = exprHasSideEffects(E0);
+        }
+    }
+    // Num
+    else if (auto Num = dyn_cast<IntegerLiteral>(E))
+    {
+        result = false;
+    }
+    // Var
+    else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
+    {
+        if (auto VD = dyn_cast<VarDecl>(Var->getDecl()))
+        {
+            result = !isGlobalVariable(VD);
+        }
+    }
+    // ParenExpr
+    else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
+    {
+        if (auto E0 = ParenExpr_->getSubExpr())
+        {
+            result = exprHasSideEffects(E0);
+        }
+    }
+    // UnExpr
+    else if (auto UnExpr = dyn_cast<clang::UnaryOperator>(E))
+    {
+        auto OC = UnExpr->getOpcode();
+        if (OC == UO_Plus || OC == UO_Minus)
+        {
+            if (auto E0 = UnExpr->getSubExpr())
+            {
+                result = exprHasSideEffects(E0);
+            }
+        }
+    }
+    // BinExpr
+    else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
+    {
+        auto OC = BinExpr->getOpcode();
+        if (OC == BO_Add || OC == BO_Sub || OC == BO_Mul || OC == BO_Div)
+        {
+            auto E1 = BinExpr->getLHS();
+            auto E2 = BinExpr->getRHS();
+            if (E1 && E2)
+            {
+                result = exprHasSideEffects(E1) || exprHasSideEffects(E2);
+            }
+        }
+        // Assign
+        else if (OC == BO_Assign)
+        {
+            result = true;
+        }
+    }
+    // CallOrInvocation (function call)
+    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
+    {
+        result = false;
+    }
+    EHasSideEffects[E] = result;
+    return result;
+}
+
 // Returns the C language subset syntax node that this expression
 // corresponds to
 CSubsetExpr classifyExpr(Expr *E)
@@ -486,19 +591,21 @@ CSubsetExpr classifyExpr(Expr *E)
 // TODO
 enum class TransformationResult
 {
-    TRANSFORMED,
-    NOT_TRANSFORMED,
     CONTAINS_NESTED_INVOCATIONS,
     CONTAINED_IN_INVOCATION,
-    ERROR
+    ERROR,
+    HAS_SIDE_EFFECTS,
+    MULTIPLY_DEFINED,
+    NON_NULLARY_FUNCTION_LIKE_MACRO,
+    NOT_TRANSFORMED,
+    TRANSFORMED
 };
 TransformationResult transformEntireExpr(Expr *E)
 {
-    CSubsetExpr CSE = classifyExpr(E);
-
     // Check if the entire expression came from a macro expansion
     auto B = E->getBeginLoc();
     auto EL = E->getEndLoc();
+    string MacroName = "";
     if (PP->isAtStartOfMacroExpansion(B) && PP->isAtEndOfMacroExpansion(EL))
     {
         // Get the beginning of the expansion
@@ -538,7 +645,7 @@ TransformationResult transformEntireExpr(Expr *E)
             }
             else if (MacroNames.size() == 1)
             {
-                string MacroName = MacroNames.front();
+                MacroName = MacroNames.front();
                 errs() << "Found an unambiguous invocation of "
                        << MacroName << "\n";
             }
@@ -551,17 +658,41 @@ TransformationResult transformEntireExpr(Expr *E)
             }
         }
     }
+    else
+    {
+        return TransformationResult::NOT_TRANSFORMED;
+    }
+
+    // Sanity check
+    if (MacroName == "")
+    {
+        errs() << "Found a macro that should have had a name, but did not\n";
+        return TransformationResult::ERROR;
+    }
+
+    // Check that invoked macro is not multiply-defined
+    if (MultiplyDefinedMacros.find(MacroName) != MultiplyDefinedMacros.end())
+    {
+        return TransformationResult::MULTIPLY_DEFINED;
+    }
+    const MacroDirective *MD = MacroNameToDirective[MacroName];
+
     // Check that the invoked macro is an object-like macro or a nullary
     // function-like macro
     // TODO: Allow for function-like macros with 1 argument whose
     // body is a single variable
+    const MacroInfo *MI = MD->getMacroInfo();
+    if (MI->isFunctionLike() && MI->getNumParams() > 0)
+    {
+        errs() << "Found a non-nullary function-like macro invocation\n";
+        return TransformationResult::NON_NULLARY_FUNCTION_LIKE_MACRO;
+    }
 
     // Check that the expression does not have side-effects
-    if (CSE == CSubsetExpr::Assign || CSE == CSubsetExpr::CallOrInvocation)
+    if (exprHasSideEffects(E))
     {
-        // Report that the invocation was not transformed so we can try
-        // to transform subexpression that may not have side-effects
-        return TransformationResult::NOT_TRANSFORMED;
+        errs() << "Found a macro invocation with side-effects\n";
+        return TransformationResult::HAS_SIDE_EFFECTS;
     }
 
     // TODO: Check if macro is hygienic (the previous step may have
@@ -575,16 +706,99 @@ TransformationResult transformEntireExpr(Expr *E)
         return TransformationResult::NOT_TRANSFORMED;
     }
 
-    // Transform the expansion into a function call
-    // TODO
+    // Give the transformed macro a unique name
+    string suffix = MI->isObjectLike() ? "_var" : "_function";
+    string DefName = MacroName + suffix;
+    unsigned int i = 0;
+    while (AllVarNames.find(DefName) != AllVarNames.end() ||
+           AllFunctionNames.find(DefName) != AllFunctionNames.end() ||
+           AllMacroNames.find(DefName) != AllMacroNames.end())
+    {
+        DefName = MacroName + suffix + to_string(i);
+        i += 1;
+    }
 
-    // Define the called function and add it to the list of functions
-    // defined in the program.
-    // Make sure to give it a unique name.
-    // TODO: Transform object-like macros into global variables instead?
-    // TODO
+    // Get location for where to insert transformed macro
+    SourceLocation MacroDefEnd = MI->getDefinitionEndLoc();
+    SourceLocation DefLocation =
+        Lexer::getLocForEndOfToken(MacroDefEnd, 0, *SM, *LO);
 
-    return TransformationResult::NOT_TRANSFORMED;
+    // Get the body of the definition
+    SourceLocation MacroDefBegin = MI->getDefinitionLoc();
+    // Skip the name of the defined macro
+    SourceLocation MacroBodyBegin =
+        Lexer::getLocForEndOfToken(MacroDefBegin, 0, *SM, *LO);
+    // Go to end of formals for nullary function-like macro
+    if (MI->isFunctionLike())
+    {
+        MacroBodyBegin = MacroBodyBegin.getLocWithOffset(2);
+    }
+    // TODO: Go to end of formals for non-nullary function-like macros
+
+    // Skip leading space in macro definition
+    MacroBodyBegin = MacroBodyBegin.getLocWithOffset(1);
+
+    SourceRange MacroBodyRange = SourceRange(MacroBodyBegin, MacroDefEnd);
+    CharSourceRange MacroDefRange = Lexer::getAsCharRange(
+        MacroBodyRange, *SM, *LO);
+    bool *RWError = nullptr;
+    string DefBody = Lexer::getSourceText(MacroDefRange, *SM, *LO, RWError)
+                         .str();
+    if (RWError != nullptr)
+    {
+        errs() << "Could not get source text of macro definition\n";
+        return TransformationResult::ERROR;
+    }
+
+    string Def = "";
+    if (MI->isObjectLike())
+    {
+        Def = "\nconst int " + DefName + " = " + DefBody + ";";
+        AllVarNames.insert(DefName);
+    }
+    else
+    {
+        // TODO: Add parameters to non-nullary function-like macros
+        Def = "\nint " + DefName + " {\n    return " + DefBody + ";\n}";
+
+        // Add the function name to the name of all functions defined in
+        // the program
+        AllFunctionNames.insert(DefName);
+    }
+    // Sanity check
+    if (Def.compare("") == 0)
+    {
+        errs() << "Macro body was not defined\n";
+        return TransformationResult::ERROR;
+    }
+
+    if (RW.InsertTextAfter(DefLocation, StringRef(Def)))
+    {
+        errs() << "Rewriter could not rewrite macro\n";
+        return TransformationResult::ERROR;
+    }
+
+    // Create the replacement for the invocation
+    string InvocationReplacement = DefName;
+
+    // TODO: Add arguments for non-nullary function-like macros
+    if (MI->isFunctionLike())
+    {
+        InvocationReplacement += "()";
+    }
+
+    // Get expansion range of expression
+    SourceRange ER = SM->getExpansionRange(E->getSourceRange()).getAsRange();
+
+    // Transform the macro invocation into a variable reference or
+    // function call
+    if (RW.ReplaceText(ER, StringRef(InvocationReplacement)))
+    {
+        errs() << "Could not transformation invocation of macro\n";
+        return TransformationResult::ERROR;
+    }
+    errs() << "Successfully transformed a macro\n";
+    return TransformationResult::TRANSFORMED;
 }
 
 // NOTE:
@@ -615,7 +829,10 @@ void TransformExpr(Expr *E)
     // then try to transform its subexpressions.
     // Note that we don't have to check subexpressions for being in
     // the language subset since isExprInCSubset handles that recursively
-    if (result == TransformationResult::NOT_TRANSFORMED)
+    if (result == TransformationResult::NOT_TRANSFORMED ||
+        result == TransformationResult::MULTIPLY_DEFINED ||
+        result == TransformationResult::NON_NULLARY_FUNCTION_LIKE_MACRO ||
+        result == TransformationResult::HAS_SIDE_EFFECTS)
     {
         // errs() << "No change made to " << CSubsetExprToString(CSE) << "\n";
         // IMPLICIT
@@ -792,7 +1009,7 @@ public:
 
         TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
         // Collect the names of all the functions defined in the program
-        CollectFunctionNamesVisitor CFVvisitor(CI);
+        CollectDeclNamesVisitor CFVvisitor(CI);
         CFVvisitor.TraverseTranslationUnitDecl(TUD);
 
         // Transform the program
@@ -803,6 +1020,7 @@ public:
             RW.getRewriteBufferFor(Ctx.getSourceManager().getMainFileID());
         if (RewriteBuf != nullptr)
         {
+            RewriteBuf->write(outs());
         }
         else
         {
@@ -829,6 +1047,10 @@ protected:
     {
         SM = &(CI.getSourceManager());
         PP = &(CI.getPreprocessor());
+        LO = &(CI.getLangOpts());
+        // Important!
+        RW.setSourceMgr(*SM, *LO);
+
         MacroExpansionCollector *MIC = new MacroExpansionCollector();
         MacroDefinitionCollector *MDC = new MacroDefinitionCollector();
         PP->addPPCallbacks(unique_ptr<PPCallbacks>(MIC));
