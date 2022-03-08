@@ -53,6 +53,8 @@ set<SourceLocation> StartLocationsOFExpansionsContainedInOtherExpansion;
 // Mapping from starting locations of macro expansions to names of all macros
 // starting at that location
 map<SourceLocation, list<string>> ExpansionStartLocationToMacroNames;
+// Mapping from macro names to list of corresponding expansion ranges
+map<string, list<SourceRange>> MacroNameToExpansionRanges;
 
 // Mapping from macro names to their directives
 map<string, const MacroDirective *> MacroNameToDirective;
@@ -169,6 +171,7 @@ public:
         }
 
         ExpansionStartLocationToMacroNames[B].push_back(MacroName);
+        MacroNameToExpansionRanges[MacroName].push_back(ExpansionRange);
         ExpansionRanges.push_back(ExpansionRange);
     }
 };
@@ -263,6 +266,8 @@ bool isExprInCSubset(Expr *E)
     // Var
     else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
     {
+        // TODO: Check that Var's type is int
+        // TODO: Check that Var is a VarDecl
         result = true;
     }
     // ParenExpr
@@ -316,6 +321,8 @@ bool isExprInCSubset(Expr *E)
     // CallOrInvocation (function call)
     else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
     {
+        // NOTE: This extends the Coq language by including function calls
+        // which have arguments that are not in the language
         result = true;
     }
     EInCSub[E] = result;
@@ -465,10 +472,7 @@ bool exprHasSideEffects(Expr *E)
     // Var
     else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
     {
-        if (auto VD = dyn_cast<VarDecl>(Var->getDecl()))
-        {
-            result = !isGlobalVariable(VD);
-        }
+        result = false;
     }
     // ParenExpr
     else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
@@ -512,7 +516,7 @@ bool exprHasSideEffects(Expr *E)
     // CallOrInvocation (function call)
     else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
     {
-        result = false;
+        result = true;
     }
     EHasSideEffects[E] = result;
     return result;
@@ -522,6 +526,10 @@ bool exprHasSideEffects(Expr *E)
 // corresponds to
 CSubsetExpr classifyExpr(Expr *E)
 {
+    // TODO: Memoize these results
+    // TODO: May not need the enum and may be able to only use
+    // TODO: Change this to return the Clang AST type directly (as a string?)
+    // isExprInCSubset
     // Check that the expression is in our language subset
     if (!isExprInCSubset(E))
     {
@@ -594,6 +602,7 @@ enum class TransformationResult
     CONTAINED_IN_INVOCATION,
     ERROR,
     HAS_SIDE_EFFECTS,
+    MULTIPLE_EXPANSIONS,
     MULTIPLY_DEFINED,
     NON_NULLARY_FUNCTION_LIKE_MACRO,
     NOT_TRANSFORMED,
@@ -603,9 +612,8 @@ TransformationResult transformEntireExpr(Expr *E)
 {
     // Check if the entire expression came from a macro expansion
     auto B = E->getBeginLoc();
-    auto EL = E->getEndLoc();
     string MacroName = "";
-    if (PP->isAtStartOfMacroExpansion(B) && PP->isAtEndOfMacroExpansion(EL))
+    if (PP->isAtStartOfMacroExpansion(B))
     {
         // Get the beginning of the expansion
         // errs() << "Found an expression that begins at an expansion\n";
@@ -634,25 +642,44 @@ TransformationResult transformEntireExpr(Expr *E)
         if (ExpansionStartLocationToMacroNames.find(EB) !=
             ExpansionStartLocationToMacroNames.end())
         {
-            list<string> MacroNames = ExpansionStartLocationToMacroNames[EB];
-            if (MacroNames.size() == 0)
+            list<string> NamesOfMacrosExpandingStartingHere =
+                ExpansionStartLocationToMacroNames[EB];
+            if (NamesOfMacrosExpandingStartingHere.size() == 0)
             {
                 errs() << "Error: Clang reported a macro invocation"
                           " at this location but none found\n";
-
                 return TransformationResult::ERROR;
             }
-            else if (MacroNames.size() == 1)
+            else if (NamesOfMacrosExpandingStartingHere.size() == 1)
             {
-                MacroName = MacroNames.front();
+                // Verify that entire expression came from a single expansion
+                MacroName = NamesOfMacrosExpandingStartingHere.front();
+                bool cameFromSingleExpansion = false;
+                list<SourceRange> MacroExpansionRanges =
+                    MacroNameToExpansionRanges[MacroName];
+                for (auto &&MER : MacroExpansionRanges)
+                {
+                    if (ER == MER)
+                    {
+                        cameFromSingleExpansion = true;
+                        break;
+                    }
+                }
+
+                if (!cameFromSingleExpansion)
+                {
+                    errs() << "Found an expression composed of multiple "
+                           << "invocations\n";
+                    return TransformationResult::MULTIPLE_EXPANSIONS;
+                }
+
                 errs() << "Found an unambiguous invocation of "
                        << MacroName << "\n";
             }
-            else if (MacroNames.size() > 1)
+            else if (NamesOfMacrosExpandingStartingHere.size() > 1)
             {
                 errs() << "Could not unambiguously determine"
                        << " macro invocation to transform\n";
-
                 return TransformationResult::ERROR;
             }
         }
@@ -1007,7 +1034,8 @@ public:
         auto begin_time = std::chrono::high_resolution_clock::now();
 
         TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
-        // Collect the names of all the functions defined in the program
+        // Collect the names of all the variables and functions
+        // defined in the program
         CollectDeclNamesVisitor CDNvisitor(CI);
         CDNvisitor.TraverseTranslationUnitDecl(TUD);
 
@@ -1044,16 +1072,21 @@ protected:
     CreateASTConsumer(CompilerInstance &CI,
                       StringRef file) override
     {
+        // Initialize global variables
+        // TODO: Make these vars local instead
         SM = &(CI.getSourceManager());
         PP = &(CI.getPreprocessor());
         LO = &(CI.getLangOpts());
         // Important!
         RW.setSourceMgr(*SM, *LO);
 
+        // Collect macro definition and expansion info
         MacroExpansionCollector *MIC = new MacroExpansionCollector();
         MacroDefinitionCollector *MDC = new MacroDefinitionCollector();
         PP->addPPCallbacks(unique_ptr<PPCallbacks>(MIC));
         PP->addPPCallbacks(unique_ptr<PPCallbacks>(MDC));
+
+        // Return the consumer to initiate the transformation
         return make_unique<CppToCConsumer>(&CI);
     }
 
