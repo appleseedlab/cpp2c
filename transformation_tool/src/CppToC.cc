@@ -233,7 +233,6 @@ public:
     bool VisitVarDecl(VarDecl *VD)
     {
         string VarName = VD->getName().str();
-        errs() << VarName << "\n";
         AllVarNames.insert(VarName);
         return true;
     }
@@ -633,8 +632,14 @@ TransformationResult transformEntireExpr(Expr *E)
 {
     // Check if the entire expression came from a macro expansion
     auto B = E->getBeginLoc();
+    auto EL = E->getEndLoc();
     string MacroName = "";
-    if (PP->isAtStartOfMacroExpansion(B))
+    // Note: This checks that the beginning of the expression
+    // and end of the expression came from macro invocations, but doesn'y
+    // guarantee that they came from the *same* invocation.
+    // We do that farther down
+    if (PP->isAtStartOfMacroExpansion(B) &&
+        PP->isAtEndOfMacroExpansion(EL))
     {
         // Get the beginning of the expansion
         // errs() << "Found an expression that begins at an expansion\n";
@@ -674,6 +679,8 @@ TransformationResult transformEntireExpr(Expr *E)
             else if (NamesOfMacrosExpandingStartingHere.size() == 1)
             {
                 // Verify that entire expression came from a single expansion
+                // This we check that the beginning and end of the expression
+                // came from the *same* invocation
                 MacroName = NamesOfMacrosExpandingStartingHere.front();
                 bool cameFromSingleExpansion = false;
                 list<SourceRange> MacroExpansionRanges =
@@ -682,6 +689,7 @@ TransformationResult transformEntireExpr(Expr *E)
                 {
                     if (ER == MER)
                     {
+                        E->dumpColor();
                         cameFromSingleExpansion = true;
                         break;
                     }
@@ -690,7 +698,7 @@ TransformationResult transformEntireExpr(Expr *E)
                 if (!cameFromSingleExpansion)
                 {
                     errs() << "Found an expression composed of multiple "
-                           << "invocations\n";
+                           << "distinct expansions\n";
                     return TransformationResult::MULTIPLE_EXPANSIONS;
                 }
 
@@ -707,6 +715,8 @@ TransformationResult transformEntireExpr(Expr *E)
     }
     else
     {
+        errs() << "Found an expression which began at a macro expansion, "
+               << "but did not end at one\n";
         return TransformationResult::NOT_TRANSFORMED;
     }
 
@@ -720,6 +730,7 @@ TransformationResult transformEntireExpr(Expr *E)
     // Check that invoked macro is not multiply-defined
     if (MultiplyDefinedMacros.find(MacroName) != MultiplyDefinedMacros.end())
     {
+        errs() << "Found a multiply-defined macro\n";
         return TransformationResult::MULTIPLY_DEFINED;
     }
     const MacroDirective *MD = MacroNameToDirective[MacroName];
@@ -841,7 +852,7 @@ TransformationResult transformEntireExpr(Expr *E)
     // function call
     if (RW.ReplaceText(ER, StringRef(InvocationReplacement)))
     {
-        errs() << "Could not transformation invocation of macro\n";
+        errs() << "Could not transform invocation of macro\n";
         return TransformationResult::ERROR;
     }
     errs() << "Successfully transformed a macro\n";
@@ -865,6 +876,7 @@ void TransformExpr(Expr *E)
     // Don't transform expressions not in the language
     if (CSE == CSubsetExpr::INVALID)
     {
+        // errs() << "Found an expression not in the language\n";
         return;
     }
 
@@ -878,8 +890,9 @@ void TransformExpr(Expr *E)
     // the language subset since isExprInCSubset handles that recursively
     if (result == TransformationResult::NOT_TRANSFORMED ||
         result == TransformationResult::MULTIPLY_DEFINED ||
-        result == TransformationResult::NON_NULLARY_FUNCTION_LIKE_MACRO ||
-        result == TransformationResult::HAS_SIDE_EFFECTS)
+        // result == TransformationResult::NON_NULLARY_FUNCTION_LIKE_MACRO ||
+        result == TransformationResult::HAS_SIDE_EFFECTS ||
+        result == TransformationResult::MULTIPLE_EXPANSIONS)
     {
         // errs() << "No change made to " << CSubsetExprToString(CSE) << "\n";
         // IMPLICIT
