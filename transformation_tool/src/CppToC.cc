@@ -20,54 +20,6 @@ using namespace std;
 
 using namespace clang::ast_matchers;
 
-// TODO: Add transformation of object-like macros to variables to soundness
-// proof
-
-// TODO: Refactor and remove global variables
-
-// Source code rewriter
-Rewriter RW;
-
-SourceManager *SM;
-
-Preprocessor *PP;
-
-LangOptions *LO;
-
-// Set of all variable nams declared in a program
-set<string> AllVarNames;
-// Set of all function names declared in a program
-set<string> AllFunctionNames;
-// Set of all macro names declared in a program
-set<string> AllMacroNames;
-// Set of all multiply-defined macros
-set<string> MultiplyDefinedMacros;
-// List of all macro expansion ranges
-list<SourceRange> ExpansionRanges;
-// Set of starting locations for all expansion ranges that contain
-// the start of another locations
-set<SourceLocation> StartLocationsOfExpansionsContainingStartOfOtherExpansion;
-// Set of starting locations for all expansion ranges that are contained
-// within another expansion
-set<SourceLocation> StartLocationsOFExpansionsContainedInOtherExpansion;
-// Mapping from starting locations of macro expansions to names of all macros
-// starting at that location
-map<SourceLocation, list<string>> ExpansionStartLocationToMacroNames;
-// Mapping from macro names to list of corresponding expansion ranges
-map<string, list<SourceRange>> MacroNameToExpansionRanges;
-
-// Mapping from macro names to their directives
-map<string, const MacroDirective *> MacroNameToDirective;
-
-// Map for memoizing results of isExprInCSubset
-map<Expr *, bool> EInCSub;
-
-// Map for memoizing results of exprContainsLocalVars
-map<Expr *, bool> EContainsLocalVars;
-
-// Map for memoizing results of exprHasSideEffects
-map<Expr *, bool> EHasSideEffects;
-
 // Enum for different types of expression included in our C language subset
 // Link: https://tinyurl.com/yc3mzv8o
 enum class CSubsetExpr
@@ -111,6 +63,57 @@ constexpr const char *CSubsetExprToString(CSubsetExpr CSE)
         throw std::invalid_argument("Unimplemented CSubsetExpr type");
     }
 }
+
+// TODO: Add transformation of object-like macros to variables to soundness
+// proof
+
+// TODO: Refactor and remove global variables
+
+// Source code rewriter
+Rewriter RW;
+
+SourceManager *SM;
+
+Preprocessor *PP;
+
+LangOptions *LO;
+
+// Set of all variable nams declared in a program
+set<string> AllVarNames;
+// Set of all function names declared in a program
+set<string> AllFunctionNames;
+// Set of all macro names declared in a program
+set<string> AllMacroNames;
+// Set of all multiply-defined macros
+set<string> MultiplyDefinedMacros;
+// List of all macro expansion ranges
+list<SourceRange> ExpansionRanges;
+// Set of starting locations for all expansion ranges that contain
+// the start of another locations
+set<SourceLocation> StartLocationsOfExpansionsContainingStartOfOtherExpansion;
+// Set of starting locations for all expansion ranges that are contained
+// within another expansion
+set<SourceLocation> StartLocationsOFExpansionsContainedInOtherExpansion;
+// Mapping from starting locations of macro expansions to names of all macros
+// starting at that location
+map<SourceLocation, list<string>> ExpansionStartLocationToMacroNames;
+// Mapping from macro names to list of corresponding expansion ranges
+map<string, list<SourceRange>> MacroNameToExpansionRanges;
+
+// Mapping from macro names to their directives
+map<string, const MacroDirective *> MacroNameToDirective;
+
+// Map for memoizing results of isExprInCSubset
+map<Expr *, bool> EInCSub;
+
+// Map for memoizing results of EToCSub
+map<Expr *, CSubsetExpr> EToCSub;
+
+// Map for memoizing results of exprContainsLocalVars
+map<Expr *, bool> EContainsLocalVars;
+
+// Map for memoizing results of exprHasSideEffects
+map<Expr *, bool> EHasSideEffects;
 
 // Kinds of smart pointers;
 // https://tinyurl.com/y8hbbdwq
@@ -236,10 +239,15 @@ public:
     }
 };
 
+// Returns true if the given variable declaration is for a global variable,
+// false otherwise
+bool isGlobalVariable(VarDecl *VD)
+{
+    return VD->hasGlobalStorage() && !VD->isStaticLocal();
+}
+
 // Returns true if the given expression is in our C language subset,
 // false otherwise.
-// TODO: Maybe we can remove this function and just return INVALID
-// on the classify function instead? Would make things a lot simpler
 bool isExprInCSubset(Expr *E)
 {
     // We use a map to memoize results
@@ -256,7 +264,10 @@ bool isExprInCSubset(Expr *E)
     // IMPLICIT
     if (auto Imp = dyn_cast<ImplicitCastExpr>(E))
     {
-        result = isExprInCSubset(Imp->getSubExpr());
+        if (auto E0 = Imp->getSubExpr())
+        {
+            result = isExprInCSubset(E0);
+        }
     }
     // Num
     else if (auto Num = dyn_cast<IntegerLiteral>(E))
@@ -264,11 +275,15 @@ bool isExprInCSubset(Expr *E)
         result = true;
     }
     // Var
-    else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
+    else if (auto DRF = dyn_cast<clang::DeclRefExpr>(E))
     {
-        // TODO: Check that Var's type is int
-        // TODO: Check that Var is a VarDecl
-        result = true;
+        if (auto Var = dyn_cast_or_null<VarDecl>(DRF->getDecl()))
+        {
+            if (Var->getType().getAsString().compare("int") == 0)
+            {
+                result = true;
+            }
+        }
     }
     // ParenExpr
     else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
@@ -329,22 +344,14 @@ bool isExprInCSubset(Expr *E)
     return result;
 }
 
-// Returns true if the given variable declaration is for a global variable,
-// false otherwise
-bool isGlobalVariable(VarDecl *VD)
-{
-    return VD->hasGlobalStorage() && !VD->isStaticLocal();
-}
-
 // Returns true if the given expression contains any non-global variables,
 // false otherwise
 bool exprContainsLocalVars(Expr *E)
 {
     // We use a map to memoize results
-    auto Entry = EContainsLocalVars.find(E);
-    if (Entry != EContainsLocalVars.end())
+    if (EContainsLocalVars.find(E) != EContainsLocalVars.end())
     {
-        return Entry->second;
+        return EContainsLocalVars[E];
     }
 
     bool result = true;
@@ -400,7 +407,8 @@ bool exprContainsLocalVars(Expr *E)
             auto E2 = BinExpr->getRHS();
             if (E1 && E2)
             {
-                result = exprContainsLocalVars(E1) || exprContainsLocalVars(E2);
+                result = exprContainsLocalVars(E1) ||
+                         exprContainsLocalVars(E2);
             }
         }
         // Assign
@@ -415,11 +423,8 @@ bool exprContainsLocalVars(Expr *E)
                     result = !isGlobalVariable(VD);
                     // If the variable being assigned to is not a local var,
                     // then we must still check the RHS for a local var
-                    if (!result)
-                    {
-                        auto E2 = BinExpr->getRHS();
-                        result = exprContainsLocalVars(E2);
-                    }
+                    auto E2 = BinExpr->getRHS();
+                    result = result || exprContainsLocalVars(E2);
                 }
             }
         }
@@ -448,10 +453,9 @@ bool exprContainsLocalVars(Expr *E)
 bool exprHasSideEffects(Expr *E)
 {
     // We use a map to memoize results
-    auto Entry = EHasSideEffects.find(E);
-    if (Entry != EHasSideEffects.end())
+    if (EHasSideEffects.find(E) != EHasSideEffects.end())
     {
-        return Entry->second;
+        return EHasSideEffects[E];
     }
 
     bool result = true;
@@ -526,68 +530,85 @@ bool exprHasSideEffects(Expr *E)
 // corresponds to
 CSubsetExpr classifyExpr(Expr *E)
 {
-    // TODO: Memoize these results
-    // TODO: May not need the enum and may be able to only use
-    // TODO: Change this to return the Clang AST type directly (as a string?)
-    // isExprInCSubset
-    // Check that the expression is in our language subset
-    if (!isExprInCSubset(E))
+    // We use a map to memoize results
+    if (EToCSub.find(E) != EToCSub.end())
     {
-        return CSubsetExpr::INVALID;
+        return EToCSub[E];
     }
 
-    // Since at this point we already know the expression is in the
-    // language subset, we only need to perform a minimal number
-    // of checks to classify it
+    CSubsetExpr result = CSubsetExpr::INVALID;
 
-    // IMPLICIT
-    if (auto Imp = dyn_cast<ImplicitCastExpr>(E))
+    if (isExprInCSubset(E))
     {
-        return CSubsetExpr::IMPLICIT_CAST;
-    }
-    // Num
-    else if (dyn_cast<IntegerLiteral>(E))
-    {
-        return CSubsetExpr::Num;
-    }
-    // Var
-    else if (dyn_cast<clang::DeclRefExpr>(E))
-    {
-        return CSubsetExpr::Var;
-    }
-    // ParenExpr
-    else if (dyn_cast<ParenExpr>(E))
-    {
-        return CSubsetExpr::ParenExpr;
-    }
-    // UnExpr
-    else if (dyn_cast<clang::UnaryOperator>(E))
-    {
-        return CSubsetExpr::UnExpr;
-    }
-    // BinExpr or Assign
-    else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
-    {
-        auto OC = BinExpr->getOpcode();
+        // At this point, since we know the expression is in the language
+        // subset, we only have to perform minimal checks to determine
+        // what type of subset expression this expression is
 
+        // IMPLICIT
+        // NOTE: Should we record the fact that this expression was found
+        // under an implicit cast?
+        if (auto Imp = dyn_cast<ImplicitCastExpr>(E))
+        {
+            if (auto E0 = Imp->getSubExpr())
+            {
+                result = classifyExpr(E0);
+            }
+        }
+        // Num
+        else if (auto Num = dyn_cast<IntegerLiteral>(E))
+        {
+            result = CSubsetExpr::Num;
+        }
+        // Var
+        else if (auto Var = dyn_cast<clang::DeclRefExpr>(E))
+        {
+            result = CSubsetExpr::Var;
+        }
+        // ParenExpr
+        else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
+        {
+            if (auto E0 = ParenExpr_->getSubExpr())
+            {
+                result = CSubsetExpr::ParenExpr;
+            }
+        }
+        // UnExpr
+        else if (auto UnExpr = dyn_cast<clang::UnaryOperator>(E))
+        {
+            auto OC = UnExpr->getOpcode();
+            if (OC == UO_Plus || OC == UO_Minus)
+            {
+                if (auto E0 = UnExpr->getSubExpr())
+                {
+                    result = CSubsetExpr::UnExpr;
+                }
+            }
+        }
         // BinExpr
-        if (OC != BO_Assign)
+        else if (auto BinExpr = dyn_cast<clang::BinaryOperator>(E))
         {
-            return CSubsetExpr::BinExpr;
+            auto OC = BinExpr->getOpcode();
+            if (OC != BO_Assign)
+            {
+                result = CSubsetExpr::BinExpr;
+            }
+            // Assign
+            else
+            {
+                result = CSubsetExpr::Assign;
+            }
         }
-        // Assign
-        else
+        // CallOrInvocation (function call)
+        else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
         {
-            return CSubsetExpr::Assign;
+            // NOTE: This extends the Coq language by including function calls
+            // which have arguments that are not in the language
+            result = CSubsetExpr::CallOrInvocation;
         }
-    }
-    // CallOrInvocation (function call)
-    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
-    {
-        return CSubsetExpr::CallOrInvocation;
     }
 
-    return CSubsetExpr::INVALID;
+    EToCSub[E] = result;
+    return result;
 }
 
 // Determines if an expression is a result of macro expansion,
