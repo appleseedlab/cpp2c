@@ -2,6 +2,7 @@
 #define ADD_HYGIENIC(a, b) (a + b)
 
 #define M 0 + 5
+#define N 1 +
 
 int main()
 {
@@ -28,6 +29,9 @@ int main()
     // Should only transform parenthesized expression
     M * (M) * 1;
     // 0 + 5 * (0 + 5) * 1
+
+    // Should not transform
+    N N 1;
 
     return 0;
 }
