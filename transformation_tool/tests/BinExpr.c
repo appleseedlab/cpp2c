@@ -17,7 +17,7 @@ int main()
     // Should transform
     BIN_EXPR_DIV;
 
-    // Should not transform
+    // Should not transform M, should transform N
     M N;
 
     return 0;
