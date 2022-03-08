@@ -17,6 +17,10 @@ int main()
     // Should not transform
     M * 1;
 
+    // Should not transform
+    M * M * 1;
+    // 0 + 5 * 0 + 5 * 1
+
     // Should only transform parenthesized expression
     (M) * M * 1;
     // (0 + 5) * 0 + 5 * 1
