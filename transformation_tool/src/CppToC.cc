@@ -1008,8 +1008,8 @@ public:
 
         TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
         // Collect the names of all the functions defined in the program
-        CollectDeclNamesVisitor CFVvisitor(CI);
-        CFVvisitor.TraverseTranslationUnitDecl(TUD);
+        CollectDeclNamesVisitor CDNvisitor(CI);
+        CDNvisitor.TraverseTranslationUnitDecl(TUD);
 
         // Transform the program
         TransformProgram(TUD, Ctx.getSourceManager());
