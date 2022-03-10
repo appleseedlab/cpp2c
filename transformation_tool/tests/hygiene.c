@@ -30,6 +30,10 @@ int main()
     M * (M) * 1;
     // 0 + 5 * (0 + 5) * 1
 
+    // Should transform both parenthesized expressions
+    (M) * (M) * 1;
+    // (0 + 5) * (0 + 5) * 1
+
     // Should not transform
     N N 1;
 
