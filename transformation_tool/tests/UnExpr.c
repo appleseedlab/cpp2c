@@ -3,7 +3,11 @@
 
 int main()
 {
+    // Should transform
     UN_EXPR_PLUS;
+
+    // Should transform
     UN_EXPR_MINUS;
+
     return 0;
 }

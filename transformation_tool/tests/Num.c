@@ -2,6 +2,8 @@
 
 int main()
 {
+    // Should transform
     ONE;
+
     return 0;
 }

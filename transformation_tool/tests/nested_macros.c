@@ -6,10 +6,20 @@
 
 int main()
 {
+    // Should transform
     ONE;
+
+    // Should transform
     FOO;
+
+    // Should not transform
     BAR;
+
+    // Should not transform
     BAZ;
+
+    // Should not transform
     BUZZ;
+
     return 0;
 }

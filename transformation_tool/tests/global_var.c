@@ -6,7 +6,12 @@ int x;
 int main()
 {
     y;
+
+    // Should transform
     Y;
+
+    // Should transform
     X();
+
     return 0;
 }

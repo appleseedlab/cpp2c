@@ -10,10 +10,13 @@ int main()
 {
     // Should transform
     BIN_EXPR_PLUS;
+
     // Should transform
     BIN_EXPR_MINUS;
+
     // Should transform
     BIN_EXPR_MULT;
+
     // Should transform
     BIN_EXPR_DIV;
 

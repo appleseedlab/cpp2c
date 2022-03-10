@@ -2,6 +2,8 @@
 
 int main()
 {
+    // Should transform
     PAREN_EXPR;
+
     return 0;
 }
