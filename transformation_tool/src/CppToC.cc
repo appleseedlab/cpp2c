@@ -6,6 +6,7 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
+#include "clang/Lex/MacroArgs.h"
 #include "clang/Lex/PPCallbacks.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Rewrite/Frontend/Rewriters.h"
@@ -624,12 +625,13 @@ enum class TransformationResult
     HAS_SIDE_EFFECTS,
     MULTIPLE_EXPANSIONS,
     MULTIPLY_DEFINED,
-    NON_NULLARY_FUNCTION_LIKE_MACRO,
+    NON_TRANSFORMABLE_MACRO,
     NOT_TRANSFORMED,
     TRANSFORMED
 };
 TransformationResult transformEntireExpr(Expr *E)
 {
+    // Check if macro is hygienic
     // Check if the entire expression came from a macro expansion
     auto B = E->getBeginLoc();
     auto EL = E->getEndLoc();
@@ -656,6 +658,8 @@ TransformationResult transformEntireExpr(Expr *E)
 
         // Don't transform nested expansions
         // FIXME: Not necessary but would be nice if this worked
+        // NOTE: Actually since we don't recursively visit nested invocations,
+        // we should never encounter this case.
         if (StartLocationsOFExpansionsContainedInOtherExpansion.find(EB) !=
             StartLocationsOFExpansionsContainedInOtherExpansion.end())
         {
@@ -737,13 +741,30 @@ TransformationResult transformEntireExpr(Expr *E)
 
     // Check that the invoked macro is an object-like macro or a nullary
     // function-like macro
-    // TODO: Allow for function-like macros with 1 argument whose
-    // body is a single variable
     const MacroInfo *MI = MD->getMacroInfo();
-    if (MI->isFunctionLike() && MI->getNumParams() > 0)
+    if (MI->isFunctionLike() && MI->getNumParams() > 1)
     {
-        errs() << "Found a non-nullary function-like macro invocation\n";
-        return TransformationResult::NON_NULLARY_FUNCTION_LIKE_MACRO;
+        errs() << "Found a function-like macro invocation with more than "
+                  "one argument \n";
+        return TransformationResult::NON_TRANSFORMABLE_MACRO;
+    }
+
+    // If the macro has a single parameter, check that that parameter
+    // comprises the entire definition of the macro
+    if (MI->isFunctionLike() && MI->getNumParams() == 1)
+    {
+        errs() << "Found a function-like macro invocation with 1 argument\n";
+        // Verify that the macro's definition is just its argument
+
+        auto DefLen = MI->getDefinitionLength(*SM);
+        auto ParamLen = MI->params().front()->getLength();
+
+        if (DefLen != ParamLen)
+        {
+            errs() << "Found a function-like macro with 1 argument that was "
+                      "not the ID macro\n";
+            return TransformationResult::NON_TRANSFORMABLE_MACRO;
+        }
     }
 
     // Check that the expression does not have side-effects
@@ -752,9 +773,6 @@ TransformationResult transformEntireExpr(Expr *E)
         errs() << "Found a macro invocation with side-effects\n";
         return TransformationResult::HAS_SIDE_EFFECTS;
     }
-
-    // TODO: Check if macro is hygienic (the previous step may have
-    // already done this?)
 
     // Check that the expression does not share variables with the
     // caller environment
@@ -789,9 +807,32 @@ TransformationResult transformEntireExpr(Expr *E)
     // Go to end of formals for nullary function-like macro
     if (MI->isFunctionLike())
     {
-        MacroBodyBegin = MacroBodyBegin.getLocWithOffset(2);
+        if (MI->getNumParams() == 0)
+        {
+            MacroBodyBegin = MacroBodyBegin.getLocWithOffset(2);
+        }
+        // Go to end of formals for macro with 1 parameter
+        else if (MI->getNumParams() == 1)
+        {
+            unsigned int offset = 0;
+            // Add 1 for opening parenthesis
+            offset += 1;
+
+            // Add parameter name length
+            auto Param = MI->params().front();
+            offset += Param->getLength();
+
+            // Add 1 for closing parenthesis
+            offset += 1;
+            MacroBodyBegin = MacroBodyBegin.getLocWithOffset(offset);
+        }
+        else
+        {
+            errs() << "Somehow tried to transform a macro with more than 1 "
+                      "parameter\n";
+            return TransformationResult::ERROR;
+        }
     }
-    // TODO: Go to end of formals for non-nullary function-like macros
 
     // Skip leading space in macro definition
     MacroBodyBegin = MacroBodyBegin.getLocWithOffset(1);
@@ -808,6 +849,10 @@ TransformationResult transformEntireExpr(Expr *E)
         return TransformationResult::ERROR;
     }
 
+    // TODO: Check if a macro was previously transformed with the same
+    // name and body, and if so, don't emit a new definition but use that
+    // one instead
+
     string Def = "";
     if (MI->isObjectLike())
     {
@@ -816,8 +861,22 @@ TransformationResult transformEntireExpr(Expr *E)
     }
     else
     {
-        // TODO: Add parameters to non-nullary function-like macros
-        Def = "\nint " + DefName + " {\n    return " + DefBody + ";\n}";
+        if (MI->getNumParams() == 0)
+        {
+            Def = "\nint " + DefName + "() {\n    return " + DefBody + ";\n}";
+        }
+        else if (MI->getNumParams() == 1)
+        {
+            auto Param = MI->params().front();
+            string ParamName = Param->getName().str();
+            Def = "\nint " + DefName + "(int " + ParamName + ") " +
+                  "{\n    return " + DefBody + ";\n}";
+        }
+        else
+        {
+            errs() << "Tried to transform a macro with more than 1 argument\n";
+            return TransformationResult::ERROR;
+        }
 
         // Add the function name to the name of all functions defined in
         // the program
@@ -839,10 +898,38 @@ TransformationResult transformEntireExpr(Expr *E)
     // Create the replacement for the invocation
     string InvocationReplacement = DefName;
 
-    // TODO: Add arguments for non-nullary function-like macros
     if (MI->isFunctionLike())
     {
-        InvocationReplacement += "()";
+        if (MI->getNumParams() == 0)
+        {
+            InvocationReplacement += "()";
+        }
+        else if (MI->getNumParams() == 1)
+        {
+            // Add opening paren
+            InvocationReplacement += "(";
+
+            // Add argument
+            // NOTE: This will only work if the macro is the ID macro
+            string InvocationString = Lexer::getSourceText(
+                                          SM->getExpansionRange(B),
+                                          *SM, *LO)
+                                          .str();
+            unsigned int ArgLen = InvocationString.length() -
+                                  1 - MacroName.length() - 1;
+            string ArgString = InvocationString.substr(
+                MacroName.length() + 1,
+                ArgLen);
+            InvocationReplacement += ArgString;
+
+            // Add closing paren
+            InvocationReplacement += ")";
+        }
+        else
+        {
+            errs() << "Tried to transform a macro with more than 1 argument\n";
+            return TransformationResult::ERROR;
+        }
     }
 
     // Get expansion range of expression
@@ -890,7 +977,6 @@ void TransformExpr(Expr *E)
     // the language subset since isExprInCSubset handles that recursively
     if (result == TransformationResult::NOT_TRANSFORMED ||
         result == TransformationResult::MULTIPLY_DEFINED ||
-        // result == TransformationResult::NON_NULLARY_FUNCTION_LIKE_MACRO ||
         result == TransformationResult::HAS_SIDE_EFFECTS ||
         result == TransformationResult::MULTIPLE_EXPANSIONS)
     {
