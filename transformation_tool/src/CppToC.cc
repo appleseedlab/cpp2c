@@ -15,6 +15,8 @@
 
 #include "CollectDeclNamesVisitor.h"
 #include "CSubsetExpansionASTRootsCollector.h"
+#include "CSubsetHasSideEffects.h"
+#include "CSubsetContainsLocalVars.h"
 #include "CSubsetInMacroForestExpansionCollector.h"
 #include "CSubsetInSourceRangeCollectionCollector.h"
 #include "MacroForest.h"
@@ -173,7 +175,7 @@ public:
         // from the top-level expansions
         errs() << "Step 2: Search for " << ExpansionRoots.size()
                << " Top-Level Expansions in "
-               << MacroRoots.size() << " AST-Macro Roots (expressions) \n";
+               << MacroRoots.size() << " AST-Macro Roots (in the C subset) \n";
         for (const auto ST : MacroRoots)
         {
             SourceLocation STExpansionLoc =
@@ -368,8 +370,28 @@ public:
             }
 
             // TODO: Check that expanded macro is not multiply defined?
-            // TODO: Check that the expansion does not contain local variables
-            // TODO: Check that the expansion does not contain side-effects
+
+            // TODO: Check that each argument is expanded at least once,
+            // and that if it has multiple expansions, they all expand to
+            // the same tree
+
+            // Check that the expansion does not contain local variables
+            if (CSubsetContainsLocalVars::containsLocalVars(&Ctx, E))
+            {
+                errs() << "Skipping expanion of "
+                       << TopLevelExpansion->Name
+                       << " because its expression contained local vars\n";
+                continue;
+            }
+
+            // Check that the expansion does not contain side-effects
+            if (CSubsetHasSideEffects::hasSideEffects(&Ctx, E))
+            {
+                // errs() << "Skipping expanion of "
+                //        << TopLevelExpansion->Name
+                //        << " because its expression had side-effects\n";
+                continue;
+            }
 
             errs() << "Can transform " << TopLevelExpansion->Name << " ";
             errs() << "[ ";
