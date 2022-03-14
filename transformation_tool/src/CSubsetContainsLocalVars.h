@@ -2,7 +2,7 @@
 
 // Returns true if the given variable declaration is for a global variable,
 // false otherwise
-bool isGlobalVariable(VarDecl *VD)
+bool isGlobalVariable(const VarDecl *VD)
 {
     return VD->hasGlobalStorage() && !VD->isStaticLocal();
 }
@@ -15,10 +15,19 @@ private:
     bool result = false;
 
 public:
-    void VisitVar(VarDecl *Var)
+    CSubsetContainsLocalVars(ASTContext *Ctx) : CSubsetVisitor(Ctx){};
+
+    void VisitVar(const VarDecl *Var)
     {
-        result = !isGlobalVariable(Var);
+        result = result || !isGlobalVariable(Var);
     }
 
     bool getResult() { return result; }
+
+    static bool containsLocalVars(ASTContext *Ctx, const Expr *E)
+    {
+        CSubsetContainsLocalVars Checker(Ctx);
+        Checker.VisitExpr(E);
+        return Checker.getResult();
+    }
 };
