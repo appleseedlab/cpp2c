@@ -242,3 +242,155 @@ public:
         }
     }
 };
+
+// Given two expressions in the C language subset, return true if they are
+// equal, and false if they are not equal
+bool compareTrees(ASTContext *Ctx, const Expr *E1, const Expr *E2)
+{
+    if (!E1 && !E2)
+    {
+        return true;
+    }
+    if (!E1 || !E2)
+    {
+        return true;
+    }
+
+    // IMPLICIT
+    if (auto Implicit1 = dyn_cast<ImplicitCastExpr>(E1))
+    {
+        if (auto Implicit2 = dyn_cast<ImplicitCastExpr>(E2))
+        {
+            return compareTrees(Ctx, Implicit1->getSubExpr(),
+                                Implicit2->getSubExpr());
+        }
+    }
+    // Num
+    else if (auto Num1 = dyn_cast<IntegerLiteral>(E1))
+    {
+        if (auto Num2 = dyn_cast<IntegerLiteral>(E2))
+        {
+            return Num1->getValue().eq(Num2->getValue());
+        }
+    }
+    // Var
+    else if (auto DRF1 = dyn_cast<clang::DeclRefExpr>(E1))
+    {
+        if (auto Var1 = dyn_cast_or_null<VarDecl>(DRF1->getDecl()))
+        {
+            if (Var1->getType().getAsString().compare("int") == 0)
+            {
+                if (auto DRF2 = dyn_cast<clang::DeclRefExpr>(E2))
+                {
+                    if (auto Var2 = dyn_cast_or_null<VarDecl>(DRF2->getDecl()))
+                    {
+                        if (Var2->getType().getAsString().compare("int") == 0)
+                        {
+                            return Var1->getName().equals(Var2->getName());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // ParenExpr
+    else if (auto ParenExpr_1 = dyn_cast<ParenExpr>(E1))
+    {
+        if (auto ParenExpr_2 = dyn_cast<ParenExpr>(E2))
+        {
+            return compareTrees(Ctx, ParenExpr_1->getSubExpr(),
+                                ParenExpr_2->getSubExpr());
+        }
+    }
+    // UnExpr
+    else if (auto UnExpr1 = dyn_cast<UnaryOperator>(E1))
+    {
+        auto OC1 = UnExpr1->getOpcode();
+        if (OC1 == UO_Plus || OC1 == UO_Minus)
+        {
+            if (auto UnExpr2 = dyn_cast<UnaryOperator>(E2))
+            {
+                auto OC2 = UnExpr2->getOpcode();
+                if (OC2 == UO_Plus || OC2 == UO_Minus)
+                {
+                    return OC1 == OC2 &&
+                           compareTrees(Ctx, UnExpr1->getSubExpr(),
+                                        UnExpr2->getSubExpr());
+                }
+            }
+        }
+    }
+    // BinExpr
+    else if (auto BinExpr1 = dyn_cast<BinaryOperator>(E1))
+    {
+        auto OC1 = BinExpr1->getOpcode();
+        if (OC1 == BO_Add || OC1 == BO_Sub || OC1 == BO_Mul || OC1 == BO_Div)
+        {
+            auto E1_1 = BinExpr1->getLHS();
+            auto E2_1 = BinExpr1->getRHS();
+            if (E1_1 && E2_1)
+            {
+                if (auto BinExpr2 = dyn_cast<BinaryOperator>(E2))
+                {
+                    auto OC2 = BinExpr2->getOpcode();
+                    if (OC2 == BO_Add || OC2 == BO_Sub || OC2 == BO_Mul || OC2 == BO_Div)
+                    {
+                        auto E1_2 = BinExpr2->getLHS();
+                        auto E2_2 = BinExpr2->getRHS();
+                        if (E1_2 && E2_2)
+                        {
+                            return OC1 == OC2 &&
+                                   compareTrees(Ctx, E1_1, E1_2) &&
+                                   compareTrees(Ctx, E2_1, E2_2);
+                        }
+                    }
+                }
+            }
+        }
+        // Assign
+        else if (OC1 == BO_Assign)
+        {
+            // FIXME: We don't transform assignments or call invocations
+            // anyway, so for now we can just return false
+            return false;
+        }
+    }
+    // CallOrInvocation (function call)
+    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E1))
+    {
+        // FIXME: We don't transform assignments or call invocations
+        // anyway, so for now we can just return false
+        return false;
+    }
+
+    return false;
+}
+
+// Given two statements in the C language subset, return true if they are
+// equal, and false if they are not equal
+bool compareTrees(ASTContext *Ctx, const Stmt *S1, const Stmt *S2)
+{
+    // Can const pointers be nullptr?
+    if (S1 == nullptr && S2 == nullptr)
+    {
+        return true;
+    }
+    if (S1 == nullptr || S2 == nullptr)
+    {
+        return false;
+    }
+
+    // ExprStmt
+    if (auto ExprStmt1 = dyn_cast<Expr>(S1))
+    {
+        if (auto ExprStmt2 = dyn_cast<Expr>(S2))
+        {
+            return compareTrees(Ctx, ExprStmt1, ExprStmt2);
+        }
+    }
+
+    // FIXME: We don't need to check statements right now since we
+    // expect arguments to be expressions, but we should to be complete
+
+    return false;
+}
