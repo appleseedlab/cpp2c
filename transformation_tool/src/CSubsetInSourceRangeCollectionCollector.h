@@ -11,6 +11,9 @@ bool inSourceRangeCollection(ASTContext *Ctx, const Stmt *S,
     return Ranges->contains(SpellingLoc);
 }
 
+// FIXME: Right now we may collect nodes which are not in the C subset.
+// This is fine for now though because we only call this visitor on expressions
+// which we have already found to be in the subset.
 class CSubsetInSourceRangeCollectionCollector : public CSubsetVisitor
 {
 private:

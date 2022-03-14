@@ -87,6 +87,10 @@ bool isInMacroForestExpansion(
     return matched_expansion_stack;
 }
 
+
+// FIXME: Right now we may collect nodes which are not in the C subset.
+// This is fine for now though because we only call this visitor on expressions
+// which we have already found to be in the subset.
 class CSubsetInMacroForestExpansionCollector
     : public CSubsetVisitor
 {
