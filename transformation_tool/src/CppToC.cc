@@ -369,7 +369,15 @@ public:
                 continue;
             }
 
-            // TODO: Check that expanded macro is not multiply defined?
+            // Check that expanded macro is not multiply defined
+            if (MultiplyDefinedMacros.find(TopLevelExpansion->Name) !=
+                MultiplyDefinedMacros.end())
+            {
+                errs() << "Skipping expanion of "
+                       << TopLevelExpansion->Name
+                       << " because the macro is multiply-defined\n";
+                continue;
+            }
 
             // TODO: Check that each argument is expanded at least once,
             // and that if it has multiple expansions, they all expand to
