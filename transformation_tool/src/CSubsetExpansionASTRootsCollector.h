@@ -1,4 +1,5 @@
 #include "CSubsetVisitor.h"
+#include "CSubsetExprInCSubset.h"
 #include "clang/AST/ASTTypeTraits.h"
 #include "MacroForest.h"
 
@@ -53,7 +54,9 @@ public:
         // Add the expression to the list of roots if applicable, then
         // check sub expressions (we should not find any more roots under
         // this one but to be safe we check them)
-        if (isExpansionRoot(*Ctx, S))
+        if (isa<Expr>(S) &&
+            CSubsetExprInCSubset::isExprInCSubset(Ctx, dyn_cast<Expr>(S)) &&
+            isExpansionRoot(*Ctx, S))
         {
             ExpansionASTRoots.push_back(S);
         }
@@ -64,7 +67,8 @@ public:
     void VisitExpr(const Expr *E)
     {
         const Stmt *S = dyn_cast<Stmt>(E);
-        if (isExpansionRoot(*Ctx, S))
+        if (CSubsetExprInCSubset::isExprInCSubset(Ctx, E) &&
+            isExpansionRoot(*Ctx, E))
         {
             ExpansionASTRoots.push_back(S);
         }
