@@ -203,10 +203,10 @@ public:
             // not find an expansion root that this statement expanded from
             if (ExpansionRoot == nullptr)
             {
-                StringRef Name =
-                    Lexer::getImmediateMacroName(ST->getBeginLoc(), SM, LO);
-                errs() << "     Skipped macro expansion "
-                       << Name << "\n";
+                // StringRef Name =
+                //     Lexer::getImmediateMacroName(ST->getBeginLoc(), SM, LO);
+                // errs() << "     Skipped macro expansion "
+                //        << Name << "\n";
                 continue;
             }
 
@@ -249,39 +249,39 @@ public:
         dumpedNodes.insert(nullptr);
 
         // Step 4: Print macro function signatures
-        for (auto ToplevelExpansion : ExpansionRoots)
-        {
-            for (auto Expansion : ToplevelExpansion->SubtreeNodes)
-            {
-                // Skip Expansions that are not a single subtree
+        // for (auto ToplevelExpansion : ExpansionRoots)
+        // {
+        //     for (auto Expansion : ToplevelExpansion->SubtreeNodes)
+        //     {
+        //         // Skip Expansions that are not a single subtree
 
-                // if (m_settings.only_toplevel_macros &&
-                //     !(Expansion == ToplevelExpansion))
-                //     continue;
+        //         // if (m_settings.only_toplevel_macros &&
+        //         //     !(Expansion == ToplevelExpansion))
+        //         //     continue;
 
-                // SANITY CHECK: This is a sanity check that ensures
-                // the structural integrity of the dumped tree.
-                if (dumpedNodes.find(Expansion->Parent) == dumpedNodes.end())
-                {
-                    assert(false);
-                }
-                dumpedNodes.insert(Expansion);
+        //         // SANITY CHECK: This is a sanity check that ensures
+        //         // the structural integrity of the dumped tree.
+        //         if (dumpedNodes.find(Expansion->Parent) == dumpedNodes.end())
+        //         {
+        //             assert(false);
+        //         }
+        //         dumpedNodes.insert(Expansion);
 
-                Expansion->Root->SpellingRange.print(errs(), SM);
-                errs() << ";" << Expansion->Name;
-                errs() << ";" << Expansion->MI->isFunctionLike();
-                errs() << ";" << Expansion->Arguments.size();
-                // Dump the structure of our macro expansion-tree
-                errs() << ";" << (void *)Expansion << ";"
-                       << (void *)Expansion->Parent;
-                errs() << ";" << Expansion->Stmts.size() << ";";
-                if (Expansion->Stmts.size() > 0)
-                {
-                    printExpansionSignature(&Ctx, Expansion, errs());
-                }
-                errs() << "\n";
-            }
-        }
+        //         Expansion->Root->SpellingRange.print(errs(), SM);
+        //         errs() << ";" << Expansion->Name;
+        //         errs() << ";" << Expansion->MI->isFunctionLike();
+        //         errs() << ";" << Expansion->Arguments.size();
+        //         // Dump the structure of our macro expansion-tree
+        //         errs() << ";" << (void *)Expansion << ";"
+        //                << (void *)Expansion->Parent;
+        //         errs() << ";" << Expansion->Stmts.size() << ";";
+        //         if (Expansion->Stmts.size() > 0)
+        //         {
+        //             printExpansionSignature(&Ctx, Expansion, errs());
+        //         }
+        //         errs() << "\n";
+        //     }
+        // }
 
         // Step 5: Determine which macros are hygienic.
         for (auto TopLevelExpansion : ExpansionRoots)
@@ -318,10 +318,10 @@ public:
             // Check that expansion has an unambiguous signature
             if (!expansionHasUnambiguousSignature(&Ctx, TopLevelExpansion))
             {
-                errs() << "Skipping expanion of "
-                       << TopLevelExpansion->Name
-                       << " because its function signature was "
-                          "ambiguous \n";
+                // errs() << "Skipping expanion of "
+                //        << TopLevelExpansion->Name
+                //        << " because its function signature was "
+                //           "ambiguous \n";
                 continue;
             }
 
@@ -373,22 +373,79 @@ public:
             if (MultiplyDefinedMacros.find(TopLevelExpansion->Name) !=
                 MultiplyDefinedMacros.end())
             {
-                errs() << "Skipping expanion of "
-                       << TopLevelExpansion->Name
-                       << " because the macro is multiply-defined\n";
+                // errs() << "Skipping expanion of "
+                //        << TopLevelExpansion->Name
+                //        << " because the macro is multiply-defined\n";
                 continue;
             }
 
             // TODO: Check that each argument is expanded at least once,
             // and that if it has multiple expansions, they all expand to
             // the same tree
+            {
+                bool hasUnhygienicArg = false;
+                for (auto &&Arg : TopLevelExpansion->Arguments)
+                {
+                    if (Arg.Stmts.size() == 0)
+                    {
+                        // errs() << "Skipping expanion of "
+                        //        << TopLevelExpansion->Name
+                        //        << " because its argument "
+                        //        << Arg.Name << " was not expanded\n";
+                        hasUnhygienicArg = true;
+                        break;
+                    }
+
+                    // Check that we found the expected number of expansions
+                    // for this argument
+                    unsigned ExpectedExpansions =
+                        TopLevelExpansion->ExpectedASTNodesForArg[Arg.Name];
+                    unsigned ActualExpansions = Arg.Stmts.size();
+                    if (ActualExpansions != ExpectedExpansions)
+                    {
+                        // errs() << "Skipping expanion of "
+                        //        << TopLevelExpansion->Name
+                        //        << " because its argument "
+                        //        << Arg.Name << " was not expanded the "
+                        //        << "expected number of times: "
+                        //        << ExpectedExpansions << " vs " << ActualExpansions
+                        //        << "\n";
+
+                        hasUnhygienicArg = true;
+                        break;
+                    }
+
+                    auto ArgFirstExpansion = *Arg.Stmts.begin();
+                    for (auto ArgExpansion : Arg.Stmts)
+                    {
+                        if (!compareTrees(&Ctx, ArgFirstExpansion, ArgExpansion))
+                        {
+                            // errs() << "Skipping expanion of "
+                            //        << TopLevelExpansion->Name
+                            //        << " because its argument "
+                            //        << Arg.Name << " was not expanded to "
+                            //        << "a consistent AST structure\n";
+                            hasUnhygienicArg = true;
+                            break;
+                        }
+                    }
+                    if (hasUnhygienicArg)
+                    {
+                        break;
+                    }
+                }
+                if (hasUnhygienicArg)
+                {
+                    continue;
+                }
+            }
 
             // Check that the expansion does not contain local variables
             if (CSubsetContainsLocalVars::containsLocalVars(&Ctx, E))
             {
-                errs() << "Skipping expanion of "
-                       << TopLevelExpansion->Name
-                       << " because its expression contained local vars\n";
+                // errs() << "Skipping expanion of "
+                //        << TopLevelExpansion->Name
+                //        << " because its expression contained local vars\n";
                 continue;
             }
 
