@@ -215,6 +215,9 @@ public:
         // expanded from this macro. If the macro is unambiguous, this
         // should only be one
         set<const Stmt *> Stmts;
+
+        // The number of expected AST nodes each argument should map to
+        map<string, unsigned> ExpectedASTNodesForArg;
     };
 
     // A vector of all macro expansions that are root expansions
@@ -394,6 +397,8 @@ public:
             {
                 ArgName = "__VA_ARGS__";
             }
+            Expansion->ExpectedASTNodesForArg.emplace(ArgName, 0);
+
             // Use emplace to simultaneously construct the argument and
             // push it to the back of the current expansion's argument list
             Expansion->Arguments.emplace_back(ArgName);
@@ -473,6 +478,20 @@ public:
         if (inMacroArgExpansion.size() > 0)
         {
             InvocationStack = InvocationStackCopy;
+        }
+
+        // Record the expected number of expanions to be found for each arg
+        for (auto &&Tok : MD.getMacroInfo()->tokens())
+        {
+            auto LO = Ctx.getLangOpts();
+            SourceLocation b(Tok.getLocation()), e(Tok.getEndLoc());
+            string ArgName = string(SM.getCharacterData(b),
+                                    SM.getCharacterData(e) - SM.getCharacterData(b));
+            if (Expansion->ExpectedASTNodesForArg.find(ArgName) !=
+                Expansion->ExpectedASTNodesForArg.end())
+            {
+                Expansion->ExpectedASTNodesForArg[ArgName] += 1;
+            }
         }
     }
 };
