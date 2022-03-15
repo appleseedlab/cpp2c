@@ -530,10 +530,15 @@ public:
             // Insert the transformed function definition into the program
             SourceLocation DefinitionEnd =
                 TopLevelExpansion->DefinitionRange.getEnd();
-            string FunctionDefinition =
-                "\n" + TransformedSignature + TransformedDefinition;
-            RW.InsertTextAfterToken(DefinitionEnd,
-                                    StringRef(FunctionDefinition));
+            // string FunctionDefinition =
+            //     "\n" + TransformedSignature + TransformedDefinition;
+            // RW.InsertTextAfterToken(DefinitionEnd,
+            //                         StringRef(FunctionDefinition));
+            TransformedDefinition =
+                TransformedSignature + TransformedDefinition + "\n\n";
+            SourceLocation StartOfFile = SM.getLocForStartOfFile(
+                SM.getFileID(DefinitionEnd));
+            RW.InsertText(StartOfFile, StringRef(TransformedDefinition));
 
             // Rewrite the invocation into a function call
             string CallOrRef = TransformedName;
@@ -554,10 +559,6 @@ public:
             }
             SourceRange InvocationRange = TopLevelExpansion->SpellingRange;
             RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
-
-            // TODO: What if a macro is defined inside a function?
-            // Would be better to just issue all transformations to the top of
-            // the file
 
             // TODO: Don't issue a transformation if an identical
             // transformation has already been issued; use that one instead
