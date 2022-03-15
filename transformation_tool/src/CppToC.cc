@@ -311,6 +311,7 @@ public:
         //     }
         // }
 
+        map<string, string> TransformedDefinitionToName;
         // Step 5: Determine which macros are hygienic.
         for (auto TopLevelExpansion : ExpansionRoots)
         {
@@ -488,26 +489,10 @@ public:
 
             //// Transform the expansion
 
-            // Generate a unique name
-            string transformType =
-                TopLevelExpansion->MI->isFunctionLike() ? "_function" : "_var";
-            string TransformedName = TopLevelExpansion->Name + transformType;
-            unsigned suffix = 0;
-            while (FunctionNames.find(TransformedName) != FunctionNames.end() &&
-                   VarNames.find(TransformedName) != VarNames.end() &&
-                   MacroNames.find(TransformedName) != MacroNames.end())
-            {
-                TransformedName = TopLevelExpansion->Name +
-                                  transformType + "_" + to_string(suffix);
-                suffix += 1;
-            }
-            FunctionNames.insert(TransformedName);
-            VarNames.insert(TransformedName);
-            MacroNames.insert(TransformedName);
-
-            // Generate the function signature
-            string TransformedSignature =
-                getExpansionSignature(&Ctx, TopLevelExpansion, TransformedName);
+            // TODO: Transform object-like macros which reference global vars
+            // into nullary functions, since global var initializations
+            // must be const expressions and thus cannot contains vars
+            bool TransformToVar = TopLevelExpansion->MI->isObjectLike();
 
             // Generate the function body
             SourceLocation MacroBodyBegin =
@@ -523,22 +508,62 @@ public:
                                          MacroBodyCharRange, SM, LO)
                                          .str();
             string TransformedDefinition =
-                (TopLevelExpansion->MI->isObjectLike()
+                (TransformToVar
                      ? " = " + TransformedBody + ";"
                      : " { return " + TransformedBody + "; }");
 
-            // Insert the transformed function definition into the program
             SourceLocation DefinitionEnd =
                 TopLevelExpansion->DefinitionRange.getEnd();
-            // string FunctionDefinition =
-            //     "\n" + TransformedSignature + TransformedDefinition;
-            // RW.InsertTextAfterToken(DefinitionEnd,
-            //                         StringRef(FunctionDefinition));
-            TransformedDefinition =
-                TransformedSignature + TransformedDefinition + "\n\n";
-            SourceLocation StartOfFile = SM.getLocForStartOfFile(
-                SM.getFileID(DefinitionEnd));
-            RW.InsertText(StartOfFile, StringRef(TransformedDefinition));
+
+            // If an identical transformation for this expansion exists,
+            // use it; otherwise generate a unique name for this transformation
+            // and insert its definition into the program
+            string TransformedName;
+            if (TransformedDefinitionToName.find(TransformedDefinition) !=
+                TransformedDefinitionToName.end())
+            {
+                TransformedName =
+                    TransformedDefinitionToName[TransformedDefinition];
+            }
+            else
+            {
+                string transformType =
+                    TopLevelExpansion->MI->isFunctionLike() ? "_function" : "_var";
+                TransformedName = TopLevelExpansion->Name + transformType;
+                unsigned suffix = 0;
+                while (FunctionNames.find(TransformedName) != FunctionNames.end() &&
+                       VarNames.find(TransformedName) != VarNames.end() &&
+                       MacroNames.find(TransformedName) != MacroNames.end())
+                {
+                    TransformedName = TopLevelExpansion->Name +
+                                      transformType + "_" + to_string(suffix);
+                    suffix += 1;
+                }
+                FunctionNames.insert(TransformedName);
+                VarNames.insert(TransformedName);
+                MacroNames.insert(TransformedName);
+                TransformedDefinitionToName[TransformedDefinition] =
+                    TransformedName;
+
+                string TransformedSignature =
+                    getExpansionSignature(&Ctx, TopLevelExpansion,
+                                          TransformedName);
+                string FullTransformationDefinition =
+                    TransformedSignature + TransformedDefinition + "\n\n";
+                SourceLocation StartOfFile = SM.getLocForStartOfFile(
+                    SM.getFileID(DefinitionEnd));
+
+                // TODO: Emit transformed definitions that refer to global
+                // vars after the global var is declared
+                // 1) Visit expression to collect all vars referenced
+                // 2) Find the var with the lowest location
+                // 3) Emit transformed definition to this location
+                SourceLocation TransformationLocation = StartOfFile;
+
+                // Insert the full transformation into the program if it
+                RW.InsertText(TransformationLocation,
+                              StringRef(FullTransformationDefinition));
+            }
 
             // Rewrite the invocation into a function call
             string CallOrRef = TransformedName;
@@ -568,9 +593,6 @@ public:
             }
             SourceRange InvocationRange = TopLevelExpansion->SpellingRange;
             RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
-
-            // TODO: Don't issue a transformation if an identical
-            // transformation has already been issued; use that one instead
         }
 
         // Print the results of the rewriting for the current file
