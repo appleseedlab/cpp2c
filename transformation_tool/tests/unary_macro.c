@@ -29,7 +29,7 @@ int main()
     // Should not transform
     ID(foo());
 
-    // Should not transform
+    // Should transform
     ADD_ONE(1);
 
     return 0;
