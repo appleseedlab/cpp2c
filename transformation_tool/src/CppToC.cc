@@ -552,7 +552,16 @@ public:
                     {
                         CallOrRef += ", ";
                     }
-                    CallOrRef += Arg.Name;
+
+                    // Reconstruct the actual arguments from their tokens
+                    for (auto &&TR : Arg.TokenRanges)
+                    {
+                        auto CTR = CharSourceRange::getCharRange(TR);
+                        string ArgSourceText =
+                            Lexer::getSourceText(CTR, SM, LO).str();
+                        CallOrRef += ArgSourceText;
+                    }
+
                     i += 1;
                 }
                 CallOrRef += ")";
