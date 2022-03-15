@@ -39,6 +39,7 @@ add_library(CppToC SHARED
   CSubsetContainsVars.h
   CSubsetHasSideEffects.h
   CSubsetExprInCSubset.h
+  CSubsetFindLastDefinedVar.h
   CSubsetInMacroForestExpansionCollector.h
   CSubsetInSourceRangeCollectionCollector.h
   CSubsetVisitor.h
