@@ -17,6 +17,7 @@
 #include "CSubsetExpansionASTRootsCollector.h"
 #include "CSubsetHasSideEffects.h"
 #include "CSubsetContainsLocalVars.h"
+#include "CSubsetContainsVars.h"
 #include "CSubsetInMacroForestExpansionCollector.h"
 #include "CSubsetInSourceRangeCollectionCollector.h"
 #include "MacroForest.h"
@@ -116,13 +117,14 @@ bool expansionHasUnambiguousSignature(ASTContext *Ctx,
 
 string getExpansionSignature(ASTContext *Ctx,
                              MacroForest::Node *Expansion,
+                             bool TransformToVar,
                              string TransformedName)
 {
     assert(expansionHasUnambiguousSignature(Ctx, Expansion));
 
     string Signature = getType(Ctx, *Expansion->Stmts.begin());
     Signature += " " + TransformedName;
-    if (Expansion->MI->isFunctionLike())
+    if (!TransformToVar)
     {
 
         Signature += "(";
@@ -408,9 +410,9 @@ public:
                 continue;
             }
 
-            // TODO: Check that each argument is expanded at least once,
-            // and that if it has multiple expansions, they all expand to
-            // the same tree
+            // Check that each argument is expanded the expected number of
+            // times, and that if it has multiple expansions, they all
+            // expand to the same tree
             {
                 bool hasUnhygienicArg = false;
                 for (auto &&Arg : TopLevelExpansion->Arguments)
@@ -489,10 +491,15 @@ public:
 
             //// Transform the expansion
 
-            // TODO: Transform object-like macros which reference global vars
+            // Transform object-like macros which reference global vars
             // into nullary functions, since global var initializations
             // must be const expressions and thus cannot contains vars
-            bool TransformToVar = TopLevelExpansion->MI->isObjectLike();
+            // FIXME: Technically we should also check for function calls,
+            // but this doesn't matter right now since we don't transform
+            // expansions containing function calls anyway
+            bool TransformToVar =
+                TopLevelExpansion->MI->isObjectLike() &&
+                !CSubsetContainsVars::containsVars(&Ctx, E);
 
             // Generate the function body
             SourceLocation MacroBodyBegin =
@@ -527,8 +534,7 @@ public:
             }
             else
             {
-                string transformType =
-                    TopLevelExpansion->MI->isFunctionLike() ? "_function" : "_var";
+                string transformType = TransformToVar ? "_var" : "_function";
                 TransformedName = TopLevelExpansion->Name + transformType;
                 unsigned suffix = 0;
                 while (FunctionNames.find(TransformedName) != FunctionNames.end() &&
@@ -547,6 +553,7 @@ public:
 
                 string TransformedSignature =
                     getExpansionSignature(&Ctx, TopLevelExpansion,
+                                          TransformToVar,
                                           TransformedName);
                 string FullTransformationDefinition =
                     TransformedSignature + TransformedDefinition + "\n\n";
@@ -567,7 +574,7 @@ public:
 
             // Rewrite the invocation into a function call
             string CallOrRef = TransformedName;
-            if (TopLevelExpansion->MI->isFunctionLike())
+            if (!TransformToVar)
             {
                 CallOrRef += "(";
                 unsigned i = 0;
