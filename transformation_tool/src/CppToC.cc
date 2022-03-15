@@ -116,25 +116,29 @@ bool expansionHasUnambiguousSignature(ASTContext *Ctx,
 
 string getExpansionSignature(ASTContext *Ctx,
                              MacroForest::Node *Expansion,
-                             string FunctionName)
+                             string TransformedName)
 {
     assert(expansionHasUnambiguousSignature(Ctx, Expansion));
 
     string Signature = getType(Ctx, *Expansion->Stmts.begin());
-    Signature += " " + FunctionName;
-    Signature += "(";
-    unsigned i = 0;
-    for (auto &&Arg : Expansion->Arguments)
+    Signature += " " + TransformedName;
+    if (Expansion->MI->isFunctionLike())
     {
-        string ArgType = getType(Ctx, *(Arg.Stmts.begin()));
-        if (i >= 1)
+
+        Signature += "(";
+        unsigned i = 0;
+        for (auto &&Arg : Expansion->Arguments)
         {
-            Signature += ", ";
+            string ArgType = getType(Ctx, *(Arg.Stmts.begin()));
+            if (i >= 1)
+            {
+                Signature += ", ";
+            }
+            Signature += Arg.Name;
+            i += 1;
         }
-        Signature += Arg.Name;
-        i += 1;
+        Signature += ")";
     }
-    Signature += ")";
     return Signature;
 }
 
@@ -485,23 +489,25 @@ public:
             //// Transform the expansion
 
             // Generate a unique name
-            string FunctionName = TopLevelExpansion->Name + "_function";
+            string transformType =
+                TopLevelExpansion->MI->isFunctionLike() ? "_function" : "_var";
+            string TransformedName = TopLevelExpansion->Name + transformType;
             unsigned suffix = 0;
-            while (FunctionNames.find(FunctionName) != FunctionNames.end() &&
-                   VarNames.find(FunctionName) != VarNames.end() &&
-                   MacroNames.find(FunctionName) != MacroNames.end())
+            while (FunctionNames.find(TransformedName) != FunctionNames.end() &&
+                   VarNames.find(TransformedName) != VarNames.end() &&
+                   MacroNames.find(TransformedName) != MacroNames.end())
             {
-                FunctionName = TopLevelExpansion->Name +
-                               "_function_" + to_string(suffix);
+                TransformedName = TopLevelExpansion->Name +
+                                  transformType + "_" + to_string(suffix);
                 suffix += 1;
             }
-            FunctionNames.insert(FunctionName);
-            VarNames.insert(FunctionName);
-            MacroNames.insert(FunctionName);
+            FunctionNames.insert(TransformedName);
+            VarNames.insert(TransformedName);
+            MacroNames.insert(TransformedName);
 
             // Generate the function signature
-            string FunctionSignature =
-                getExpansionSignature(&Ctx, TopLevelExpansion, FunctionName);
+            string TransformedSignature =
+                getExpansionSignature(&Ctx, TopLevelExpansion, TransformedName);
 
             // Generate the function body
             SourceLocation MacroBodyBegin =
@@ -513,40 +519,45 @@ public:
                 SourceRange(MacroBodyBegin, MacroBodyEnd);
             CharSourceRange MacroBodyCharRange =
                 CharSourceRange::getCharRange(MacroBodyRange);
-            string FunctionBody = " { return " +
-                                  Lexer::getSourceText(
-                                      MacroBodyCharRange, SM, LO)
-                                      .str() +
-                                  "; }";
+            string TransformedBody = Lexer::getSourceText(
+                                         MacroBodyCharRange, SM, LO)
+                                         .str();
+            string TransformedDefinition =
+                (TopLevelExpansion->MI->isObjectLike()
+                     ? " = " + TransformedBody + ";"
+                     : " { return " + TransformedBody + "; }");
 
             // Insert the transformed function definition into the program
             SourceLocation DefinitionEnd =
                 TopLevelExpansion->DefinitionRange.getEnd();
             string FunctionDefinition =
-                "\n" + FunctionSignature + FunctionBody;
+                "\n" + TransformedSignature + TransformedDefinition;
             RW.InsertTextAfterToken(DefinitionEnd,
                                     StringRef(FunctionDefinition));
 
             // Rewrite the invocation into a function call
-            string Call = FunctionName + "(";
+            string CallOrRef = TransformedName;
+            if (TopLevelExpansion->MI->isFunctionLike())
             {
+                CallOrRef += "(";
                 unsigned i = 0;
                 for (auto &&Arg : TopLevelExpansion->Arguments)
                 {
                     if (i >= 1)
                     {
-                        Call += ", ";
+                        CallOrRef += ", ";
                     }
-                    Call += Arg.Name;
+                    CallOrRef += Arg.Name;
                     i += 1;
                 }
+                CallOrRef += ")";
             }
-            Call += ")";
             SourceRange InvocationRange = TopLevelExpansion->SpellingRange;
-            RW.ReplaceText(InvocationRange, StringRef(Call));
+            RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
 
-            // TODO: Transform object-like macros to global variables instead
-            // of thunks
+            // TODO: What if a macro is defined inside a function?
+            // Would be better to just issue all transformations to the top of
+            // the file
 
             // TODO: Don't issue a transformation if an identical
             // transformation has already been issued; use that one instead
