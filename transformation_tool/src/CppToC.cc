@@ -114,6 +114,30 @@ bool expansionHasUnambiguousSignature(ASTContext *Ctx,
     return true;
 }
 
+string getExpansionSignature(ASTContext *Ctx,
+                             MacroForest::Node *Expansion,
+                             string FunctionName)
+{
+    assert(expansionHasUnambiguousSignature(Ctx, Expansion));
+
+    string Signature = getType(Ctx, *Expansion->Stmts.begin());
+    Signature += " " + FunctionName;
+    Signature += "(";
+    unsigned i = 0;
+    for (auto &&Arg : Expansion->Arguments)
+    {
+        string ArgType = getType(Ctx, *(Arg.Stmts.begin()));
+        if (i >= 1)
+        {
+            Signature += ", ";
+        }
+        Signature += Arg.Name;
+        i += 1;
+    }
+    Signature += ")";
+    return Signature;
+}
+
 // AST consumer which calls the visitor class to perform the transformation
 class CppToCConsumer : public ASTConsumer
 {
@@ -458,12 +482,74 @@ public:
                 continue;
             }
 
-            errs() << "Can transform " << TopLevelExpansion->Name << " ";
-            errs() << "[ ";
-            E->dumpPretty(Ctx);
-            errs() << " ] ";
-            errs() << " @ ";
-            TopLevelExpansion->SpellingRange.dump(SM);
+            //// Transform the expansion
+
+            // Generate a unique name
+            string FunctionName = TopLevelExpansion->Name + "_function";
+            unsigned suffix = 0;
+            while (FunctionNames.find(FunctionName) != FunctionNames.end() &&
+                   VarNames.find(FunctionName) != VarNames.end() &&
+                   MacroNames.find(FunctionName) != MacroNames.end())
+            {
+                FunctionName = TopLevelExpansion->Name +
+                               "_function_" + to_string(suffix);
+                suffix += 1;
+            }
+            FunctionNames.insert(FunctionName);
+            VarNames.insert(FunctionName);
+            MacroNames.insert(FunctionName);
+
+            // Generate the function signature
+            string FunctionSignature =
+                getExpansionSignature(&Ctx, TopLevelExpansion, FunctionName);
+
+            // Generate the function body
+            SourceLocation MacroBodyBegin =
+                TopLevelExpansion->MI->tokens().front().getLocation();
+            SourceLocation MacroBodyEnd = Lexer::getLocForEndOfToken(
+                TopLevelExpansion->DefinitionRange.getEnd(), 0, SM, LO);
+
+            SourceRange MacroBodyRange =
+                SourceRange(MacroBodyBegin, MacroBodyEnd);
+            CharSourceRange MacroBodyCharRange =
+                CharSourceRange::getCharRange(MacroBodyRange);
+            string FunctionBody = " { return " +
+                                  Lexer::getSourceText(
+                                      MacroBodyCharRange, SM, LO)
+                                      .str() +
+                                  "; }";
+
+            // Insert the transformed function definition into the program
+            SourceLocation DefinitionEnd =
+                TopLevelExpansion->DefinitionRange.getEnd();
+            string FunctionDefinition =
+                "\n" + FunctionSignature + FunctionBody;
+            RW.InsertTextAfterToken(DefinitionEnd,
+                                    StringRef(FunctionDefinition));
+
+            // Rewrite the invocation into a function call
+            string Call = FunctionName + "(";
+            {
+                unsigned i = 0;
+                for (auto &&Arg : TopLevelExpansion->Arguments)
+                {
+                    if (i >= 1)
+                    {
+                        Call += ", ";
+                    }
+                    Call += Arg.Name;
+                    i += 1;
+                }
+            }
+            Call += ")";
+            SourceRange InvocationRange = TopLevelExpansion->SpellingRange;
+            RW.ReplaceText(InvocationRange, StringRef(Call));
+
+            // TODO: Transform object-like macros to global variables instead
+            // of thunks
+
+            // TODO: Don't issue a transformation if an identical
+            // transformation has already been issued; use that one instead
         }
 
         // Print the results of the rewriting for the current file
