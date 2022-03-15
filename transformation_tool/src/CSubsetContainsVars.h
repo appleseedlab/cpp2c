@@ -1,7 +1,7 @@
 #include "CSubsetVisitor.h"
 
 // Visitor for checking if a program, statement, or expression in the
-// Cpp2C C subset has local variables.
+// Cpp2C C subset has variables.
 class CSubsetContainsVars : public CSubsetVisitor
 {
 private:
