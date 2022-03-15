@@ -36,6 +36,7 @@ add_library(CppToC SHARED
   CollectDeclNamesVisitor.h
   CSubsetExpansionASTRootsCollector.h
   CSubsetContainsLocalVars.h
+  CSubsetContainsVars.h
   CSubsetHasSideEffects.h
   CSubsetExprInCSubset.h
   CSubsetInMacroForestExpansionCollector.h
