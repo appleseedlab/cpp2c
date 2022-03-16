@@ -15,6 +15,7 @@
 
 #include "CollectDeclNamesVisitor.h"
 #include "CSubsetExpansionASTRootsCollector.h"
+#include "CSubsetFindLastDefinedVar.h"
 #include "CSubsetHasSideEffects.h"
 #include "CSubsetContainsLocalVars.h"
 #include "CSubsetContainsVars.h"
@@ -447,6 +448,15 @@ public:
                     }
 
                     auto ArgFirstExpansion = *Arg.Stmts.begin();
+
+                    // TODO: Check that arg expansion range lengths
+                    // match the expected expansion range length
+                    {
+                        errs() << TopLevelExpansion->Name << ", "
+                               << Arg.Name << ":\n";
+                        ArgFirstExpansion->dumpColor();
+                    }
+
                     for (auto ArgExpansion : Arg.Stmts)
                     {
                         if (!compareTrees(&Ctx, ArgFirstExpansion, ArgExpansion))
@@ -560,16 +570,48 @@ public:
                 SourceLocation StartOfFile = SM.getLocForStartOfFile(
                     SM.getFileID(DefinitionEnd));
 
-                // TODO: Emit transformed definitions that refer to global
+                // Emit transformed definitions that refer to global
                 // vars after the global var is declared
-                // 1) Visit expression to collect all vars referenced
-                // 2) Find the var with the lowest location
-                // 3) Emit transformed definition to this location
-                SourceLocation TransformationLocation = StartOfFile;
+                // NOTE: An invariant at this point is that any vars in
+                // the expansion are global vars
+                if (CSubsetContainsVars::containsVars(&Ctx, E))
+                {
+                    SourceLocation EndOfDecl = StartOfFile;
+                    auto VD =
+                        CSubsetFindLastDefinedVar::findLastDefinedVar(&Ctx, E);
+                    assert(VD != nullptr);
+                    // If the decl has an initialization, then the
+                    // transformation location is just beyond it; otherwise
+                    // its after the decl itself
+                    if (VD->hasInit())
+                    {
+                        auto Init = VD->getInit();
+                        EndOfDecl = Init->getEndLoc();
+                    }
+                    else
+                    {
+                        EndOfDecl = VD->getEndLoc();
+                    }
+                    // Go to the spot right after the semicolon at the end of
+                    // this decl
+                    auto NextTok =
+                        Lexer::findNextToken(EndOfDecl, SM, LO);
+                    assert(NextTok.hasValue());
+                    auto Semicolon = NextTok.getValue();
 
-                // Insert the full transformation into the program if it
-                RW.InsertText(TransformationLocation,
-                              StringRef(FullTransformationDefinition));
+                    // Insert the full transformation into the program after
+                    // last-declared decl of var in the expression
+                    RW.InsertTextAfterToken(
+                        Semicolon.getLocation(),
+                        StringRef("\n\n" + FullTransformationDefinition));
+                }
+                else
+                {
+                    // Insert the full transformation at the start
+                    // of the program
+                    RW.InsertText(StartOfFile,
+                                  StringRef(FullTransformationDefinition));
+                }
             }
 
             // Rewrite the invocation into a function call
