@@ -129,6 +129,9 @@ public:
         // There could be multiple AST nods if the argument is appears
         // multiple times in the body, or none if the argument is unused.
         set<const Stmt *> Stmts;
+
+        // Where the argument is spelled in the source code according to Clang.
+        SourceLocation SpellingLoc;
     };
 
     // A forest of Expansions
@@ -415,6 +418,12 @@ public:
             auto &Tokens = const_cast<MacroArgs *>(Args)
                                ->getPreExpArgument(i, CI.getPreprocessor());
             inMacroArgExpansion.pop_back();
+
+            // Store the spelling location for this argument
+            if (Tokens.size() > 0)
+            {
+                Argument.SpellingLoc = Tokens.front().getLocation();
+            }
 
             // Iterate the argument's pre-expansion tokens
 
