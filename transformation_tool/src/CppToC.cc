@@ -448,15 +448,6 @@ public:
                     }
 
                     auto ArgFirstExpansion = *Arg.Stmts.begin();
-
-                    // TODO: Check that arg expansion range lengths
-                    // match the expected expansion range length
-                    {
-                        errs() << TopLevelExpansion->Name << ", "
-                               << Arg.Name << ":\n";
-                        ArgFirstExpansion->dumpColor();
-                    }
-
                     for (auto ArgExpansion : Arg.Stmts)
                     {
                         if (!compareTrees(&Ctx, ArgFirstExpansion, ArgExpansion))
@@ -466,6 +457,32 @@ public:
                             //        << " because its argument "
                             //        << Arg.Name << " was not expanded to "
                             //        << "a consistent AST structure\n";
+                            hasUnhygienicArg = true;
+                            break;
+                        }
+
+                        // Check that the found spelling location of the
+                        // AST node that the argument was matched to is the
+                        // expected spelling location
+                        // FIXME: This method will probably render invocations
+                        // which contain invocations as arguments as
+                        // untransformable, but that doesn't make the
+                        // transformation unsound
+                        SourceLocation ExpectedSpellingLoc = Arg.SpellingLoc;
+                        SourceLocation FoundSpellingLoc =
+                            SM.getSpellingLoc(ArgExpansion->getBeginLoc());
+                        // errs() << TopLevelExpansion->Name << ", "
+                        //        << Arg.Name << " at ";
+                        // FoundSpellingLoc.dump(SM);
+                        // ArgExpansion->dumpColor();
+                        if (ExpectedSpellingLoc != FoundSpellingLoc)
+                        {
+                            // errs() << "Skipping expanion of "
+                            //        << TopLevelExpansion->Name
+                            //        << " because its argument "
+                            //        << Arg.Name << " had an expression "
+                            //        << "whose argument was mapped to an "
+                            //        << "incorrect spelling location\n";
                             hasUnhygienicArg = true;
                             break;
                         }
