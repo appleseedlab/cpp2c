@@ -20,6 +20,10 @@
 
 #define ADD_THREE(a, b, c) a + b + c
 
+#define ADD_ONE(x) x + 1
+
+#define MULT_ONE(x) x * 1
+
 int main()
 {
     // Should transform
@@ -94,6 +98,18 @@ int main()
 
     // Should not transform
     ADD_THREE(1 + 0, 1 + 0, 1 + 0);
+
+    // Should transform
+    ADD_ONE(0 * 5);
+
+    // Should transform (see Clang parse tree for explanation)
+    ADD_ONE(0 + 5);
+
+    // Should transform
+    MULT_ONE(0 * 5);
+
+    // Should not transform
+    MULT_ONE(0 + 5);
 
     return 0;
 }
