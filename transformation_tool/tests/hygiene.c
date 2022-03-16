@@ -24,6 +24,10 @@
 
 #define MULT_ONE(x) x * 1
 
+#define DIV(a, b) a / b
+
+#define PREFIX_WITH_10(x) 10##x
+
 int main()
 {
     // Should transform
@@ -32,8 +36,20 @@ int main()
     // Should transform
     0 * ADD_HYGIENIC(2, 3);
 
+    // Should transform
+    ADD_HYGIENIC(2, 3) * 0;
+
     // Should not transform
     0 * ADD_UNHYGIENIC(2, 3);
+
+    // Should not transform
+    ADD_UNHYGIENIC(2, 3) * 0;
+
+    // Should not transform
+    0 + ADD_UNHYGIENIC(2, 3);
+
+    // Should transform
+    ADD_UNHYGIENIC(2, 3) + 0;
 
     // Should not transform
     SQUARE(5 + 0);
@@ -110,6 +126,21 @@ int main()
 
     // Should not transform
     MULT_ONE(0 + 5);
+
+    // Should not transform
+    DIV(25, 3 + 2);
+
+    // Should transform
+    DIV(1, 1);
+
+    // Should transform
+    DIV((1 + 2 * 0), (1 * 1));
+
+    // Should not transform
+    PREFIX_WITH_10();
+
+    // Should not transform
+    PREFIX_WITH_10(1);
 
     return 0;
 }
