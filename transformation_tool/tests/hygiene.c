@@ -16,6 +16,8 @@
 
 #define INNER 1
 
+#define MULT_UNHYGIENIC(a, b) a * b
+
 int main()
 {
     // Should transform
@@ -75,6 +77,12 @@ int main()
     // Should not transform
     OUTER;
     // 1
+
+    // Should transform
+    ADD_UNHYGIENIC(1 * 1, 1 * 1);
+
+    // Should not transform
+    MULT_UNHYGIENIC(0 + 5, 0 + 5);
 
     return 0;
 }
