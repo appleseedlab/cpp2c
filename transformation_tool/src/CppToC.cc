@@ -36,6 +36,34 @@ using namespace clang::ast_matchers;
 // TODO: Add transformation of object-like macros to variables to soundness
 // proof
 
+template <typename K, typename V>
+void printMapToCSV(llvm::raw_fd_ostream &os, map<K, V> &csv)
+{
+    unsigned i = 0;
+    for (auto &&pair : csv)
+    {
+        if (i > 0)
+        {
+            os << ", ";
+        }
+        os << pair.first;
+        i++;
+    }
+    os << "\n";
+
+    i = 0;
+    for (auto &&pair : csv)
+    {
+        if (i > 0)
+        {
+            os << ", ";
+        }
+        os << pair.second;
+        i++;
+    }
+    os << "\n";
+}
+
 string getType(ASTContext *Ctx, const Stmt *ST)
 {
     if (const auto E = dyn_cast<Expr>(ST))
@@ -173,9 +201,50 @@ public:
 
         TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
 
+        // Map for recording transformation statistics
+
+        string
+            TopLevelExpansionsWithNoExpansionRoot = "Top Level Expanions with No Expansion Root",
+            TopLevelExpansionsWithMultipleExpansionRoots = "Top Level Expansions with Multiple Expansion Roots",
+            TopLevelExpansionsWithMultipleASTNodes = "Top Level Expansions with Multiple AST Nodes",
+            TopLevelExpansionsWithAmbiguousSignature = "Top Level Expansions with an Ambiguous Signature",
+            TopLevelExpansionsThatDidNotExpandToAnExpression = "Top Level Expansions that did not Expand to an Expression",
+            TopLevelExpansionsWithUnalignedBody = "Top Level Expansions with an Unaligned Body",
+            TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion = "Top Level Expansions with an Expression that did not End at the End of the Expansion",
+            TopLevelExpansionsOfMultiplyDefinedMacros = "Top Level Expansions of Multiply Defined (or Redefined) Macros",
+            TopLevelExpanionsWithUnexpandedArgument = "Top Level Expansions with an Unexpanded Argument",
+            TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes = "Top Level Expansions with Mismatching Argument Expansions and AST Nodes",
+            TopLevelExpansionsWithInconsistentArgumentExpansions = "Top Level Expansions with Inconsistent Argument Expansions",
+            TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges = "Top Level Expansions with Arguments whose AST Nodes have Spelling Locations not in Argument Token Rages",
+            TopLevelExpansionsWithLocalVars = "Top Level Expansions with Local Vars",
+            TopLevelExpansionsWithSideEffects = "Top Level Expansions with Side-effects",
+            TransformedTopLevelExpansions = "Successfully Transformed Top Level Expansions";
+        string CSVHeaders[] = {
+            TopLevelExpansionsWithNoExpansionRoot,
+            TopLevelExpansionsWithMultipleExpansionRoots,
+            TopLevelExpansionsWithMultipleASTNodes,
+            TopLevelExpansionsWithAmbiguousSignature,
+            TopLevelExpansionsThatDidNotExpandToAnExpression,
+            TopLevelExpansionsWithUnalignedBody,
+            TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion,
+            TopLevelExpansionsOfMultiplyDefinedMacros,
+            TopLevelExpanionsWithUnexpandedArgument,
+            TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes,
+            TopLevelExpansionsWithInconsistentArgumentExpansions,
+            TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges,
+            TopLevelExpansionsWithLocalVars,
+            TopLevelExpansionsWithSideEffects,
+            TransformedTopLevelExpansions};
+        map<string, unsigned int> Stats;
+        for (auto &&Header : CSVHeaders)
+        {
+            Stats.emplace(Header, 0);
+        }
+
         // Collect the names of all the variables and functions
         // defined in the program
-        set<string> FunctionNames;
+        set<string>
+            FunctionNames;
         set<string> VarNames;
 
         CollectDeclNamesVisitor CDNvisitor(CI, &FunctionNames, &VarNames);
@@ -239,6 +308,7 @@ public:
                 //     Lexer::getImmediateMacroName(ST->getBeginLoc(), SM, LO);
                 // errs() << "     Skipped macro expansion "
                 //        << Name << "\n";
+                Stats[TopLevelExpansionsWithNoExpansionRoot] += 1;
                 continue;
             }
 
@@ -326,6 +396,7 @@ public:
                 //        << TopLevelExpansion->Name
                 //        << " because it did not "
                 //           "have an expansion\n";
+                Stats[TopLevelExpansionsWithNoExpansionRoot] += 1;
                 continue;
             }
 
@@ -335,6 +406,7 @@ public:
                 // errs() << "Skipping expanion of "
                 //        << TopLevelExpansion->Name
                 //        << " because it contained multiple expansions\n";
+                Stats[TopLevelExpansionsWithMultipleExpansionRoots] += 1;
                 continue;
             }
 
@@ -345,6 +417,7 @@ public:
                 //        << TopLevelExpansion->Name
                 //        << " because it did not "
                 //           "have a single AST node\n";
+                Stats[TopLevelExpansionsWithMultipleASTNodes] += 1;
                 continue;
             }
 
@@ -355,6 +428,7 @@ public:
                 //        << TopLevelExpansion->Name
                 //        << " because its function signature was "
                 //           "ambiguous \n";
+                Stats[TopLevelExpansionsWithAmbiguousSignature] += 1;
                 continue;
             }
 
@@ -367,6 +441,7 @@ public:
                 //        << TopLevelExpansion->Name
                 //        << " because it did not "
                 //           "expand to an expression\n";
+                Stats[TopLevelExpansionsThatDidNotExpandToAnExpression] += 1;
                 continue;
             }
 
@@ -386,6 +461,7 @@ public:
                 //        << TopLevelExpansion->Name
                 //        << " because its expression did not align perfectly "
                 //           "with its expansion\n";
+                Stats[TopLevelExpansionsWithUnalignedBody] += 1;
                 continue;
             }
 
@@ -399,6 +475,7 @@ public:
                 //        << TopLevelExpansion->Name
                 //        << " because its expression's end did not extend to "
                 //           "end of its expansion\n";
+                Stats[TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion] += 1;
                 continue;
             }
 
@@ -409,6 +486,7 @@ public:
                 // errs() << "Skipping expanion of "
                 //        << TopLevelExpansion->Name
                 //        << " because the macro is multiply-defined\n";
+                Stats[TopLevelExpansionsOfMultiplyDefinedMacros] += 1;
                 continue;
             }
 
@@ -425,6 +503,7 @@ public:
                         //        << TopLevelExpansion->Name
                         //        << " because its argument "
                         //        << Arg.Name << " was not expanded\n";
+                        Stats[TopLevelExpanionsWithUnexpandedArgument] += 1;
                         hasUnhygienicArg = true;
                         break;
                     }
@@ -443,7 +522,7 @@ public:
                         //        << "expected number of times: "
                         //        << ExpectedExpansions << " vs " << ActualExpansions
                         //        << "\n";
-
+                        Stats[TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes] += 1;
                         hasUnhygienicArg = true;
                         break;
                     }
@@ -458,6 +537,7 @@ public:
                             //        << " because its argument "
                             //        << Arg.Name << " was not expanded to "
                             //        << "a consistent AST structure\n";
+                            Stats[TopLevelExpansionsWithInconsistentArgumentExpansions] += 1;
                             hasUnhygienicArg = true;
                             break;
                         }
@@ -486,6 +566,7 @@ public:
                             //        << "with a spelling location outside of the "
                             //        << "spelling locations of the arg's "
                             //        << "token ranges\n";
+                            Stats[TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges] += 1;
                             hasUnhygienicArg = true;
                             break;
                         }
@@ -507,6 +588,7 @@ public:
                 // errs() << "Skipping expanion of "
                 //        << TopLevelExpansion->Name
                 //        << " because its expression contained local vars\n";
+                Stats[TopLevelExpansionsWithLocalVars] += 1;
                 continue;
             }
 
@@ -516,6 +598,7 @@ public:
                 // errs() << "Skipping expanion of "
                 //        << TopLevelExpansion->Name
                 //        << " because its expression had side-effects\n";
+                Stats[TopLevelExpansionsWithSideEffects] += 1;
                 continue;
             }
 
@@ -662,6 +745,7 @@ public:
             }
             SourceRange InvocationRange = TopLevelExpansion->SpellingRange;
             RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
+            Stats[TransformedTopLevelExpansions] += 1;
         }
 
         // Print the results of the rewriting for the current file
@@ -681,6 +765,9 @@ public:
                             .count();
         errs() << "Finished in " << duration << " microseconds."
                << "\n";
+
+        // Dump the transformation stats to CSV
+        printMapToCSV(errs(), Stats);
     }
 };
 
