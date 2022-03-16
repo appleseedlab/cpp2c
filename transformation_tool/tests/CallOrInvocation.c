@@ -17,7 +17,7 @@ int main()
     // Should transform second argument
     bar(1, TWO);
 
-    // Should transform both argument
+    // Should transform both arguments
     baz(ONE, TWO);
 
     return 0;
