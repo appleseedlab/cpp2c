@@ -17,6 +17,7 @@
 #include "CSubsetExpansionASTRootsCollector.h"
 #include "CSubsetFindLastDefinedVar.h"
 #include "CSubsetHasSideEffects.h"
+#include "CSubsetExprAndSubExprsSpelledInRanges.h"
 #include "CSubsetContainsLocalVars.h"
 #include "CSubsetContainsVars.h"
 #include "CSubsetInMacroForestExpansionCollector.h"
@@ -461,28 +462,30 @@ public:
                             break;
                         }
 
-                        // Check that the found spelling location of the
-                        // AST node that the argument was matched to is the
-                        // expected spelling location
-                        // FIXME: This method will probably render invocations
+                        // Check that spelling location of the AST node and
+                        // all its subexpressions fall within the range
+                        // argument's token ranges
+                        // FIXME: This may render invocations
                         // which contain invocations as arguments as
                         // untransformable, but that doesn't make the
                         // transformation unsound
-                        SourceLocation ExpectedSpellingLoc = Arg.SpellingLoc;
-                        SourceLocation FoundSpellingLoc =
-                            SM.getSpellingLoc(ArgExpansion->getBeginLoc());
-                        // errs() << TopLevelExpansion->Name << ", "
-                        //        << Arg.Name << " at ";
-                        // FoundSpellingLoc.dump(SM);
-                        // ArgExpansion->dumpColor();
-                        if (ExpectedSpellingLoc != FoundSpellingLoc)
+                        // errs() << "Token ranges: ";
+                        // Arg.TokenRanges.dump(SM);
+                        // errs() << "\n";
+                        auto ArgExpression = dyn_cast<Expr>(ArgExpansion);
+                        assert(nullptr != ArgExpression);
+                        if (!CSubsetExprAndSubExprsSpelledInRanges::exprAndSubExprsSpelledInRanges(
+                                &Ctx, ArgExpression, &Arg.TokenRanges))
                         {
+
                             // errs() << "Skipping expanion of "
                             //        << TopLevelExpansion->Name
                             //        << " because its argument "
-                            //        << Arg.Name << " had an expression "
-                            //        << "whose argument was mapped to an "
-                            //        << "incorrect spelling location\n";
+                            //        << Arg.Name << " was matched with an AST node "
+                            //        << "with an expression or subexpression "
+                            //        << "with a spelling location outside of the "
+                            //        << "spelling locations of the arg's "
+                            //        << "token ranges\n";
                             hasUnhygienicArg = true;
                             break;
                         }
