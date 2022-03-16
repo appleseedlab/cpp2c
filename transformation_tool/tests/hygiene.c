@@ -5,7 +5,7 @@
 
 #define DOUBLE(x) x + x
 
-#define SQUARE(x) x * x
+#define SQUARE(x) x *x
 
 #define UNUSED_ARG(x) 1
 
@@ -16,7 +16,9 @@
 
 #define INNER 1
 
-#define MULT_UNHYGIENIC(a, b) a * b
+#define MULT_UNHYGIENIC(a, b) a *b
+
+#define ADD_THREE(a, b, c) a + b + c
 
 int main()
 {
@@ -83,6 +85,15 @@ int main()
 
     // Should not transform
     MULT_UNHYGIENIC(0 + 5, 0 + 5);
+
+    // Should transform
+    ADD_THREE(1, 1, 1);
+
+    // Should transform
+    ADD_THREE(1 * 0, 1 * 0, 1 * 0);
+
+    // Should not transform
+    ADD_THREE(1 + 0, 1 + 0, 1 + 0);
 
     return 0;
 }
