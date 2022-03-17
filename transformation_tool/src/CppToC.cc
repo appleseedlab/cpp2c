@@ -66,7 +66,7 @@ void printMapToCSV(llvm::raw_fd_ostream &os, map<K, V> &csv)
 
 string getType(ASTContext *Ctx, const Stmt *ST)
 {
-    if (const auto E = dyn_cast<Expr>(ST))
+    if (const auto E = dyn_cast_or_null<Expr>(ST))
     {
         QualType T = E->getType();
         return T.getDesugaredType(*Ctx).getCanonicalType().getAsString();
@@ -170,6 +170,11 @@ string getExpansionSignature(ASTContext *Ctx,
             i += 1;
         }
         Signature += ")";
+    }
+    // Add const qualifier if the expansion was transformed to a global var
+    if (TransformToVar)
+    {
+        Signature = "const " + Signature;
     }
     return Signature;
 }
@@ -433,7 +438,7 @@ public:
             }
 
             auto ST = *TopLevelExpansion->Stmts.begin();
-            auto E = dyn_cast<Expr>(ST);
+            auto E = dyn_cast_or_null<Expr>(ST);
 
             if (!E)
             {
@@ -552,7 +557,7 @@ public:
                         // errs() << "Token ranges: ";
                         // Arg.TokenRanges.dump(SM);
                         // errs() << "\n";
-                        auto ArgExpression = dyn_cast<Expr>(ArgExpansion);
+                        auto ArgExpression = dyn_cast_or_null<Expr>(ArgExpansion);
                         assert(nullptr != ArgExpression);
                         if (!CSubsetExprAndSubExprsSpelledInRanges::exprAndSubExprsSpelledInRanges(
                                 &Ctx, ArgExpression, &Arg.TokenRanges))
