@@ -7,6 +7,71 @@
 
 using namespace clang;
 
+// Copied from clang/AST/OperationKinds.def
+const set<BinaryOperator::Opcode> CSubSetBinOpsNonAssign =
+    {
+        // [C++ 5.5] Pointer-to-member operators.
+        // BO_PtrMemD, // ".*"
+        // BO_PtrMemI, // "->*"
+        // [C99 6.5.5] Multiplicative operators.
+        BO_Mul,  // "*"
+        BO_Div,  // "/"
+        BO_Rem,  // "%"
+                 // [C99 6.5.6] Additive operators.
+        BO_Add,  // "+"
+        BO_Sub,  // "-"
+                 // [C99 6.5.7] Bitwise shift operators.
+                 // BO_Shl,       // "<<"
+                 // BO_Shr,       // ">>"
+                 // C++20 [expr.spaceship] Three-way comparison operator.
+                 // BO_Cmp, // "<=>"
+                 // [C99 6.5.8] Relational operators.
+        BO_LT,   // "<"
+        BO_GT,   // ">"
+        BO_LE,   // "<="
+        BO_GE,   // ">="
+                 // [C99 6.5.9] Equality operators.
+        BO_EQ,   // "=="
+        BO_NE,   // "!="
+                 // [C99 6.5.10] Bitwise AND operator.
+                 // BO_And, // "&"
+                 // [C99 6.5.11] Bitwise XOR operator.
+                 // BO_Xor, // "^"
+                 // [C99 6.5.12] Bitwise OR operator.
+                 // BO_Or, // "|"
+                 // [C99 6.5.13] Logical AND operator.
+        BO_LAnd, // "&&"
+                 // [C99 6.5.14] Logical OR operator.
+        BO_LOr,  // "||"
+                 // [C99 6.5.16] Assignment operators.
+                 // [C99 6.5.17] Comma operator.
+                 // BO_Comma, // ","
+};
+const set<BinaryOperator::Opcode> CSubSetBinOpsAssign =
+    {
+        BO_Assign,    // "="
+        BO_MulAssign, // "*="
+        BO_DivAssign, // "/="
+        BO_RemAssign, // "%="
+        BO_AddAssign, // "+="
+        BO_SubAssign, // "-="
+                      // BO_ShlAssign, // "<<="
+                      // BO_ShrAssign, // ">>="
+                      // BO_AndAssign, // "&="
+                      // BO_XorAssign, // "^="
+                      // BO_OrAssign,  // "|="
+};
+
+bool isBinOpNonAssignInCSubset(BinaryOperator::Opcode OC)
+{
+    return CSubSetBinOpsNonAssign.find(OC) != CSubSetBinOpsNonAssign.end();
+}
+
+bool isBinOpAssignInCSubset(BinaryOperator::Opcode OC)
+{
+    return CSubSetBinOpsAssign.find(OC) != CSubSetBinOpsAssign.end();
+}
+
 // Abstract class for the Cpp2C visitor.
 // Only visits statements and expressions in the Cpp2C C language subset.
 class CSubsetVisitor
@@ -39,7 +104,7 @@ public:
         // Visit all function definitions in the program
         for (auto D : TUD->decls())
         {
-            if (auto FD = dyn_cast<FunctionDecl>(D))
+            if (auto FD = dyn_cast_or_null<FunctionDecl>(D))
             {
                 if (FD->isThisDeclarationADefinition())
                 {
@@ -69,36 +134,42 @@ public:
         }
 
         // ExprStmt
-        if (auto ExprStmt = dyn_cast<Expr>(S))
+        if (auto ExprStmt = dyn_cast_or_null<Expr>(S))
         {
             VisitExpr(ExprStmt);
         }
         // IfElseStmt
-        else if (auto IfElse = dyn_cast<IfStmt>(S))
+        else if (auto IfElse = dyn_cast_or_null<IfStmt>(S))
         {
             // Check for else branch
-            const Expr *E = IfElse->getCond();
-            const Stmt *S1 = IfElse->getThen();
-            const Stmt *S2 = IfElse->getElse();
-            if (E && S1 && S2)
-            {
-                VisitIfElse(IfElse);
-            }
+            VisitIfElse(IfElse);
         }
         // WhileStmt
-        else if (auto While = dyn_cast<WhileStmt>(S))
+        else if (auto While = dyn_cast_or_null<WhileStmt>(S))
         {
-            const Expr *E = While->getCond();
-            const Stmt *S1 = While->getBody();
-            if (E && S1)
-            {
-                VisitWhile(While);
-            }
+            VisitWhile(While);
         }
         // CompoundStmt
-        else if (auto Compound = dyn_cast<CompoundStmt>(S))
+        else if (auto Compound = dyn_cast_or_null<CompoundStmt>(S))
         {
             VisitCompound(Compound);
+        }
+        // ForStmt (Not in formal proof)
+        else if (auto For = dyn_cast_or_null<ForStmt>(S))
+        {
+            VisitFor(For);
+        }
+        // SwitchStmt (Not in formal proof)
+        else if (auto Switch = dyn_cast_or_null<SwitchStmt>(S))
+        {
+            VisitSwitch(Switch);
+        }
+        // CaseStmt (Not in formal proof)
+        else if (auto Case = dyn_cast_or_null<SwitchCase>(S))
+        {
+            // We don't need a separeate visitor for labeled cases
+            // and default cases, because we just the substatement either way
+            VisitCase(Case);
         }
     }
 
@@ -110,17 +181,17 @@ public:
         }
 
         // IMPLICIT
-        if (auto Implicit = dyn_cast<ImplicitCastExpr>(E))
+        if (auto Implicit = dyn_cast_or_null<ImplicitCastExpr>(E))
         {
             VisitImplicit(Implicit);
         }
         // Num
-        else if (auto Num = dyn_cast<IntegerLiteral>(E))
+        else if (auto Num = dyn_cast_or_null<IntegerLiteral>(E))
         {
             VisitNum(Num);
         }
         // Var
-        else if (auto DRF = dyn_cast<clang::DeclRefExpr>(E))
+        else if (auto DRF = dyn_cast_or_null<clang::DeclRefExpr>(E))
         {
             if (auto Var = dyn_cast_or_null<VarDecl>(DRF->getDecl()))
             {
@@ -131,12 +202,12 @@ public:
             }
         }
         // ParenExpr
-        else if (auto ParenExpr_ = dyn_cast<ParenExpr>(E))
+        else if (auto ParenExpr_ = dyn_cast_or_null<ParenExpr>(E))
         {
             VisitParenExpr(ParenExpr_);
         }
         // UnExpr
-        else if (auto UnExpr = dyn_cast<UnaryOperator>(E))
+        else if (auto UnExpr = dyn_cast_or_null<UnaryOperator>(E))
         {
             auto OC = UnExpr->getOpcode();
             if (OC == UO_Plus || OC == UO_Minus)
@@ -145,10 +216,10 @@ public:
             }
         }
         // BinExpr
-        else if (auto BinExpr = dyn_cast<BinaryOperator>(E))
+        else if (auto BinExpr = dyn_cast_or_null<BinaryOperator>(E))
         {
             auto OC = BinExpr->getOpcode();
-            if (OC == BO_Add || OC == BO_Sub || OC == BO_Mul || OC == BO_Div)
+            if (isBinOpNonAssignInCSubset(OC))
             {
                 auto E1 = BinExpr->getLHS();
                 auto E2 = BinExpr->getRHS();
@@ -158,14 +229,14 @@ public:
                 }
             }
             // Assign
-            else if (OC == BO_Assign)
+            else if (isBinOpAssignInCSubset(OC))
             {
                 const BinaryOperator *Assign = BinExpr;
-                if (auto X = dyn_cast<DeclRefExpr>(BinExpr->getLHS()))
+                if (auto X = dyn_cast_or_null<DeclRefExpr>(BinExpr->getLHS()))
                 {
                     auto D = X->getDecl();
                     // Check that LHS is just a variable
-                    if (isa<VarDecl>(D) &&
+                    if (llvm::isa_and_nonnull<VarDecl>(D) &&
                         D->getType().getAsString().compare("int") == 0)
                     {
                         VisitAssign(Assign);
@@ -174,7 +245,7 @@ public:
             }
         }
         // CallOrInvocation (function call)
-        else if (auto CallOrInvocation = dyn_cast<CallExpr>(E))
+        else if (auto CallOrInvocation = dyn_cast_or_null<CallExpr>(E))
         {
             // NOTE: This extends the Coq language by including function calls
             // which have arguments that are not in the language
@@ -201,6 +272,27 @@ public:
         {
             VisitStmt(S);
         }
+    }
+
+    virtual void VisitFor(const ForStmt *For)
+    {
+        VisitStmt(For->getInit());
+        VisitExpr(For->getCond());
+        VisitExpr(For->getInc());
+        VisitStmt(For->getBody());
+    }
+
+    virtual void VisitSwitch(const SwitchStmt *Switch)
+    {
+        VisitExpr(Switch->getCond());
+        VisitStmt(Switch->getBody());
+    }
+
+    virtual void VisitCase(const SwitchCase *Case)
+    {
+        // Don't visit switch case subexpression because we may transform
+        // it to a non-constant expression
+        VisitStmt(Case->getSubStmt());
     }
 
     virtual void VisitImplicit(const ImplicitCastExpr *Implicit)
@@ -257,30 +349,30 @@ bool compareTrees(ASTContext *Ctx, const Expr *E1, const Expr *E2)
     }
 
     // IMPLICIT
-    if (auto Implicit1 = dyn_cast<ImplicitCastExpr>(E1))
+    if (auto Implicit1 = dyn_cast_or_null<ImplicitCastExpr>(E1))
     {
-        if (auto Implicit2 = dyn_cast<ImplicitCastExpr>(E2))
+        if (auto Implicit2 = dyn_cast_or_null<ImplicitCastExpr>(E2))
         {
             return compareTrees(Ctx, Implicit1->getSubExpr(),
                                 Implicit2->getSubExpr());
         }
     }
     // Num
-    else if (auto Num1 = dyn_cast<IntegerLiteral>(E1))
+    else if (auto Num1 = dyn_cast_or_null<IntegerLiteral>(E1))
     {
-        if (auto Num2 = dyn_cast<IntegerLiteral>(E2))
+        if (auto Num2 = dyn_cast_or_null<IntegerLiteral>(E2))
         {
             return Num1->getValue().eq(Num2->getValue());
         }
     }
     // Var
-    else if (auto DRF1 = dyn_cast<clang::DeclRefExpr>(E1))
+    else if (auto DRF1 = dyn_cast_or_null<clang::DeclRefExpr>(E1))
     {
         if (auto Var1 = dyn_cast_or_null<VarDecl>(DRF1->getDecl()))
         {
             if (Var1->getType().getAsString().compare("int") == 0)
             {
-                if (auto DRF2 = dyn_cast<clang::DeclRefExpr>(E2))
+                if (auto DRF2 = dyn_cast_or_null<clang::DeclRefExpr>(E2))
                 {
                     if (auto Var2 = dyn_cast_or_null<VarDecl>(DRF2->getDecl()))
                     {
@@ -294,21 +386,21 @@ bool compareTrees(ASTContext *Ctx, const Expr *E1, const Expr *E2)
         }
     }
     // ParenExpr
-    else if (auto ParenExpr_1 = dyn_cast<ParenExpr>(E1))
+    else if (auto ParenExpr_1 = dyn_cast_or_null<ParenExpr>(E1))
     {
-        if (auto ParenExpr_2 = dyn_cast<ParenExpr>(E2))
+        if (auto ParenExpr_2 = dyn_cast_or_null<ParenExpr>(E2))
         {
             return compareTrees(Ctx, ParenExpr_1->getSubExpr(),
                                 ParenExpr_2->getSubExpr());
         }
     }
     // UnExpr
-    else if (auto UnExpr1 = dyn_cast<UnaryOperator>(E1))
+    else if (auto UnExpr1 = dyn_cast_or_null<UnaryOperator>(E1))
     {
         auto OC1 = UnExpr1->getOpcode();
         if (OC1 == UO_Plus || OC1 == UO_Minus)
         {
-            if (auto UnExpr2 = dyn_cast<UnaryOperator>(E2))
+            if (auto UnExpr2 = dyn_cast_or_null<UnaryOperator>(E2))
             {
                 auto OC2 = UnExpr2->getOpcode();
                 if (OC2 == UO_Plus || OC2 == UO_Minus)
@@ -321,19 +413,19 @@ bool compareTrees(ASTContext *Ctx, const Expr *E1, const Expr *E2)
         }
     }
     // BinExpr
-    else if (auto BinExpr1 = dyn_cast<BinaryOperator>(E1))
+    else if (auto BinExpr1 = dyn_cast_or_null<BinaryOperator>(E1))
     {
         auto OC1 = BinExpr1->getOpcode();
-        if (OC1 == BO_Add || OC1 == BO_Sub || OC1 == BO_Mul || OC1 == BO_Div)
+        if (isBinOpNonAssignInCSubset(OC1))
         {
             auto E1_1 = BinExpr1->getLHS();
             auto E2_1 = BinExpr1->getRHS();
             if (E1_1 && E2_1)
             {
-                if (auto BinExpr2 = dyn_cast<BinaryOperator>(E2))
+                if (auto BinExpr2 = dyn_cast_or_null<BinaryOperator>(E2))
                 {
                     auto OC2 = BinExpr2->getOpcode();
-                    if (OC2 == BO_Add || OC2 == BO_Sub || OC2 == BO_Mul || OC2 == BO_Div)
+                    if (isBinOpNonAssignInCSubset(OC1))
                     {
                         auto E1_2 = BinExpr2->getLHS();
                         auto E2_2 = BinExpr2->getRHS();
@@ -356,7 +448,7 @@ bool compareTrees(ASTContext *Ctx, const Expr *E1, const Expr *E2)
         }
     }
     // CallOrInvocation (function call)
-    else if (auto CallOrInvocation = dyn_cast<CallExpr>(E1))
+    else if (auto CallOrInvocation = dyn_cast_or_null<CallExpr>(E1))
     {
         // FIXME: We don't transform assignments or call invocations
         // anyway, so for now we can just return false
@@ -381,9 +473,9 @@ bool compareTrees(ASTContext *Ctx, const Stmt *S1, const Stmt *S2)
     }
 
     // ExprStmt
-    if (auto ExprStmt1 = dyn_cast<Expr>(S1))
+    if (auto ExprStmt1 = dyn_cast_or_null<Expr>(S1))
     {
-        if (auto ExprStmt2 = dyn_cast<Expr>(S2))
+        if (auto ExprStmt2 = dyn_cast_or_null<Expr>(S2))
         {
             return compareTrees(Ctx, ExprStmt1, ExprStmt2);
         }
