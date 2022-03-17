@@ -223,7 +223,8 @@ public:
             TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges = "Top Level Expansions with Arguments whose AST Nodes have Spelling Locations not in Argument Token Rages",
             TopLevelExpansionsWithLocalVars = "Top Level Expansions with Local Vars",
             TopLevelExpansionsWithSideEffects = "Top Level Expansions with Side-effects",
-            TransformedTopLevelExpansions = "Successfully Transformed Top Level Expansions";
+            TransformedTopLevelExpansions = "Successfully Transformed Top Level Expansions",
+            TransformationTime = "Transformation Time (ms)";
         string CSVHeaders[] = {
             TopLevelExpansionsWithNoExpansionRoot,
             TopLevelExpansionsWithMultipleExpansionRoots,
@@ -239,7 +240,8 @@ public:
             TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges,
             TopLevelExpansionsWithLocalVars,
             TopLevelExpansionsWithSideEffects,
-            TransformedTopLevelExpansions};
+            TransformedTopLevelExpansions,
+            TransformationTime};
         map<string, unsigned int> Stats;
         for (auto &&Header : CSVHeaders)
         {
@@ -768,8 +770,7 @@ public:
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
                             end_time - begin_time)
                             .count();
-        errs() << "Finished in " << duration << " microseconds."
-               << "\n";
+        Stats[TransformationTime] = duration;
 
         // Dump the transformation stats to CSV
         printMapToCSV(errs(), Stats);
