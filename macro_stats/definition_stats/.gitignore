@@ -1,8 +1,0 @@
-*.csv
-*.txt
-icecast-server-v2.4.3/
-perl-5.34.0/
-redis-6.2.6/
-remind-03.04.01/
-sqlite-version-3.36.0/
-zlib-1.2.11/
