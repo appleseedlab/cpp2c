@@ -3,6 +3,7 @@
 __pycache__
 c_tests
 tests/c_files/*.txt
+*.out
 *.pdf
 .pytest_cache
 *~
