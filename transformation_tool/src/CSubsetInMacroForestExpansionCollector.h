@@ -116,7 +116,7 @@ public:
 
     void VisitExpr(const Expr *E) override
     {
-        const Stmt *S = dyn_cast<Stmt>(E);
+        const Stmt *S = dyn_cast_or_null<Stmt>(E);
         if (isInMacroForestExpansion(Ctx, S, Expansion))
         {
             insertIntoForest(Ctx, S, Forest);

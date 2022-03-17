@@ -13,7 +13,7 @@ inline SourceLocation getSpecificLocation(const T &Node)
 template <>
 inline SourceLocation getSpecificLocation<Stmt>(const Stmt &Node)
 {
-    if (const auto E = dyn_cast<Expr>(&Node))
+    if (const auto E = dyn_cast_or_null<Expr>(&Node))
     {
         return E->getExprLoc();
     }

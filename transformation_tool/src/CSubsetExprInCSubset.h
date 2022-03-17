@@ -11,7 +11,7 @@ public:
 
     void VisitStmt(const Stmt *S)
     {
-        if (auto E = dyn_cast<Expr>(S))
+        if (auto E = dyn_cast_or_null<Expr>(S))
         {
             VisitExpr(E);
         }

@@ -54,7 +54,7 @@ public:
         // Add the expression to the list of roots if applicable, then
         // check sub expressions (we should not find any more roots under
         // this one but to be safe we check them)
-        if (isa<Expr>(S) &&
+        if (llvm::isa_and_nonnull<Expr>(S) &&
             CSubsetExprInCSubset::isExprInCSubset(Ctx, dyn_cast<Expr>(S)) &&
             isExpansionRoot(*Ctx, S))
         {

@@ -37,7 +37,7 @@ public:
 
     void VisitExpr(const Expr *E)
     {
-        const Stmt *S = dyn_cast<Stmt>(E);
+        const Stmt *S = dyn_cast_or_null<Stmt>(E);
         if (inSourceRangeCollection(Ctx, S, Ranges))
         {
             insertIntoForest(Ctx, S, Forest);
