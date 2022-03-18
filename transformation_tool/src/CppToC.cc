@@ -145,6 +145,33 @@ bool expansionHasUnambiguousSignature(ASTContext *Ctx,
     return true;
 }
 
+string getTransformedName(SourceManager &SM,
+                          MacroForest::Node *Expansion,
+                          bool TransformToVar)
+{
+    string Filename =
+        SM.getFilename(Expansion->SpellingRange.getBegin()).str();
+
+    string transformType = TransformToVar ? "var" : "function";
+
+    // Remove non-alphanumeric characters from the filename
+    Filename.erase(remove_if(Filename.begin(), Filename.end(),
+                             [](auto const &c) -> bool
+                             { return !isalnum(c); }),
+                   Filename.end());
+
+    // Prepend the name with the name of the file that the macro was spelled
+    // in (with non-alphanumerics removed).
+    // We do this to ensure that transformation names are unique across files
+    // FIXME: This solution isn't perfect. Example: abc_1.c and abc1.c would
+    // both erase to abc1c. If both of these files contained an expansion
+    // of macro from a header that they both included, that macro would be
+    // transformed to a global var/function with the same name in each of them.
+    // We would then get new errors if we try to link these transformed files
+    // together.
+    return Filename + "_" + Expansion->Name + "_" + transformType;
+}
+
 string getExpansionSignature(ASTContext *Ctx,
                              MacroForest::Node *Expansion,
                              bool TransformToVar,
@@ -639,9 +666,6 @@ public:
                      ? " = " + TransformedBody + ";"
                      : " { return " + TransformedBody + "; }");
 
-            SourceLocation DefinitionEnd =
-                TopLevelExpansion->DefinitionRange.getEnd();
-
             // If an identical transformation for this expansion exists,
             // use it; otherwise generate a unique name for this transformation
             // and insert its definition into the program
@@ -654,15 +678,15 @@ public:
             }
             else
             {
-                string transformType = TransformToVar ? "_var" : "_function";
-                TransformedName = TopLevelExpansion->Name + transformType;
+                string Basename = getTransformedName(SM, TopLevelExpansion,
+                                                     TransformToVar);
+                TransformedName = Basename;
                 unsigned suffix = 0;
                 while (FunctionNames.find(TransformedName) != FunctionNames.end() &&
                        VarNames.find(TransformedName) != VarNames.end() &&
                        MacroNames.find(TransformedName) != MacroNames.end())
                 {
-                    TransformedName = TopLevelExpansion->Name +
-                                      transformType + "_" + to_string(suffix);
+                    TransformedName = Basename + "_" + to_string(suffix);
                     suffix += 1;
                 }
                 FunctionNames.insert(TransformedName);
@@ -677,8 +701,17 @@ public:
                                           TransformedName);
                 string FullTransformationDefinition =
                     TransformedSignature + TransformedDefinition + "\n\n";
+
+                // Emit the transformation to the top of the file in which
+                // the macro was expanded.
+                // If we were to emit the transformation at the top of the
+                // file in which the macro was defined, we may end up writing
+                // the transformation to a header file. This would be bad
+                // because that header file may be included by other files
+                // with vars/functions/macros that have the same identifier
+                // as the transformed name
                 SourceLocation StartOfFile = SM.getLocForStartOfFile(
-                    SM.getFileID(DefinitionEnd));
+                    SM.getFileID(TopLevelExpansion->SpellingRange.getBegin()));
 
                 // Emit transformed definitions that refer to global
                 // vars after the global var is declared
@@ -711,6 +744,9 @@ public:
 
                     // Insert the full transformation into the program after
                     // last-declared decl of var in the expression
+                    // TODO: Check that emitting the transformation here
+                    // doesn't cause us to emit the transformation outside
+                    // of the main file
                     RW.InsertTextAfterToken(
                         Semicolon.getLocation(),
                         StringRef("\n\n" + FullTransformationDefinition));
@@ -763,8 +799,11 @@ public:
         }
         else
         {
-            outs() << "No changes to AST\n";
+            RW.getEditBuffer(SM.getMainFileID()).write(outs());
         }
+
+        // Maybe it would better to just overwrite the files directly?
+        // RW.overwriteChangedFiles();
 
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
