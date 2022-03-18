@@ -36,6 +36,11 @@ using namespace clang::ast_matchers;
 // TODO: Add transformation of object-like macros to variables to soundness
 // proof
 
+struct PluginSettings
+{
+    bool OverwriteFiles = false;
+};
+
 template <typename K, typename V>
 void printMapToCSV(llvm::raw_fd_ostream &os, map<K, V> &csv)
 {
@@ -218,9 +223,11 @@ private:
     // To give it access to members
     friend class PluginCppToCAction;
 
+    PluginSettings Cpp2CSettings;
+
 public:
-    explicit CppToCConsumer(CompilerInstance *CI)
-        : CI(CI), PP(CI->getPreprocessor()) {}
+    explicit CppToCConsumer(CompilerInstance *CI, PluginSettings Cpp2CSettings)
+        : CI(CI), PP(CI->getPreprocessor()), Cpp2CSettings(Cpp2CSettings) {}
 
     virtual void HandleTranslationUnit(ASTContext &Ctx)
     {
@@ -251,6 +258,7 @@ public:
             TopLevelExpansionsWithLocalVars = "Top Level Expansions with Local Vars",
             TopLevelExpansionsWithSideEffects = "Top Level Expansions with Side-effects",
             TransformedTopLevelExpansions = "Successfully Transformed Top Level Expansions",
+            TopLevelExpanionsWithTransformationsNotInMainFile = "Top Level Expansions with Transformations Not In Main File (not transformed)",
             TransformationTime = "Transformation Time (ms)";
         string CSVHeaders[] = {
             TopLevelExpansionsWithNoExpansionRoot,
@@ -268,6 +276,7 @@ public:
             TopLevelExpansionsWithLocalVars,
             TopLevelExpansionsWithSideEffects,
             TransformedTopLevelExpansions,
+            TopLevelExpanionsWithTransformationsNotInMainFile,
             TransformationTime};
         map<string, unsigned int> Stats;
         for (auto &&Header : CSVHeaders)
@@ -742,11 +751,16 @@ public:
                     assert(NextTok.hasValue());
                     auto Semicolon = NextTok.getValue();
 
-                    // Insert the full transformation into the program after
-                    // last-declared decl of var in the expression
-                    // TODO: Check that emitting the transformation here
+                    // Check that emitting the transformation here
                     // doesn't cause us to emit the transformation outside
                     // of the main file
+                    if (!SM.isInMainFile(Semicolon.getLocation()))
+                    {
+                        Stats[TopLevelExpanionsWithTransformationsNotInMainFile] += 1;
+                        continue;
+                    }
+                    // Insert the full transformation into the program after
+                    // last-declared decl of var in the expression.
                     RW.InsertTextAfterToken(
                         Semicolon.getLocation(),
                         StringRef("\n\n" + FullTransformationDefinition));
@@ -791,19 +805,23 @@ public:
             Stats[TransformedTopLevelExpansions] += 1;
         }
 
-        // Print the results of the rewriting for the current file
-        if (const RewriteBuffer *RewriteBuf =
-                RW.getRewriteBufferFor(SM.getMainFileID()))
+        if (Cpp2CSettings.OverwriteFiles)
         {
-            RewriteBuf->write(outs());
+            RW.overwriteChangedFiles();
         }
         else
         {
-            RW.getEditBuffer(SM.getMainFileID()).write(outs());
+            // Print the results of the rewriting for the current file
+            if (const RewriteBuffer *RewriteBuf =
+                    RW.getRewriteBufferFor(SM.getMainFileID()))
+            {
+                RewriteBuf->write(outs());
+            }
+            else
+            {
+                RW.getEditBuffer(SM.getMainFileID()).write(outs());
+            }
         }
-
-        // Maybe it would better to just overwrite the files directly?
-        // RW.overwriteChangedFiles();
 
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -826,7 +844,7 @@ protected:
                       StringRef file) override
     {
         auto &PP = CI.getPreprocessor();
-        auto Cpp2C = make_unique<CppToCConsumer>(&CI);
+        auto Cpp2C = make_unique<CppToCConsumer>(&CI, Cpp2CSettings);
 
         MacroNameCollector *MNC = new MacroNameCollector(
             Cpp2C->MacroNames,
@@ -842,6 +860,19 @@ protected:
     bool ParseArgs(const CompilerInstance &CI,
                    const vector<string> &args) override
     {
+        for (auto it = args.begin(); it != args.end(); ++it)
+        {
+            std::string arg = *it;
+            if (arg == "-overwrite-files")
+            {
+                Cpp2CSettings.OverwriteFiles = true;
+            }
+            else
+            {
+                llvm::errs() << "Unknown argument: " << arg << '\n';
+                exit(-1);
+            }
+        }
         return true;
     }
 
@@ -850,6 +881,9 @@ protected:
     {
         return ActionType::AddBeforeMainAction;
     }
+
+private:
+    PluginSettings Cpp2CSettings;
 };
 
 //-----------------------------------------------------------------------------
