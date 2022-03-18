@@ -55,7 +55,7 @@ public:
         // check sub expressions (we should not find any more roots under
         // this one but to be safe we check them)
         if (llvm::isa_and_nonnull<Expr>(S) &&
-            CSubsetExprInCSubset::isExprInCSubset(Ctx, dyn_cast<Expr>(S)) &&
+            CSubsetExprInCSubset::isExprInCSubset(Ctx, dyn_cast_or_null<Expr>(S)) &&
             isExpansionRoot(*Ctx, S))
         {
             ExpansionASTRoots.push_back(S);
@@ -66,7 +66,7 @@ public:
 
     void VisitExpr(const Expr *E)
     {
-        const Stmt *S = dyn_cast<Stmt>(E);
+        const Stmt *S = dyn_cast_or_null<Stmt>(E);
         if (CSubsetExprInCSubset::isExprInCSubset(Ctx, E) &&
             isExpansionRoot(*Ctx, E))
         {
