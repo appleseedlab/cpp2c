@@ -33,12 +33,16 @@ using namespace std;
 
 using namespace clang::ast_matchers;
 
+// This file hardly a paragon of pulchritude, but the logic is correct
+// and so far Cpp2C works without issue
+
 // TODO: Add transformation of object-like macros to variables to soundness
 // proof
 
 struct PluginSettings
 {
     bool OverwriteFiles = false;
+    raw_fd_ostream *StatsFile = nullptr;
 };
 
 template <typename K, typename V>
@@ -830,7 +834,11 @@ public:
         Stats[TransformationTime] = duration;
 
         // Dump the transformation stats to CSV
-        printMapToCSV(errs(), Stats);
+        if (Cpp2CSettings.StatsFile != nullptr)
+        {
+            printMapToCSV(*(Cpp2CSettings.StatsFile), Stats);
+            Cpp2CSettings.StatsFile->flush();
+        }
     }
 };
 
@@ -866,6 +874,18 @@ protected:
             if (arg == "-overwrite-files")
             {
                 Cpp2CSettings.OverwriteFiles = true;
+            }
+            else if (arg == "-dump-stats")
+            {
+                error_code str_err;
+                ++it;
+                assert(it != args.end());
+                Cpp2CSettings.StatsFile = new raw_fd_ostream(*it, str_err);
+                if (str_err.value() != 0)
+                {
+                    errs() << str_err.message() << '\n';
+                    exit(-1);
+                }
             }
             else
             {
