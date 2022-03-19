@@ -21,6 +21,12 @@ FILE_SIZE_HEADER = 'File Size (bytes)'
 AVG_FILE_SIZE_HEADER = 'Average File Size (bytes)'
 
 
+def print_dict_as_csv(d: Dict, file=sys.stdout) -> None:
+    keys = d.keys()
+    print(*keys, sep=", ", file=file)
+    print(*[d[k] for k in keys], sep=", ", file=file)
+
+
 def one_row_csv_to_dict(filename: str) -> Dict[str, int]:
     '''
     Deserializes a one-row CSV file whose values are all integers into a Dict
@@ -93,9 +99,7 @@ def main():
     aggregated[AVG_FILE_SIZE_HEADER] = avg_file_size
 
     # Print the dict in CSV format
-    keys = aggregated.keys()
-    print(*keys, sep=", ")
-    print(*[aggregated[k] for k in keys], sep=", ")
+    print_dict_as_csv(aggregated)
 
 
 if __name__ == '__main__':
