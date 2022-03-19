@@ -59,8 +59,8 @@ $ bash evaluate-remind.sh
 Expected results:
 Remind: Acceptance test PASSED
 
-## Redis v6.2.6
-Downloaded on 2022-03-18 09:59:01
+<!-- ## Redis v6.2.6
+Downloaded on 2022-03-18
 
 https://github.com/redis/redis/releases/tag/6.2.6
 
@@ -71,4 +71,21 @@ $ bash evaluate-redis.sh
 Expected results:
 All tests should say \[ok\]. If your terminal supports color,
 these should be in green and easy to see.
-If all tests pass, a message will appear saying so.
+If all tests pass, a message will appear saying so. -->
+
+## Lua 5.4.4
+Downloaded on 2022-03-19
+
+- [Source link](https://www.lua.org/ftp/lua-5.4.4.tar.gz)
+- [Tests link](https://www.lua.org/tests/lua-5.4.4-tests.tar.gz)
+
+Run:
+```bash
+$ bash evaluate-lua.sh
+```
+Expected results:
+```
+Running Lua tests...
+<Lots of dots>
+Two warnings will appear, both should be labeled as "expected warnings"
+```
