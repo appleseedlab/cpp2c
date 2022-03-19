@@ -247,8 +247,6 @@ public:
         // CallOrInvocation (function call)
         else if (auto CallOrInvocation = dyn_cast_or_null<CallExpr>(E))
         {
-            // NOTE: This extends the Coq language by including function calls
-            // which have arguments that are not in the language
             VisitCallOrInvocation(CallOrInvocation);
         }
     }
@@ -328,6 +326,8 @@ public:
 
     virtual void VisitCallOrInvocation(const CallExpr *CallOrInvocation)
     {
+        // NOTE: This extends the Coq language by including function calls
+        // which have arguments that are not in the language
         for (auto &&Arg : CallOrInvocation->arguments())
         {
             VisitExpr(Arg);
@@ -448,7 +448,7 @@ bool compareTrees(ASTContext *Ctx, const Expr *E1, const Expr *E2)
         }
     }
     // CallOrInvocation (function call)
-    else if (auto CallOrInvocation = dyn_cast_or_null<CallExpr>(E1))
+    else if (llvm::isa_and_nonnull<CallExpr>(E1))
     {
         // FIXME: We don't transform assignments or call invocations
         // anyway, so for now we can just return false
