@@ -42,6 +42,7 @@ using namespace clang::ast_matchers;
 struct PluginSettings
 {
     bool OverwriteFiles = false;
+    bool Verbose = false;
     raw_fd_ostream *StatsFile = nullptr;
 };
 
@@ -81,52 +82,6 @@ string getType(ASTContext *Ctx, const Stmt *ST)
         return T.getDesugaredType(*Ctx).getCanonicalType().getAsString();
     }
     return "@stmt";
-}
-
-void printExpansionSignature(ASTContext *Ctx,
-                             MacroForest::Node *Expansion,
-                             llvm::raw_ostream &os)
-{
-    os << "[";
-
-    if (Expansion->Stmts.size() == 1)
-    {
-        os << '"' << getType(Ctx, *Expansion->Stmts.begin()) << '"';
-    }
-    else if (Expansion->Stmts.size() > 1)
-    {
-        os << "\"@stmt\"";
-    }
-    else
-    {
-        os << "None";
-    }
-
-    if (Expansion->MI->isFunctionLike())
-    {
-        for (auto &Arg : Expansion->Arguments)
-        {
-            os << ", [\"" << Arg.Name << "\"";
-            std::set<std::string> ArgTypes;
-            for (const auto *ST : Arg.Stmts)
-            {
-                ArgTypes.insert('"' + getType(Ctx, ST) + '"');
-            }
-            if (ArgTypes.size() == 0)
-                os << ", None";
-            else if (ArgTypes.size() == 1)
-                os << ", " << *ArgTypes.begin();
-            else
-            {
-                for (auto &T : ArgTypes)
-                {
-                    os << ", " << T;
-                }
-            }
-            os << "]";
-        }
-    }
-    os << "]";
 }
 
 bool expansionHasUnambiguousSignature(ASTContext *Ctx,
@@ -247,6 +202,7 @@ public:
         // Map for recording transformation statistics
 
         string
+            TopLevelExpansionsInMainFile = "Top Level Expansions Found",
             TopLevelExpansionsWithNoExpansionRoot = "Top Level Expanions with No Expansion Root",
             TopLevelExpansionsWithMultipleExpansionRoots = "Top Level Expansions with Multiple Expansion Roots",
             TopLevelExpansionsWithMultipleASTNodes = "Top Level Expansions with Multiple AST Nodes",
@@ -262,9 +218,12 @@ public:
             TopLevelExpansionsWithLocalVars = "Top Level Expansions with Local Vars",
             TopLevelExpansionsWithSideEffects = "Top Level Expansions with Side-effects",
             TransformedTopLevelExpansions = "Successfully Transformed Top Level Expansions",
+            UntransformedTopLevelExpansions = "Top Level Expansions not Transformed",
             TopLevelExpanionsWithTransformationsNotInMainFile = "Top Level Expansions with Transformations Not In Main File (not transformed)",
-            TransformationTime = "Transformation Time (ms)";
+            TransformationTime = "Transformation Time (ms)",
+            FileSize = "File Size (bytes)";
         string CSVHeaders[] = {
+            TopLevelExpansionsInMainFile,
             TopLevelExpansionsWithNoExpansionRoot,
             TopLevelExpansionsWithMultipleExpansionRoots,
             TopLevelExpansionsWithMultipleASTNodes,
@@ -281,7 +240,8 @@ public:
             TopLevelExpansionsWithSideEffects,
             TransformedTopLevelExpansions,
             TopLevelExpanionsWithTransformationsNotInMainFile,
-            TransformationTime};
+            TransformationTime,
+            FileSize};
         map<string, unsigned int> Stats;
         for (auto &&Header : CSVHeaders)
         {
@@ -290,8 +250,7 @@ public:
 
         // Collect the names of all the variables and functions
         // defined in the program
-        set<string>
-            FunctionNames;
+        set<string> FunctionNames;
         set<string> VarNames;
 
         CollectDeclNamesVisitor CDNvisitor(CI, &FunctionNames, &VarNames);
@@ -311,19 +270,27 @@ public:
                       }),
             ExpansionRoots.end());
 
+        Stats[TopLevelExpansionsInMainFile] = ExpansionRoots.size();
+
         // Step 1: Find Top-Level Macro Expansions
         // Use Cpp2C's visitor to only collect roots in the
         // C language subset instead of using a matcher
-        errs() << "Step 1: Search for Macro AST Roots in C subset\n";
+        if (Cpp2CSettings.Verbose)
+        {
+            errs() << "Step 1: Search for Macro AST Roots in C subset\n";
+        }
         vector<const Stmt *> MacroRoots;
         CSubsetExpansionASTRootsCollector CSEARC(&Ctx, MacroRoots);
         CSEARC.VisitAST();
 
         // Step 2: Find the AST statements that were directly expanded
         // from the top-level expansions
-        errs() << "Step 2: Search for " << ExpansionRoots.size()
-               << " Top-Level Expansions in "
-               << MacroRoots.size() << " AST-Macro Roots (in the C subset) \n";
+        if (Cpp2CSettings.Verbose)
+        {
+            errs() << "Step 2: Search for " << ExpansionRoots.size()
+                   << " Top-Level Expansions in "
+                   << MacroRoots.size() << " AST-Macro Roots (in the C subset) \n";
+        }
         for (const auto ST : MacroRoots)
         {
             SourceLocation STExpansionLoc =
@@ -351,20 +318,24 @@ public:
             // not find an expansion root that this statement expanded from
             if (ExpansionRoot == nullptr)
             {
-                // StringRef Name =
-                //     Lexer::getImmediateMacroName(ST->getBeginLoc(), SM, LO);
-                // errs() << "     Skipped macro expansion "
-                //        << Name << "\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    StringRef Name =
+                        Lexer::getImmediateMacroName(ST->getBeginLoc(), SM, LO);
+                    errs() << "     Skipped macro expansion "
+                           << Name << "\n";
+                }
                 Stats[TopLevelExpansionsWithNoExpansionRoot] += 1;
                 continue;
             }
-
-            // errs() << "     Match macro "
-            //        << ExpansionRoot->Name
-            //        << " with "
-            //        << ExpansionRoot->SubtreeNodes.size()
-            //        << " (nested) expansions\n";
-
+            if (Cpp2CSettings.Verbose)
+            {
+                errs() << "     Match macro "
+                       << ExpansionRoot->Name
+                       << " with "
+                       << ExpansionRoot->SubtreeNodes.size()
+                       << " (nested) expansions\n";
+            }
             for (auto Expansion : ExpansionRoot->SubtreeNodes)
             {
                 CSubsetInMacroForestExpansionCollector CSIMFEC(
@@ -376,7 +347,10 @@ public:
         }
 
         // Step 3 : Within Subtrees, Match the Arguments
-        errs() << "Step 3: Find Arguments \n";
+        if (Cpp2CSettings.Verbose)
+        {
+            errs() << "Step 3: Find Arguments \n";
+        }
         for (auto ToplevelExpansion : ExpansionRoots)
         {
             for (auto Expansion : ToplevelExpansion->SubtreeNodes)
@@ -397,52 +371,24 @@ public:
         std::set<void *> dumpedNodes;
         dumpedNodes.insert(nullptr);
 
-        // Step 4: Print macro function signatures
-        // for (auto ToplevelExpansion : ExpansionRoots)
-        // {
-        //     for (auto Expansion : ToplevelExpansion->SubtreeNodes)
-        //     {
-        //         // Skip Expansions that are not a single subtree
-
-        //         // if (m_settings.only_toplevel_macros &&
-        //         //     !(Expansion == ToplevelExpansion))
-        //         //     continue;
-
-        //         // SANITY CHECK: This is a sanity check that ensures
-        //         // the structural integrity of the dumped tree.
-        //         if (dumpedNodes.find(Expansion->Parent) == dumpedNodes.end())
-        //         {
-        //             assert(false);
-        //         }
-        //         dumpedNodes.insert(Expansion);
-
-        //         Expansion->Root->SpellingRange.print(errs(), SM);
-        //         errs() << ";" << Expansion->Name;
-        //         errs() << ";" << Expansion->MI->isFunctionLike();
-        //         errs() << ";" << Expansion->Arguments.size();
-        //         // Dump the structure of our macro expansion-tree
-        //         errs() << ";" << (void *)Expansion << ";"
-        //                << (void *)Expansion->Parent;
-        //         errs() << ";" << Expansion->Stmts.size() << ";";
-        //         if (Expansion->Stmts.size() > 0)
-        //         {
-        //             printExpansionSignature(&Ctx, Expansion, errs());
-        //         }
-        //         errs() << "\n";
-        //     }
-        // }
-
         map<string, string> TransformedDefinitionToName;
-        // Step 5: Determine which macros are hygienic.
+        // Step 4: Transform hygienic macros.
+        if (Cpp2CSettings.Verbose)
+        {
+            errs() << "Step 4: Transform hygienic macros \n";
+        }
         for (auto TopLevelExpansion : ExpansionRoots)
         {
             // Check that the expansion maps to a single expansion
             if (TopLevelExpansion->SubtreeNodes.size() < 0)
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because it did not "
-                //           "have an expansion\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because it did not "
+                              "have an expansion\n";
+                }
                 Stats[TopLevelExpansionsWithNoExpansionRoot] += 1;
                 continue;
             }
@@ -450,9 +396,12 @@ public:
             // Check that macro contains no nested expansions
             if (TopLevelExpansion->SubtreeNodes.size() > 1)
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because it contained multiple expansions\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because it contained multiple expansions\n";
+                }
                 Stats[TopLevelExpansionsWithMultipleExpansionRoots] += 1;
                 continue;
             }
@@ -460,10 +409,13 @@ public:
             // Check that the expansion maps to a single AST expression
             if (TopLevelExpansion->Stmts.size() != 1)
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because it did not "
-                //           "have a single AST node\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because it did not "
+                              "have a single AST node\n";
+                }
                 Stats[TopLevelExpansionsWithMultipleASTNodes] += 1;
                 continue;
             }
@@ -471,10 +423,13 @@ public:
             // Check that expansion has an unambiguous signature
             if (!expansionHasUnambiguousSignature(&Ctx, TopLevelExpansion))
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because its function signature was "
-                //           "ambiguous \n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because its function signature was "
+                              "ambiguous \n";
+                }
                 Stats[TopLevelExpansionsWithAmbiguousSignature] += 1;
                 continue;
             }
@@ -484,10 +439,13 @@ public:
 
             if (!E)
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because it did not "
-                //           "expand to an expression\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because it did not "
+                              "expand to an expression\n";
+                }
                 Stats[TopLevelExpansionsThatDidNotExpandToAnExpression] += 1;
                 continue;
             }
@@ -504,10 +462,13 @@ public:
             if (!(ExpansionBegin == ExpressionBegin &&
                   ExpansionEnd == ExpressionEnd))
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because its expression did not align perfectly "
-                //           "with its expansion\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because its expression did not align perfectly "
+                              "with its expansion\n";
+                }
                 Stats[TopLevelExpansionsWithUnalignedBody] += 1;
                 continue;
             }
@@ -518,10 +479,13 @@ public:
             // of tokens in an arbitrary expression
             if (!PP.isAtEndOfMacroExpansion(E->getEndLoc()))
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because its expression's end did not extend to "
-                //           "end of its expansion\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because its expression's end did not extend to "
+                              "end of its expansion\n";
+                }
                 Stats[TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion] += 1;
                 continue;
             }
@@ -530,9 +494,12 @@ public:
             if (MultiplyDefinedMacros.find(TopLevelExpansion->Name) !=
                 MultiplyDefinedMacros.end())
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because the macro is multiply-defined\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because the macro is multiply-defined\n";
+                }
                 Stats[TopLevelExpansionsOfMultiplyDefinedMacros] += 1;
                 continue;
             }
@@ -546,10 +513,13 @@ public:
                 {
                     if (Arg.Stmts.size() == 0)
                     {
-                        // errs() << "Skipping expanion of "
-                        //        << TopLevelExpansion->Name
-                        //        << " because its argument "
-                        //        << Arg.Name << " was not expanded\n";
+                        if (Cpp2CSettings.Verbose)
+                        {
+                            errs() << "Skipping expanion of "
+                                   << TopLevelExpansion->Name
+                                   << " because its argument "
+                                   << Arg.Name << " was not expanded\n";
+                        }
                         Stats[TopLevelExpanionsWithUnexpandedArgument] += 1;
                         hasUnhygienicArg = true;
                         break;
@@ -562,13 +532,16 @@ public:
                     unsigned ActualExpansions = Arg.Stmts.size();
                     if (ActualExpansions != ExpectedExpansions)
                     {
-                        // errs() << "Skipping expanion of "
-                        //        << TopLevelExpansion->Name
-                        //        << " because its argument "
-                        //        << Arg.Name << " was not expanded the "
-                        //        << "expected number of times: "
-                        //        << ExpectedExpansions << " vs " << ActualExpansions
-                        //        << "\n";
+                        if (Cpp2CSettings.Verbose)
+                        {
+                            errs() << "Skipping expanion of "
+                                   << TopLevelExpansion->Name
+                                   << " because its argument "
+                                   << Arg.Name << " was not expanded the "
+                                   << "expected number of times: "
+                                   << ExpectedExpansions << " vs " << ActualExpansions
+                                   << "\n";
+                        }
                         Stats[TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes] += 1;
                         hasUnhygienicArg = true;
                         break;
@@ -579,11 +552,14 @@ public:
                     {
                         if (!compareTrees(&Ctx, ArgFirstExpansion, ArgExpansion))
                         {
-                            // errs() << "Skipping expanion of "
-                            //        << TopLevelExpansion->Name
-                            //        << " because its argument "
-                            //        << Arg.Name << " was not expanded to "
-                            //        << "a consistent AST structure\n";
+                            if (Cpp2CSettings.Verbose)
+                            {
+                                errs() << "Skipping expanion of "
+                                       << TopLevelExpansion->Name
+                                       << " because its argument "
+                                       << Arg.Name << " was not expanded to "
+                                       << "a consistent AST structure\n";
+                            }
                             Stats[TopLevelExpansionsWithInconsistentArgumentExpansions] += 1;
                             hasUnhygienicArg = true;
                             break;
@@ -596,23 +572,22 @@ public:
                         // which contain invocations as arguments as
                         // untransformable, but that doesn't make the
                         // transformation unsound
-                        // errs() << "Token ranges: ";
-                        // Arg.TokenRanges.dump(SM);
-                        // errs() << "\n";
                         auto ArgExpression = dyn_cast_or_null<Expr>(ArgExpansion);
                         assert(nullptr != ArgExpression);
                         if (!CSubsetExprAndSubExprsSpelledInRanges::exprAndSubExprsSpelledInRanges(
                                 &Ctx, ArgExpression, &Arg.TokenRanges))
                         {
-
-                            // errs() << "Skipping expanion of "
-                            //        << TopLevelExpansion->Name
-                            //        << " because its argument "
-                            //        << Arg.Name << " was matched with an AST node "
-                            //        << "with an expression or subexpression "
-                            //        << "with a spelling location outside of the "
-                            //        << "spelling locations of the arg's "
-                            //        << "token ranges\n";
+                            if (Cpp2CSettings.Verbose)
+                            {
+                                errs() << "Skipping expanion of "
+                                       << TopLevelExpansion->Name
+                                       << " because its argument "
+                                       << Arg.Name << " was matched with an AST node "
+                                       << "with an expression or subexpression "
+                                       << "with a spelling location outside of the "
+                                       << "spelling locations of the arg's "
+                                       << "token ranges\n";
+                            }
                             Stats[TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges] += 1;
                             hasUnhygienicArg = true;
                             break;
@@ -632,9 +607,12 @@ public:
             // Check that the expansion does not contain local variables
             if (CSubsetContainsLocalVars::containsLocalVars(&Ctx, E))
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because its expression contained local vars\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because its expression contained local vars\n";
+                }
                 Stats[TopLevelExpansionsWithLocalVars] += 1;
                 continue;
             }
@@ -642,9 +620,12 @@ public:
             // Check that the expansion does not contain side-effects
             if (CSubsetHasSideEffects::hasSideEffects(&Ctx, E))
             {
-                // errs() << "Skipping expanion of "
-                //        << TopLevelExpansion->Name
-                //        << " because its expression had side-effects\n";
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expanion of "
+                           << TopLevelExpansion->Name
+                           << " because its expression had side-effects\n";
+                }
                 Stats[TopLevelExpansionsWithSideEffects] += 1;
                 continue;
             }
@@ -809,6 +790,12 @@ public:
             Stats[TransformedTopLevelExpansions] += 1;
         }
 
+        Stats[UntransformedTopLevelExpansions] =
+            ExpansionRoots.size() - Stats[TransformedTopLevelExpansions];
+
+        // Get size of the file in bytes
+        Stats[FileSize] = SM.getFileEntryForID(SM.getMainFileID())->getSize();
+
         if (Cpp2CSettings.OverwriteFiles)
         {
             RW.overwriteChangedFiles();
@@ -871,11 +858,15 @@ protected:
         for (auto it = args.begin(); it != args.end(); ++it)
         {
             std::string arg = *it;
-            if (arg == "-overwrite-files")
+            if (arg == "-ow" || arg == "-overwrite-files")
             {
                 Cpp2CSettings.OverwriteFiles = true;
             }
-            else if (arg == "-dump-stats")
+            else if (arg == "-v" || arg == "--verbose")
+            {
+                Cpp2CSettings.Verbose = true;
+            }
+            else if (arg == "-ds" || arg == "-dump-stats")
             {
                 error_code str_err;
                 ++it;
