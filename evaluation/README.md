@@ -3,6 +3,11 @@ Note: We don't transform test scripts in these projects to ensure that the
 tests are consistent (i.e., the only dependent variable in our evaluation
 is the source code pre and post transformation)
 
+## Getting Started
+Build Cpp2C:
+1. Navigate the the `transformation_tool` directory
+2. Run the script `build.sh`
+
 ## Tiny Regex
 Cloned on 2022-03-17
 
