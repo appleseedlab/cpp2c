@@ -1,10 +1,15 @@
 #!/bin/bash
 
+# NOTE: Redis has lua as a dependency.
+# In order to transform as many expansions as possible, we would have to
+# install lua; however, then we would transform macros defined from lua
+# instead of just macros defined in Redis. Is that OK?
+
 REDIS_ZIP=redis-6.2.6.zip
 REDIS_DIR=redis-6.2.6
 SRC_DIR=$REDIS_DIR/src
 
-CSV_DIR=stats/redis-03.04.02
+CSV_DIR=stats/redis-6.2.6
 
 CPP2_C=../transformation_tool/build/bin/cpp2c
 
