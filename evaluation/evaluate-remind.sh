@@ -16,6 +16,11 @@ rm -fr $REMIND_DIR
 echo "Step 1: Unzipping Remind to $REMIND_DIR"
 tar -xvf $REMIND_ZIP
 
+echo "Step 1.5: Make remind so that config.h is available"
+cd $REMIND_DIR
+make
+cd ..
+
 echo "Step 2: Transforming C files in $SRC_DIR"
 for FILEPATH in $(ls $SRC_DIR/*.c); do
     FN=$(basename $FILEPATH)
