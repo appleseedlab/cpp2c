@@ -4,3 +4,5 @@ stats
 tiny-HMAC
 tiny-lint
 tiny-regex
+lua-5.4.4
+lua-5.4.4-tests
