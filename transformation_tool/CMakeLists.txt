@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13.4)
-project(cpp-to-c)
+project(cpp2c)
 enable_testing()
 
 
@@ -7,20 +7,20 @@ enable_testing()
 # 1. VERIFY CLANG INSTALLATION DIR
 #===============================================================================
 # Set this to a valid Clang installation dir
-set(CPPTOC_LLVM_INSTALL_DIR "" CACHE PATH "LLVM installation directory")
-set(CPPTOC_LLVM_INSTALL_DIR "/usr")
+set(CPP2C_LLVM_INSTALL_DIR "" CACHE PATH "LLVM installation directory")
+set(CPP2C_LLVM_INSTALL_DIR "/usr")
 
 # A bit of a sanity checking
-set(CPPTOC_LLVM_INCLUDE_DIR "${CPPTOC_LLVM_INSTALL_DIR}/include/llvm-11")
-if(NOT EXISTS "${CPPTOC_LLVM_INCLUDE_DIR}")
+set(CPP2C_LLVM_INCLUDE_DIR "${CPP2C_LLVM_INSTALL_DIR}/include/llvm-11")
+if(NOT EXISTS "${CPP2C_LLVM_INCLUDE_DIR}")
 message(FATAL_ERROR
-  " CPPTOC_LLVM_INSTALL_DIR (${CPPTOC_LLVM_INCLUDE_DIR}) is invalid.")
+  " CPP2C_LLVM_INSTALL_DIR (${CPP2C_LLVM_INCLUDE_DIR}) is invalid.")
 endif()
 
-set(CPPTOC_LLVM_CMAKE_FILE "${CPPTOC_LLVM_INSTALL_DIR}/lib/cmake/clang-11/ClangConfig.cmake")
-if(NOT EXISTS "${CPPTOC_LLVM_CMAKE_FILE}")
+set(CPP2C_LLVM_CMAKE_FILE "${CPP2C_LLVM_INSTALL_DIR}/lib/cmake/clang-11/ClangConfig.cmake")
+if(NOT EXISTS "${CPP2C_LLVM_CMAKE_FILE}")
 message(FATAL_ERROR
-  " CPPTOC_LLVM_CMAKE_FILE (${CPPTOC_LLVM_CMAKE_FILE}) is invalid.")
+  " CPP2C_LLVM_CMAKE_FILE (${CPP2C_LLVM_CMAKE_FILE}) is invalid.")
 endif()
 
 #===============================================================================
@@ -28,8 +28,8 @@ endif()
 #    For more: http://llvm.org/docs/CMake.html#embedding-llvm-in-your-project
 #===============================================================================
 set(CLANG_VERSION 11)
-list(APPEND CMAKE_PREFIX_PATH "${CPPTOC_LLVM_INSTALL_DIR}/lib/cmake/llvm-${CLANG_VERSION}/")
-list(APPEND CMAKE_PREFIX_PATH "${CPPTOC_LLVM_INSTALL_DIR}/lib/cmake/clang-${CLANG_VERSION}/")
+list(APPEND CMAKE_PREFIX_PATH "${CPP2C_LLVM_INSTALL_DIR}/lib/cmake/llvm-${CLANG_VERSION}/")
+list(APPEND CMAKE_PREFIX_PATH "${CPP2C_LLVM_INSTALL_DIR}/lib/cmake/clang-${CLANG_VERSION}/")
 
 find_package(Clang REQUIRED CONFIG)
 
@@ -42,7 +42,7 @@ endif()
 
 set(CLANG_C_COMPILER "clang-${CLANG_VERSION}")
 message(STATUS "Found Clang ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using ClangConfig.cmake in: ${CPPTOC_LLVM_INSTALL_DIR}")
+message(STATUS "Using ClangConfig.cmake in: ${CPP2C_LLVM_INSTALL_DIR}")
 
 
 message("CLANG STATUS:

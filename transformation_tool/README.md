@@ -37,7 +37,7 @@ and test the plugin:
 
 - From within the Docker container, run the wrapper script
   ```console
-  $ ./build/bin/cpp-to-c -fsyntax-only ./tests/object_like_macro_body_literal_1.c
+  $ ./build/bin/cpp2c -fsyntax-only ./tests/object_like_macro_body_literal_1.c
   ```
 
 `-fsyntax-only` tells Clang not to compile the target file(s).

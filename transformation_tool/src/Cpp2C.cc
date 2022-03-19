@@ -216,7 +216,7 @@ string getExpansionSignature(ASTContext *Ctx,
 }
 
 // AST consumer which calls the visitor class to perform the transformation
-class CppToCConsumer : public ASTConsumer
+class Cpp2CConsumer : public ASTConsumer
 {
 private:
     CompilerInstance *CI;
@@ -225,12 +225,12 @@ private:
     set<string> MacroNames;
     set<string> MultiplyDefinedMacros;
     // To give it access to members
-    friend class PluginCppToCAction;
+    friend class PluginCpp2CAction;
 
     PluginSettings Cpp2CSettings;
 
 public:
-    explicit CppToCConsumer(CompilerInstance *CI, PluginSettings Cpp2CSettings)
+    explicit Cpp2CConsumer(CompilerInstance *CI, PluginSettings Cpp2CSettings)
         : CI(CI), PP(CI->getPreprocessor()), Cpp2CSettings(Cpp2CSettings) {}
 
     virtual void HandleTranslationUnit(ASTContext &Ctx)
@@ -843,7 +843,7 @@ public:
 };
 
 // Wrap everything into a plugin
-class PluginCppToCAction : public PluginASTAction
+class PluginCpp2CAction : public PluginASTAction
 {
 
 protected:
@@ -852,7 +852,7 @@ protected:
                       StringRef file) override
     {
         auto &PP = CI.getPreprocessor();
-        auto Cpp2C = make_unique<CppToCConsumer>(&CI, Cpp2CSettings);
+        auto Cpp2C = make_unique<Cpp2CConsumer>(&CI, Cpp2CSettings);
 
         MacroNameCollector *MNC = new MacroNameCollector(
             Cpp2C->MacroNames,
@@ -909,5 +909,5 @@ private:
 //-----------------------------------------------------------------------------
 // Registration
 //-----------------------------------------------------------------------------
-static FrontendPluginRegistry::Add<PluginCppToCAction>
-    X("cpp-to-c", "Transform CPP macros to C functions");
+static FrontendPluginRegistry::Add<PluginCpp2CAction>
+    X("cpp2c", "Transform CPP macros to C functions");

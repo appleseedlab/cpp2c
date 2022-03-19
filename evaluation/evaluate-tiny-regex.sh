@@ -7,7 +7,7 @@ TINY_REGEX_DIR=tiny-regex
 
 CSV_DIR=stats/tiny-regex
 
-CPP2_C=../transformation_tool/build/bin/cpp-to-c
+CPP2_C=../transformation_tool/build/bin/cpp2c
 
 echo "Step 0: Remove old unzipped directory, and clear/create stats directory"
 rm -fr $CSV_DIR
@@ -19,7 +19,7 @@ unzip $TINY_REGEX_ZIP
 mv $TINY_REGEX_UNZIP_DIR $TINY_REGEX_DIR
 
 echo "Step 2: Transforming $TINY_REGEX_DIR/re.c"
-$CPP2_C -fsyntax-only $TINY_REGEX_DIR/re.c -Xclang -plugin-arg-cpp-to-c -Xclang -overwrite-files -Xclang -plugin-arg-cpp-to-c -Xclang -dump-stats -Xclang -plugin-arg-cpp-to-c -Xclang $CSV_DIR/re.csv
+$CPP2_C -fsyntax-only $TINY_REGEX_DIR/re.c -Xclang -plugin-arg-cpp2c -Xclang -overwrite-files -Xclang -plugin-arg-cpp2c -Xclang -dump-stats -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/re.csv
 
 echo "Step 3: Running Tiny Regex tests"
 cd $TINY_REGEX_DIR

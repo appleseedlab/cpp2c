@@ -2,11 +2,11 @@
 # 1. LOAD LLVM CONFIGURATION
 #===============================================================================
 # Set this to a valid LLVM installation dir
-set(CPPTOC_LLVM_INSTALL_DIR "" CACHE PATH "LLVM installation directory")
+set(CPP2C_LLVM_INSTALL_DIR "" CACHE PATH "LLVM installation directory")
 
 # Add the location of ClangConfig.cmake to CMake search paths (so that
 # find_package can locate it)
-list(APPEND CMAKE_PREFIX_PATH "${CPPTOC_LLVM_INSTALL_DIR}/lib/cmake/clang/")
+list(APPEND CMAKE_PREFIX_PATH "${CPP2C_LLVM_INSTALL_DIR}/lib/cmake/clang/")
 
 find_package(Clang REQUIRED CONFIG)
 
@@ -31,8 +31,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 #===============================================================================
 # 3. ADD THE TARGET
 #===============================================================================
-add_library(CppToC SHARED
-  CppToC.cc
+add_library(Cpp2C SHARED
+  Cpp2C.cc
   CollectDeclNamesVisitor.h
   CSubsetExpansionASTRootsCollector.h
   CSubsetContainsLocalVars.h
@@ -50,5 +50,5 @@ add_library(CppToC SHARED
 
 # Allow undefined symbols in shared objects on Darwin (this is the default
 # behaviour on Linux)
-target_link_libraries(CppToC
+target_link_libraries(Cpp2C
   "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")

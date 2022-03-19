@@ -1,4 +1,4 @@
-# C/CPP to C
+# Cpp2C
 
 ## Proof
 
@@ -14,14 +14,16 @@ A program for converting C preprocessor usage to normal C constructs
 (e.g. constants, structs, enums, functions, etc.)
 
 ### Table of Contents
-- [CPP to C](#cpp-to-c)
-  - [Table of Contents](#table-of-contents)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installing](#installing)
-  - [Usage Instructions](#usage-instructions)
-  - [Testing](#testing)
-  - [License](#license)
+- [Cpp2C](#cpp2c)
+  - [Proof](#proof)
+  - [Implementation](#implementation)
+    - [Table of Contents](#table-of-contents)
+    - [Getting Started](#getting-started)
+      - [Prerequisites](#prerequisites)
+      - [Installing](#installing)
+    - [Usage Instructions](#usage-instructions)
+    - [Testing](#testing)
+    - [License](#license)
 
 ### Getting Started
 

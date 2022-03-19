@@ -5,7 +5,7 @@ argv=("$@")
 
 clang_args=()
 function clang_arg() {
-    clang_args+=(-Xclang -plugin-arg-cpp-to-c -Xclang "$1")
+    clang_args+=(-Xclang -plugin-arg-cpp2c -Xclang "$1")
 }
 
 compile=false
@@ -27,7 +27,7 @@ if [ $compile = true ]; then
     clang_arg "$output".macros
 fi
 
-exec @CLANG_C_COMPILER@ -fplugin=@PROJECT_BINARY_DIR@/lib/libCppToC.so \
+exec @CLANG_C_COMPILER@ -fplugin=@PROJECT_BINARY_DIR@/lib/libCpp2C.so \
      -Wno-address-of-packed-member \
      -Wno-unused-argument \
      "${clang_args[@]}" \
