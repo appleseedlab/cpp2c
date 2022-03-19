@@ -33,7 +33,7 @@ using namespace std;
 
 using namespace clang::ast_matchers;
 
-// This file hardly a paragon of pulchritude, but the logic is correct
+// This file is hardly a paragon of pulchritude, but the logic is correct
 // and so far Cpp2C works without issue
 
 // TODO: Add transformation of object-like macros to variables to soundness
