@@ -13,6 +13,7 @@ declare -A EVALUATION_SCRIPT_PROJECT_DIR=(
     ["evaluate-remind.sh"]="remind-03.04.02"
     ["evaluate-lua.sh"]="lua-5.4.4"
     ["evaluate-bc.sh"]="bc-1.07"
+    ["evaluate-gzip.sh"]="gzip-1.10"
 )
 
 # Clear the stats folder
