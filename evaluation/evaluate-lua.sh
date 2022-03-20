@@ -30,6 +30,11 @@ for FILEPATH in $(find $SRC_DIR -type f -name *.c); do
     $CPP2C -fsyntax-only $FILEPATH -Xclang -plugin-arg-cpp2c -Xclang -overwrite-files -Xclang -plugin-arg-cpp2c -Xclang -dump-stats -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/$FN_NO_EXT.csv
 done
 
+# Exit prematurely unless arg passed to run tests
+if [ $# -eq 0 ] || [ $1 != '-run-tests' ]; then
+    exit
+fi
+
 echo "Making Lua"
 cd $LUA_DIR
 make

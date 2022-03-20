@@ -10,16 +10,16 @@ CSV_DIR=stats/tiny-HMAC
 
 CPP2_C=../transformation_tool/build/bin/cpp2c
 
-echo "Step 0: Remove old unzipped directory, and clear/create stats directory"
+echo "Removing $TINY_HMAC_DIR and recreating $CSV_DIR"
 rm -fr $CSV_DIR
 mkdir -p $CSV_DIR
 rm -fr $TINY_HMAC_DIR
 
-echo "Step 1: Unzipping Tiny HMAC to $TINY_HMAC_DIR"
+echo "Unzipping Tiny HMAC to $TINY_HMAC_DIR"
 unzip $TINY_HMAC_ZIP
 mv $TINY_HMAC_UNZIP_DIR $TINY_HMAC_DIR
 
-echo "Step 2: Transforming C files in $SRC_DIR"
+echo "Transforming C files in $SRC_DIR"
 for FILEPATH in $(ls $SRC_DIR/*.c); do
     FN=$(basename $FILEPATH)
     FN_NO_EXT=${FN%.c}
@@ -27,7 +27,12 @@ for FILEPATH in $(ls $SRC_DIR/*.c); do
     $CPP2_C -fsyntax-only $FILEPATH -Xclang -plugin-arg-cpp2c -Xclang -overwrite-files -Xclang -plugin-arg-cpp2c -Xclang -dump-stats -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/$FN_NO_EXT.csv
 done
 
-echo "Step 3: Running Tiny HMAC tests"
+# Exit prematurely unless arg passed to run tests
+if [ $# -eq 0 ] || [ $1 != '-run-tests' ]; then
+    exit
+fi
+
+echo "Running Tiny HMAC tests"
 cd $TINY_HMAC_DIR
 # Change the python command to python2
 sed -i 's/python/python2/' Makefile
