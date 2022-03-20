@@ -30,7 +30,9 @@ std::string
     UntransformedTopLevelFunctionLikeMacroExpansions = "Top Level Function-like Expansions not Transformed",
     TopLevelExpanionsWithTransformationsNotInMainFile = "Top Level Expansions with Transformations Not In Main File (not transformed)",
     TransformationTime = "Transformation Time (ms)",
-    FileSize = "File Size (bytes)";
+    FileSize = "File Size (bytes)",
+    DedupedDefinitions = "Deduped Transformed Definitions",
+    EmittedDefinitions = "Emitted Transformed Definitions";
 
 std::map<string, unsigned> NewTransformationStats()
 {
@@ -61,7 +63,9 @@ std::map<string, unsigned> NewTransformationStats()
         UntransformedTopLevelFunctionLikeMacroExpansions,
         TopLevelExpanionsWithTransformationsNotInMainFile,
         TransformationTime,
-        FileSize};
+        FileSize,
+        DedupedDefinitions,
+        EmittedDefinitions};
 
     map<string, unsigned int> Stats;
     for (auto &&Header : CSVHeaders)
