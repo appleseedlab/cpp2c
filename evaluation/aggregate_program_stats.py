@@ -16,9 +16,10 @@ PERCENT_TRANSFORMED_HEADER = 'Percentage of Expansions Transformed'
 NUM_FILES_PROCESSED_HEADER = 'Number of Files Processed'
 TRANSFORMATION_TIME_HEADER = 'Transformation Time (ms)'
 AVG_TRANSFORMATION_TIME_HEADER = 'Average Transformation Time (ms)'
-AVG_EXPANSIONS_PER_FILE = 'Average Top Level Expansions per File'
+AVG_EXPANSIONS_PER_FILE = 'Average Top Level Expansions per File in Program'
 FILE_SIZE_HEADER = 'File Size (bytes)'
 AVG_FILE_SIZE_HEADER = 'Average File Size (bytes)'
+AVG_TRANSFORMATIONS_HEADER = 'Average Successfully Transformed Top Level Expansions per File in Program'
 
 
 def print_dict_as_csv(d: Dict, file=sys.stdout) -> None:
@@ -86,7 +87,7 @@ def main():
     avg_transformation_time = rounded_mean_or_zero(transformation_times)
     aggregated[AVG_TRANSFORMATION_TIME_HEADER] = avg_transformation_time
 
-    # Record the average number of expansions per file
+    # Record the average number of expansions per file in program
     expansions_per_file = [
         d[TOTAL_EXPANSIONS_HEADER] for d in file_stat_dicts]
     avg_expansions_per_file = rounded_mean_or_zero(expansions_per_file)
@@ -97,6 +98,13 @@ def main():
         d[FILE_SIZE_HEADER] for d in file_stat_dicts]
     avg_file_size = rounded_mean_or_zero(file_sizes)
     aggregated[AVG_FILE_SIZE_HEADER] = avg_file_size
+
+    # Record the average number of successful top level expansions per file
+    # in program
+    num_transformations = [
+        d[SUCCESSFUL_TRANSFORMATIONS_HEADER] for d in file_stat_dicts]
+    avg_num_transformed = rounded_mean_or_zero(num_transformations)
+    aggregated[AVG_TRANSFORMATIONS_HEADER] = avg_num_transformed
 
     # Print the dict in CSV format
     print_dict_as_csv(aggregated)
