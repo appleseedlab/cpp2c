@@ -45,6 +45,7 @@ struct PluginSettings
 {
     bool OverwriteFiles = false;
     bool Verbose = false;
+    bool UnifyMacrosWithDifferentNames = false;
     raw_fd_ostream *StatsFile = nullptr;
 };
 
@@ -238,10 +239,12 @@ public:
             }
         }
 
-        std::set<void *> dumpedNodes;
-        dumpedNodes.insert(nullptr);
+        // Vector for keeping track of which definitions have been
+        // transformed so that we don't emit duplicate identical
+        // transformations of expansions of the same macro that have
+        // the same type
+        vector<struct TransformedDefinition> EmittedTransformedDefinitions;
 
-        map<string, string> TransformedDefinitionToName;
         // Step 4: Transform hygienic macros.
         if (Cpp2CSettings.Verbose)
         {
@@ -284,59 +287,69 @@ public:
                 TopLevelExpansion->MI->isObjectLike() &&
                 !CSubsetContainsVars::containsVars(&Ctx, E);
 
-            // Generate the function body
-            SourceLocation MacroBodyBegin =
-                TopLevelExpansion->MI->tokens().front().getLocation();
-            SourceLocation MacroBodyEnd = Lexer::getLocForEndOfToken(
-                TopLevelExpansion->DefinitionRange.getEnd(), 0, SM, LO);
-
-            SourceRange MacroBodyRange =
-                SourceRange(MacroBodyBegin, MacroBodyEnd);
-            CharSourceRange MacroBodyCharRange =
-                CharSourceRange::getCharRange(MacroBodyRange);
-            string TransformedBody = Lexer::getSourceText(
-                                         MacroBodyCharRange, SM, LO)
-                                         .str();
-            string TransformedDefinition =
-                (TransformToVar
-                     ? " = " + TransformedBody + ";"
-                     : " { return " + TransformedBody + "; }");
+            // Create the transformed definition.
+            // Note that this generates the transformed definition as well.
+            struct TransformedDefinition TD =
+                NewTransformedDefinition(&Ctx, TopLevelExpansion,
+                                         TransformToVar);
 
             // If an identical transformation for this expansion exists,
             // use it; otherwise generate a unique name for this transformation
             // and insert its definition into the program
-            string TransformedName;
-            if (TransformedDefinitionToName.find(TransformedDefinition) !=
-                TransformedDefinitionToName.end())
+            string EmittedName = "";
+
+            for (auto &&ETD : EmittedTransformedDefinitions)
             {
-                TransformedName =
-                    TransformedDefinitionToName[TransformedDefinition];
+                if ((Cpp2CSettings.UnifyMacrosWithDifferentNames ||
+                     ETD.OriginalMacroName == TD.OriginalMacroName) &&
+                    ETD.IsVar == TD.IsVar &&
+                    ETD.VarOrReturnType == TD.VarOrReturnType &&
+                    ETD.ArgTypes == TD.ArgTypes &&
+                    ETD.InitializerOrDefinition == TD.InitializerOrDefinition)
+                {
+                    EmittedName = ETD.EmittedName;
+                    break;
+                }
+            }
+
+            // If EmittedName is not empty at this point, then we found a match
+            if (EmittedName != "")
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not emitting a definition for " +
+                                  TopLevelExpansion->Name +
+                                  " because an identical "
+                                  "definition already exists\n";
+                }
+                Stats[DedupedDefinitions] += 1;
             }
             else
             {
-                string Basename = getTransformedName(SM, TopLevelExpansion,
-                                                     TransformToVar);
-                TransformedName = Basename;
+                string Basename = getNameForExpansionTransformation(
+                    SM, TopLevelExpansion,
+                    TransformToVar);
+                EmittedName = Basename;
                 unsigned suffix = 0;
-                while (FunctionNames.find(TransformedName) != FunctionNames.end() &&
-                       VarNames.find(TransformedName) != VarNames.end() &&
-                       MacroNames.find(TransformedName) != MacroNames.end())
+                while (FunctionNames.find(EmittedName) != FunctionNames.end() &&
+                       VarNames.find(EmittedName) != VarNames.end() &&
+                       MacroNames.find(EmittedName) != MacroNames.end())
                 {
-                    TransformedName = Basename + "_" + to_string(suffix);
+                    EmittedName = Basename + "_" + to_string(suffix);
                     suffix += 1;
                 }
-                FunctionNames.insert(TransformedName);
-                VarNames.insert(TransformedName);
-                MacroNames.insert(TransformedName);
-                TransformedDefinitionToName[TransformedDefinition] =
-                    TransformedName;
+                FunctionNames.insert(EmittedName);
+                VarNames.insert(EmittedName);
+                MacroNames.insert(EmittedName);
+
+                TD.EmittedName = EmittedName;
 
                 string TransformedSignature =
                     getExpansionSignature(&Ctx, TopLevelExpansion,
                                           TransformToVar,
-                                          TransformedName);
+                                          EmittedName);
                 string FullTransformationDefinition =
-                    TransformedSignature + TransformedDefinition + "\n\n";
+                    TransformedSignature + TD.InitializerOrDefinition + "\n\n";
 
                 // Emit the transformation to the top of the file in which
                 // the macro was expanded.
@@ -399,10 +412,17 @@ public:
                     RW.InsertText(StartOfFile,
                                   StringRef(FullTransformationDefinition));
                 }
+                EmittedTransformedDefinitions.push_back(TD);
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Emitted a definition: " +
+                                  EmittedName + "\n";
+                }
+                Stats[EmittedDefinitions] += 1;
             }
 
             // Rewrite the invocation into a function call
-            string CallOrRef = TransformedName;
+            string CallOrRef = EmittedName;
             if (!TransformToVar)
             {
                 CallOrRef += "(";
@@ -513,6 +533,10 @@ protected:
             else if (arg == "-v" || arg == "--verbose")
             {
                 Cpp2CSettings.Verbose = true;
+            }
+            else if (arg == "-u" || arg == "--unify-macros-with-different-names")
+            {
+                Cpp2CSettings.UnifyMacrosWithDifferentNames = true;
             }
             else if (arg == "-ds" || arg == "-dump-stats")
             {
