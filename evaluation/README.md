@@ -15,7 +15,7 @@ https://github.com/kokke/tiny-regex-c/tree/2d306a5a71128853d18292e8bb85c8e745fbc
 
 Run:
 ```bash
-$ bash evaluate-tiny-regex.sh
+$ bash evaluate-tiny-regex.sh -run-tests
 ```
 Expected results:
 TODO
@@ -27,7 +27,7 @@ https://github.com/kokke/tiny-lint-c/tree/4de8b64c97fda3117a7ddc9895a30adb97fbae
 
 Run:
 ```bash
-$ bash evaluate-tiny-regex.sh
+$ bash evaluate-tiny-regex.sh -run-tests
 ```
 Expected results:
 TODO
@@ -39,7 +39,7 @@ https://github.com/kokke/tiny-HMAC-c/tree/93bdfa8114a32cf25ba70cb1f0957d3bf0f180
 
 Run:
 ```bash
-$ bash evaluate-tiny-HMAC.sh
+$ bash evaluate-tiny-HMAC.sh -run-tests
 ```
 Expected results:
 TODO
@@ -54,7 +54,7 @@ https://dianne.skoll.ca/projects/remind/
 
 Run:
 ```bash
-$ bash evaluate-remind.sh
+$ bash evaluate-remind.sh -run-tests
 ```
 Expected results:
 Remind: Acceptance test PASSED
@@ -67,7 +67,7 @@ Downloaded on 2022-03-19
 
 Run:
 ```bash
-$ bash evaluate-lua.sh
+$ bash evaluate-lua.sh -run-tests
 ```
 Expected results:
 ```
@@ -83,7 +83,7 @@ https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz
 
 Run:
 ```bash
-$ bash evaluate-bc.sh
+$ bash evaluate-bc.sh -run-tests
 ```
 Expected results:
 The output should end with a sequence of test time outputs that look like this:
@@ -93,3 +93,26 @@ user    0m0.xxxs
 sys     0m0.xxxs
 ```
 If these test time outputs contain an error message, then something went wrong
+
+## gzip v1.10
+Downloaded on 2022-03-20
+
+https://gnu.mirror.constant.com/gzip/gzip-1.10.tar.gz
+
+Run:
+```bash
+$ bash evaluate-gzip.sh -run-tests
+```
+Expected results:
+```
+============================================================================
+Testsuite summary for gzip 1.10
+============================================================================
+# TOTAL: 22
+# PASS:  22
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+```
