@@ -32,6 +32,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 # 3. ADD THE TARGET
 #===============================================================================
 add_library(Cpp2C SHARED
+  Constants.h
   Cpp2C.cc
   CollectDeclNamesVisitor.h
   CSubsetExpansionASTRootsCollector.h
@@ -44,8 +45,10 @@ add_library(Cpp2C SHARED
   CSubsetInMacroForestExpansionCollector.h
   CSubsetInSourceRangeCollectionCollector.h
   CSubsetVisitor.h
+  ExpansionUtils.h
   MacroForest.h
   MacroNameCollector.h
+  TransformedDefinition.h
   )
 
 # Allow undefined symbols in shared objects on Darwin (this is the default
