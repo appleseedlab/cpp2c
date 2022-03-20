@@ -36,5 +36,6 @@ fi
 
 echo "Running Remind tests"
 cd $REMIND_DIR
+make clean
 make
 make test
