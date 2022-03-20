@@ -12,6 +12,7 @@ declare -A EVALUATION_SCRIPT_PROJECT_DIR=(
     ["evaluate-tiny-lint.sh"]="tiny-lint"
     ["evaluate-remind.sh"]="remind-03.04.02"
     ["evaluate-lua.sh"]="lua-5.4.4"
+    ["evaluate-bc.sh"]="bc-1.07"
 )
 
 # Clear the stats folder
