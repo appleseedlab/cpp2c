@@ -293,9 +293,9 @@ bool isExpansionHygienic(ASTContext *Ctx,
     return true;
 }
 
-string getTransformedName(SourceManager &SM,
-                          MacroForest::Node *Expansion,
-                          bool TransformToVar)
+string getNameForExpansionTransformation(SourceManager &SM,
+                                         MacroForest::Node *Expansion,
+                                         bool TransformToVar)
 {
     string Filename =
         SM.getFilename(Expansion->SpellingRange.getBegin()).str();
