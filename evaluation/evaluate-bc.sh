@@ -41,4 +41,5 @@ cd $SOURCE_DIR
 make clean
 make
 make check
-bash $SOURCE_DIR/Test/timetest
+cd Test
+bash timetest 1>/dev/null
