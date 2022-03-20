@@ -59,20 +59,6 @@ $ bash evaluate-remind.sh
 Expected results:
 Remind: Acceptance test PASSED
 
-<!-- ## Redis v6.2.6
-Downloaded on 2022-03-18
-
-https://github.com/redis/redis/releases/tag/6.2.6
-
-Run:
-```bash
-$ bash evaluate-redis.sh
-```
-Expected results:
-All tests should say \[ok\]. If your terminal supports color,
-these should be in green and easy to see.
-If all tests pass, a message will appear saying so. -->
-
 ## Lua 5.4.4
 Downloaded on 2022-03-19
 
@@ -89,3 +75,21 @@ Running Lua tests...
 <Lots of dots>
 Two warnings will appear, both should be labeled as "expected warnings"
 ```
+
+## bc v1.07
+Downloaded on 2022-03-20
+
+https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz
+
+Run:
+```bash
+$ bash evaluate-bc.sh
+```
+Expected results:
+The output should end with a sequence of test time outputs that look like this:
+```
+real    0m0.xxxs
+user    0m0.xxxs
+sys     0m0.xxxs
+```
+If these test time outputs contain an error message, then something went wrong
