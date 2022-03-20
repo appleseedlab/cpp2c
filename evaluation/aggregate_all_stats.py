@@ -5,14 +5,18 @@ into a single CSV file.
 '''
 
 import os
-
-STATS_DIR = 'stats/'
+import sys
 
 
 def main():
+    if len(sys.argv) < 2:
+        print("USAGE: python3 aggregate_all_stats.py STATS_DIR", file=sys.stderr)
+        exit(1)
+    stats_dir = sys.argv[1]
+
     # Traverse all evaluation program CSV files
     printed_headers = False
-    for filename in os.listdir(STATS_DIR):
+    for filename in os.listdir(stats_dir):
         # Only check CSV files
         if not filename.endswith('.csv'):
             continue
@@ -20,7 +24,7 @@ def main():
         # Print the headers for the output, with the program name added to
         # the list of headers
         program_name = filename[:-len('.csv')]
-        filepath = os.path.join(STATS_DIR, filename)
+        filepath = os.path.join(stats_dir, filename)
         with open(filepath) as fp:
             lines = fp.readlines()
             if not printed_headers:
