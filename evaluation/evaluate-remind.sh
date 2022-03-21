@@ -6,7 +6,7 @@ SRC_DIR=$REMIND_DIR/src
 
 CSV_DIR=stats/remind-03.04.02
 
-CPP2_C=../transformation_tool/build/bin/cpp2c
+CPP2_C=../implementation/build/bin/cpp2c
 
 echo "Removing $REMIND_DIR and recreating $CSV_DIR"
 rm -fr $CSV_DIR

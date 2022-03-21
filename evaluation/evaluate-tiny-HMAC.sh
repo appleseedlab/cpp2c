@@ -8,7 +8,7 @@ SRC_DIR=$TINY_HMAC_DIR/src
 
 CSV_DIR=stats/tiny-HMAC
 
-CPP2_C=../transformation_tool/build/bin/cpp2c
+CPP2_C=../implementation/build/bin/cpp2c
 
 echo "Removing $TINY_HMAC_DIR and recreating $CSV_DIR"
 rm -fr $CSV_DIR

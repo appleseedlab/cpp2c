@@ -7,7 +7,7 @@ TINY_REGEX_DIR=tiny-regex
 
 CSV_DIR=stats/tiny-regex
 
-CPP2_C=../transformation_tool/build/bin/cpp2c
+CPP2_C=../implementation/build/bin/cpp2c
 
 echo "Removing $TINY_REGEX_DIR and recreating $CSV_DIR"
 rm -fr $CSV_DIR

@@ -7,7 +7,7 @@ SRC_DIR=$PROGRAM_DIR
 
 CSV_DIR=stats/gzip-1.10
 
-CPP2_C=../transformation_tool/build/bin/cpp2c
+CPP2_C=../implementation/build/bin/cpp2c
 
 echo "Removing $PROGRAM_DIR and recreating $CSV_DIR"
 rm -fr $CSV_DIR

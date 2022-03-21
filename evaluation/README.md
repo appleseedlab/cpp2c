@@ -5,7 +5,7 @@ is the source code pre and post transformation)
 
 ## Getting Started
 Build Cpp2C:
-1. Navigate the the `transformation_tool` directory
+1. Navigate the the `implementation` directory
 2. Run the script `build.sh`
 
 ## Tiny Regex

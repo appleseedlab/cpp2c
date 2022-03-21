@@ -7,7 +7,7 @@ SRC_DIR=$SOURCE_DIR/bc
 
 CSV_DIR=stats/bc-1.07
 
-CPP2_C=../transformation_tool/build/bin/cpp2c
+CPP2_C=../implementation/build/bin/cpp2c
 
 echo "Removing $SOURCE_DIR and recreating $CSV_DIR"
 rm -fr $CSV_DIR

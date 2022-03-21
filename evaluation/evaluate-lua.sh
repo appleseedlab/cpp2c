@@ -8,7 +8,7 @@ SRC_DIR=$LUA_DIR/src
 
 CSV_DIR=stats/lua-5.4.4
 
-CPP2C=../transformation_tool/build/bin/cpp2c
+CPP2C=../implementation/build/bin/cpp2c
 
 mkdir -p $CSV_DIR
 rm -fr $LUA_DIR
