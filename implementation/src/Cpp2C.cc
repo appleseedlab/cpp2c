@@ -28,6 +28,7 @@
 #include "TransformedDefinition.h"
 
 #include <iostream>
+#include <map>
 
 using namespace clang;
 using namespace llvm;
@@ -239,11 +240,11 @@ public:
             }
         }
 
-        // Vector for keeping track of which definitions have been
-        // transformed so that we don't emit duplicate identical
-        // transformations of expansions of the same macro that have
-        // the same type
-        vector<struct TransformedDefinition> EmittedTransformedDefinitions;
+        // Mapping of macro names to all emitted transformed definitions for
+        // that macro. This enables to quickly check for duplicate
+        // identical transformations
+        map<string, vector<struct TransformedDefinition>>
+            MacroNameToEmittedTransformedDefinitions;
 
         // Step 4: Transform hygienic macros.
         if (Cpp2CSettings.Verbose)
@@ -297,18 +298,54 @@ public:
             // use it; otherwise generate a unique name for this transformation
             // and insert its definition into the program
             string EmittedName = "";
-
-            for (auto &&ETD : EmittedTransformedDefinitions)
+            if (Cpp2CSettings.UnifyMacrosWithDifferentNames)
             {
-                if ((Cpp2CSettings.UnifyMacrosWithDifferentNames ||
-                     ETD.OriginalMacroName == TD.OriginalMacroName) &&
-                    ETD.IsVar == TD.IsVar &&
-                    ETD.VarOrReturnType == TD.VarOrReturnType &&
-                    ETD.ArgTypes == TD.ArgTypes &&
-                    ETD.InitializerOrDefinition == TD.InitializerOrDefinition)
+                // If we are ignoring macro names, then we have to check
+                // all transformed definitions for an identical one
+                for (auto &&MacroNameAndTransformedDefinitions : MacroNameToEmittedTransformedDefinitions)
                 {
-                    EmittedName = ETD.EmittedName;
-                    break;
+                    for (auto &&ETD : MacroNameAndTransformedDefinitions.second)
+                    {
+                        // Find which, if any, of the prior transformation
+                        // definitions of this macro are identical to the one
+                        // we are considering adding to the program.
+                        if (ETD.IsVar == TD.IsVar &&
+                            ETD.VarOrReturnType == TD.VarOrReturnType &&
+                            ETD.ArgTypes == TD.ArgTypes &&
+                            ETD.InitializerOrDefinition == TD.InitializerOrDefinition)
+                        {
+                            EmittedName = ETD.EmittedName;
+                            break;
+                        }
+                        // Found a match?
+                        if (EmittedName != "")
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Otherwise, we can use the macro name to quickly find
+                // any identical prior transformations
+                if (MacroNameToEmittedTransformedDefinitions.find(TD.OriginalMacroName) !=
+                    MacroNameToEmittedTransformedDefinitions.end())
+                {
+                    // Find which, if any, of the prior transformation
+                    // definitions of this macro are identical to the one
+                    // we are considering adding to the program.
+                    for (auto &&ETD : MacroNameToEmittedTransformedDefinitions[TD.OriginalMacroName])
+                    {
+                        if (ETD.IsVar == TD.IsVar &&
+                            ETD.VarOrReturnType == TD.VarOrReturnType &&
+                            ETD.ArgTypes == TD.ArgTypes &&
+                            ETD.InitializerOrDefinition == TD.InitializerOrDefinition)
+                        {
+                            EmittedName = ETD.EmittedName;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -412,7 +449,8 @@ public:
                     RW.InsertText(StartOfFile,
                                   StringRef(FullTransformationDefinition));
                 }
-                EmittedTransformedDefinitions.push_back(TD);
+
+                MacroNameToEmittedTransformedDefinitions[TD.OriginalMacroName].push_back(TD);
                 if (Cpp2CSettings.Verbose)
                 {
                     errs() << "Emitted a definition: " +
