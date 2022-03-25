@@ -162,8 +162,15 @@ Inductive TransformExpr :
         StringMap.Equal Em (StringMapProperties.of_list (combine params ls)) ->
         StringMap.Equal E' (StringMapProperties.update E Em) ->
 
-        (*  Conclusion: Evaluation is the same under call-by-name vs. call-by-value *)
-        ( forall e v S', EvalExpr SMacro E' G F M e v S' <-> EvalExpr SFunction Em G F M e v S')
+        (*  Conclusion: Evaluation is the same under the pre-evaluated store and non-pre
+            evaluated store, and the expression can be evaluated under macro environment
+            mapping without being joined with the caller's environment *)
+        (
+          (
+            forall v S', (EvalExpr SMacro E' G F M mexpr v S' <-> EvalExpr SFunction E' G F M mexpr v S') /\
+            EvalExpr SFunction Em G F M mexpr v S'
+          )
+        )
       ) ->
 
     (*  Transform the macro body *)

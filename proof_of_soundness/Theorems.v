@@ -254,13 +254,14 @@ Proof.
         rewrite <- H1 in H17.
 
         assert (
-        ( forall (e : expr) (v : Z) (S'0 : store),
-          EvalExpr S' E' G F M e v S'0 <-> EvalExpr S''0 Ef G F M e v S'0)).
-        { eapply i; eauto.
+          forall (v : Z) (S'0 : store),
+            (EvalExpr S' E' G F M mexpr v S'0 <-> EvalExpr S''0 E' G F M mexpr v S'0) /\
+            EvalExpr S''0 Em G F M mexpr v S'0
+        ).
+        { eapply a; eauto.
           - rewrite e3 in H14. apply e4 in H14. apply H14.
           - rewrite H5 in H7. apply H7.
-          - rewrite H15 in H17. apply H17.
-          - rewrite H0 in H8. apply H8. }
+          - rewrite H15 in H17. apply H17. }
         assert (NatMap.Equal S''0 S''').
         { inversion_clear H18; auto. }
         clear H18.
@@ -277,9 +278,11 @@ Proof.
             symmetry; auto. }
 
         apply S_Equal_EvalExpr with (S2:=S''0) in H19; auto; try symmetry; auto.
-        apply H2 in H9.
-        apply H with (v1:=v1) (S'1:=S'') in H19; auto.
-        destruct H19. subst v2. split; auto.
+        assert (EvalExpr S''0 Em G F M mexpr v1 S'').
+        { apply H2. }
+        eapply E_Equal_EvalExpr in H21; eauto.
+        eapply H in H19; eauto. destruct H19.
+        subst v2. split; auto.
 
         rewrite H18.
         rewrite H20. rewrite <- H11. rewrite <- H3. rewrite H17.
