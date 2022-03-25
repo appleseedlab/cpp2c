@@ -27,8 +27,10 @@ Module StringMapProperties := WProperties_fun OrderedTypeEx.String_as_OT StringM
 Module StringMapFacts := StringMapProperties.F.
 
 (* Store is a mapping from l-values (memory addresses, represented as
-   natural numbers) to r-values (just integers in our case) *)
-Definition store : Type := NatMap.t Z.
+   natural numbers) to r-values.
+   By treating expressions as r-values, we are able to unify the semantics of
+   C and the CPP. *)
+Definition store : Type := NatMap.t expr.
 
 (* Environment is a mapping from symbols (strings) to l-values (memory
    addresses; see above) *)
