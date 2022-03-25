@@ -223,72 +223,95 @@ Proof.
             transitivity (NatMapProperties.restrict S'' S); auto; symmetry; auto.
 
   - (*  Macro transformation *)
-    inversion_clear H0.
+    assert (EvalExprList S E G F M es S'0 es'0).
+    { apply e1 in H1; auto. }
+    inversion_clear H1.
     + (*  First is a function call (contradiction) *)
       apply StringMap_mapsto_in in m. contradiction.
     + (*  First is a macro invocation *)
-      inversion_clear H1.
+      inversion_clear H2.
       * (* Second is a function call (actual transformation *)
         assert ((params, mexpr) = (params0, mexpr0)).
         { eapply StringMapFacts.MapsTo_fun; eauto. }
-        inversion H1; subst params0 mexpr0; clear H1.
+        inversion H2; subst params0 mexpr0; clear H2.
         assert ((params1, fstmt, fexpr) = (params, Skip, mexpr')).
         { eapply StringMapFacts.MapsTo_fun; eauto.
-          rewrite e3. apply StringMapProperties.update_mapsto_iff. left.
+          rewrite e5. apply StringMapProperties.update_mapsto_iff. left.
           subst Fresult.
           apply StringMapFacts.add_mapsto_iff. left; auto. }
-        inversion H1; subst params1 fstmt fexpr; clear H1.
-        clear H2 H0 H11.
+        inversion H2; subst params1 fstmt fexpr; clear H2.
+        clear H4 H1 H13.
 
         assert (ls = ls0).
-        { transitivity (seq (NatMap.cardinal (elt:=expr) S + 1) (Datatypes.length es)); auto. }
-        rewrite <- H0 in *.
-        clear H0 H3 H12.
+        { assert (List.length es = List.length es').
+          { eapply TransformExprList_length; eauto. }
+          rewrite <- H1 in *.
+          transitivity (seq (NatMap.cardinal (elt:=expr) S + 1) (Datatypes.length es)); auto;
+            symmetry; auto. }
+        rewrite <- H1 in *.
+        clear H1 H5 H14.
 
         assert (StringMap.Equal Em Ef).
         { transitivity (StringMapProperties.of_list (combine params ls)); auto;
           symmetry; auto. }
+        clear H15.
 
-        assert (NatMap.Equal S S'0).
-        { apply e in H14; auto. }
-        rewrite <- H1 in H17.
+        assert (NatMap.Equal S S'3).
+        { apply e9 in H16; auto. }
+        rewrite <- H2 in H18.
+
+        rewrite e5 in H16.
+        apply e8 in H16.
+        assert (NatMap.Equal S'0 S'3 /\ es'0 = es'1).
+        { eapply H in H16; eauto. }
+        destruct H4.
+        subst es'1.
 
         assert (
           forall (v : Z) (S'0 : store),
             (EvalExpr S' E' G F M mexpr v S'0 <-> EvalExpr S''0 E' G F M mexpr v S'0) /\
             EvalExpr S''0 Em G F M mexpr v S'0
         ).
-        { eapply a; eauto.
-          - rewrite e3 in H14. apply e4 in H14. apply H14.
-          - rewrite H5 in H7. apply H7.
-          - rewrite H15 in H17. apply H17. }
+        { eapply a.
+          - apply H3.
+          - apply H7.
+          - apply H17.
+          - auto.
+          - rewrite <- H2 in H19. auto.
+          - apply H6.
+          - apply H10. }
         assert (NatMap.Equal S''0 S''').
-        { inversion_clear H18; auto. }
-        clear H18.
+        { inversion_clear H20; auto. }
+        clear H20.
+
         assert (NatMap.Equal S''' S'''').
-        { apply e5 in H19; auto. }
+        { apply e10 in H21; auto. }
+
         assert (NatMap.Equal S' S'').
-        { apply e0 in H9; auto. }
-        rewrite <- H12 in H10.
-        rewrite H7 in H10.
+        { apply e0 in H11; auto. }
+        rewrite <- H15 in H12.
+        rewrite H9 in H12.
         assert (NatMap.Equal S'1 S).
         { assert (NatMap.Equal S (NatMapProperties.restrict (NatMapProperties.update S Sargs) S)).
           { apply NatMap_disjoint_restrict_Equal; auto. }
           transitivity (NatMapProperties.restrict (NatMapProperties.update S Sargs) S); auto;
             symmetry; auto. }
 
-        apply S_Equal_EvalExpr with (S2:=S''0) in H19; auto; try symmetry; auto.
+        apply S_Equal_EvalExpr with (S2:=S''0) in H21; auto; try symmetry; auto.
         assert (EvalExpr S''0 Em G F M mexpr v1 S'').
-        { apply H2. }
-        eapply E_Equal_EvalExpr in H21; eauto.
-        eapply H in H19; eauto. destruct H19.
+        { apply H5. }
+        eapply E_Equal_EvalExpr in H21; eauto; try symmetry; eauto.
+        apply e6 in H23.
+        rewrite <- e2 in H23.
+        eapply H0 in H21; eauto. destruct H21.
         subst v2. split; auto.
 
-        rewrite H18.
-        rewrite H20. rewrite <- H11. rewrite <- H3. rewrite H17.
-        apply NatMap_disjoint_restrict_Equal. rewrite H1. auto.
+        rewrite H22.
+        rewrite H20. rewrite <- H14. rewrite <- H13. rewrite H19.
+        rewrite <- H2.
+        apply NatMap_disjoint_restrict_Equal. auto.
       * (*  Second is a macro invocation (contradiction) *)
-        subst. apply StringMap_mapsto_in in H0. contradiction.
+        subst. apply StringMap_mapsto_in in H1. contradiction.
 
   - (*  Skip *)
     inversion_clear H. inversion_clear H0.

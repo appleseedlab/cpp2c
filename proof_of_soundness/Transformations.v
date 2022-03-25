@@ -131,7 +131,8 @@ Inductive TransformExpr :
       this cannot happen. *)
   (*  TODO: Transform macro arguments? *)
   | Transform_Macro :
-    forall M F F' x params mexpr mexpr' es newdef fname Fresult,
+    forall  M F F' x params mexpr mexpr' es newdef
+            fname Fresult Fesresult F'' es' S'0 es'0,
 
     StringMap.MapsTo x (params, mexpr) M ->
 
@@ -141,6 +142,11 @@ Inductive TransformExpr :
     (*  mexpr has no side-effects *)
     ExprNoSideEffects mexpr ->
 
+    (*  Assert that we could evaluate this macro's arguments *)
+    (forall S E G v1 S',
+      EvalExpr S E G F M (CallOrInvocation x es) v1 S' ->
+      EvalExprList S E G F M es S'0 es'0) ->
+
     (*  Assert that if we were to evaluate the argument store for this macro,
         expressions evaluated under the resulting store would evaluate the same
         under the original store.
@@ -149,8 +155,8 @@ Inductive TransformExpr :
       EvalExprList S E G F M es S' es' ->
         forall ls Sargs Sargs',
         (*  Call-by-name store vs. call-by-value store *)
-        Sargs = NatMapProperties.of_list (combine ls es) ->
-        Sargs' = NatMapProperties.of_list (combine ls es') ->
+        NatMap.Equal Sargs (NatMapProperties.of_list (combine ls es)) ->
+        NatMap.Equal Sargs'(NatMapProperties.of_list (combine ls es')) ->
 
         forall SMacro SFunction,
         (*  Macro argument mapping and function argument mapping *)
@@ -173,17 +179,30 @@ Inductive TransformExpr :
         )
       ) ->
 
+    (*  Transform the macro arguments *)
+    TransformExprList M F es F' es' ->
+    F' = StringMapProperties.update F Fesresult ->
+
     (*  Transform the macro body *)
-    TransformExpr M F mexpr F' mexpr' ->
+    TransformExpr M F' mexpr F'' mexpr' ->
     (* Create the transformed definition *)
     newdef = (params, Skip, mexpr') ->
     Fresult = (StringMap.add fname newdef (StringMap.empty function_definition)) ->
-    F' = StringMapProperties.update F Fresult ->
+    F'' = StringMapProperties.update F' Fresult ->
 
-    (*  The original arguments do not reference the transformed function.
-        Moreover, if we were to evaluate (simplify these arguments,
-        they still would not reference it. *)
+    (*  The original macro body does not reference any functions
+        added while transforming the arguments *)
+    ExprNoCallsFromFunctionTable mexpr Fesresult ->
+
+    (*  The original and transformed arguments do not reference
+        the transformed function *)
     ExprListNoCallsFromFunctionTable es Fresult ->
+    ExprListNoCallsFromFunctionTable es' Fresult ->
+
+    (*  The transformed arguments do not have side-effects
+        (we could prove this if were to define side-effect
+        freedom inductively, but that's beyond the scope of this proof *)
+    ExprListNoSideEffects es' ->
 
     (*  The transformed macro body does not have side-effects
         (again, we could prove this but it should be obvious *)
@@ -191,9 +210,9 @@ Inductive TransformExpr :
 
     (* Add the transformed function definition to the function table *)
     ~ StringMap.In fname M ->
-    ~ StringMap.In fname F ->
+    ~ StringMap.In fname F' ->
 
-    TransformExpr M F (CallOrInvocation x es) F' (CallOrInvocation fname es)
+    TransformExpr M F (CallOrInvocation x es) F'' (CallOrInvocation fname es')
 with TransformStmt :
   macro_table -> function_table -> stmt ->
   function_table -> stmt -> Prop :=
