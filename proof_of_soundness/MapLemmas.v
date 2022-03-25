@@ -106,7 +106,7 @@ Qed.
     final state of the map is Equal to the initial state *)
 Lemma NatMap_add_unique_then_restrict_no_change : forall (S : store) l v,
   ~ NatMap.In l S ->
-  NatMap.Equal S (NatMapProperties.restrict (NatMapProperties.update S ( NatMap.add l v (NatMap.empty Z))) S).
+  NatMap.Equal S (NatMapProperties.restrict (NatMapProperties.update S ( NatMap.add l v (NatMap.empty _))) S).
 Proof.
   intros. rewrite NatMapFacts.Equal_mapsto_iff.
   split.
