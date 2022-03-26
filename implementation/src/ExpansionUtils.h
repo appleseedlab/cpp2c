@@ -341,7 +341,7 @@ string getExpansionSignature(ASTContext *Ctx,
             {
                 Signature += ", ";
             }
-            Signature += Arg.Name;
+            Signature += ArgType + " " + Arg.Name;
             i += 1;
         }
         Signature += ")";
