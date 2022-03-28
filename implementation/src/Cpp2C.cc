@@ -379,6 +379,13 @@ public:
 
             if (mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin()))
             {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming expansion of " +
+                                  TopLevelExpansion->Name + " @ " +
+                                  (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM) +
+                                  " because needed to be a const expr\n";
+                }
                 Stats[UntransformedTopLevelExpansions] += 1;
                 if (TopLevelExpansion->MI->isObjectLike())
                 {
@@ -406,8 +413,7 @@ public:
             // but this doesn't matter right now since we don't transform
             // expansions containing function calls anyway
             bool TransformToVar =
-                TopLevelExpansion->MI->isObjectLike() &&
-                containsVars(E);
+                TopLevelExpansion->MI->isObjectLike() && !containsVars(E);
 
             // Create the transformed definition.
             // Note that this generates the transformed definition as well.
@@ -527,8 +533,7 @@ public:
                 if (containsVars(E))
                 {
                     SourceLocation EndOfDecl = StartOfFile;
-                    auto VD =
-                        findLastDefinedVar(E);
+                    auto VD = findLastDefinedVar(E);
                     assert(VD != nullptr);
                     // If the decl has an initialization, then the
                     // transformation location is just beyond it; otherwise
