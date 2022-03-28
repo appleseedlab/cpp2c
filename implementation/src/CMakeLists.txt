@@ -35,19 +35,12 @@ add_library(Cpp2C SHARED
   Constants.h
   Cpp2C.cc
   CollectDeclNamesVisitor.h
-  CSubsetExpansionASTRootsCollector.h
-  CSubsetContainsLocalVars.h
-  CSubsetContainsVars.h
-  CSubsetHasSideEffects.h
-  CSubsetExprAndSubExprsSpelledInRanges.h
   CSubsetExprInCSubset.h
-  CSubsetFindLastDefinedVar.h
-  CSubsetInMacroForestExpansionCollector.h
-  CSubsetInSourceRangeCollectionCollector.h
   CSubsetVisitor.h
   ExpansionUtils.h
   MacroForest.h
   MacroNameCollector.h
+  Matchers.h
   TransformedDefinition.h
   )
 
