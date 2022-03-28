@@ -4,24 +4,6 @@ using namespace clang;
 using namespace llvm;
 using namespace std;
 
-template <typename T>
-inline SourceLocation getSpecificLocation(const T &Node)
-{
-    return Node.getBeginLoc();
-}
-
-template <>
-inline SourceLocation getSpecificLocation<Stmt>(const Stmt &Node)
-{
-    if (const auto E = dyn_cast_or_null<Expr>(&Node))
-    {
-        return E->getExprLoc();
-    }
-    else
-    {
-        return Node.getBeginLoc();
-    }
-}
 
 void insertIntoForest(ASTContext *Ctx, const Stmt *S, set<const Stmt *> &Forest)
 {
