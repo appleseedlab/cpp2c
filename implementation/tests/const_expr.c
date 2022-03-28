@@ -1,5 +1,11 @@
 #define ONE 1
 
+enum
+{
+    // Should not transform
+    VAR = ONE
+};
+
 struct MyStruct
 {
     // Should not transform
@@ -30,6 +36,7 @@ int main(int argc, char const *argv[])
         break;
     }
 
+    // Should not transform
     int a[ONE];
     return 0;
 }
