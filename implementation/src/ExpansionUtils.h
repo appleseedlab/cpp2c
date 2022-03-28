@@ -6,6 +6,7 @@
 
 #include "Constants.h"
 #include "MacroForest.h"
+#include "Matchers.h"
 
 using namespace std;
 using namespace clang;
@@ -46,6 +47,140 @@ bool expansionHasUnambiguousSignature(ASTContext *Ctx,
     return true;
 }
 
+bool containsVars(const Expr *E)
+{
+    if (!E)
+    {
+        return false;
+    }
+
+    if (isa_and_nonnull<DeclRefExpr>(E))
+    {
+        return true;
+    }
+
+    for (auto &&it : E->children())
+    {
+        if (containsVars(dyn_cast_or_null<Expr>(it)))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+const VarDecl *findLastDefinedVar(const Expr *E)
+{
+    const VarDecl *result = nullptr;
+    if (!E)
+    {
+        return result;
+    }
+
+    if (auto DRE = dyn_cast_or_null<DeclRefExpr>(E))
+    {
+        if (auto VD = dyn_cast_or_null<VarDecl>(DRE->getDecl()))
+        {
+            result = VD;
+        }
+    }
+
+    for (auto &&it : E->children())
+    {
+        auto childResult = findLastDefinedVar(dyn_cast_or_null<Expr>(it));
+        if ((!result) ||
+            ((childResult) &&
+             (childResult->getLocation() > result->getLocation())))
+        {
+            result = childResult;
+        }
+    }
+
+    return result;
+}
+
+bool compareTrees(ASTContext &Ctx, const Stmt *S1, const Stmt *S2)
+{
+    // TODO: Check for semantic equivalence, right now this
+    // just checks for structural equivalence
+    if (!S1 && !S2)
+    {
+        return true;
+    }
+    if (!S1 || !S2)
+    {
+        return false;
+    }
+    auto it1 = S1->child_begin();
+    auto it2 = S2->child_begin();
+    while (it1 != S1->child_end() && it2 != S2->child_end())
+    {
+        if (!compareTrees(Ctx, *it1, *it2))
+        {
+            return false;
+        }
+        it1++;
+        it2++;
+    }
+    return it1 == S1->child_end() && it2 == S2->child_end();
+}
+
+bool StmtAndSubStmtsSpelledInRanges(ASTContext &Ctx, const Stmt *S,
+                                    SourceRangeCollection &Ranges)
+{
+    if (!S)
+    {
+        return true;
+    }
+
+    SourceLocation Loc = clang::ast_matchers::getSpecificLocation(*S);
+    SourceLocation SpellingLoc = Ctx.getFullLoc(Loc).getSpellingLoc();
+    if (!Ranges.contains(SpellingLoc))
+    {
+        return false;
+    }
+
+    for (auto &&it : S->children())
+    {
+        if (!StmtAndSubStmtsSpelledInRanges(Ctx, it, Ranges))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool containsLocalVars(ASTContext &Ctx, const Expr *E)
+{
+    if (!E)
+    {
+        return false;
+    }
+
+    if (auto DeclRef = dyn_cast_or_null<DeclRefExpr>(E))
+    {
+        if (auto VD = dyn_cast_or_null<VarDecl>(DeclRef->getDecl()))
+        {
+            if (!VD->hasGlobalStorage() || VD->isStaticLocal())
+            {
+                return true;
+            }
+        }
+    }
+
+    for (auto &&it : E->children())
+    {
+        if (containsLocalVars(Ctx, dyn_cast_or_null<Expr>(it)))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool isExpansionHygienic(ASTContext *Ctx,
                          Preprocessor &PP,
                          MacroForest::Node *TopLevelExpansion,
@@ -54,7 +189,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
                          set<string> &MultiplyDefinedMacros)
 {
     // Check that the expansion maps to a single expansion
-    if (TopLevelExpansion->SubtreeNodes.size() < 0)
+    if (TopLevelExpansion->SubtreeNodes.size() < 1)
     {
         if (Verbose)
         {
@@ -67,17 +202,10 @@ bool isExpansionHygienic(ASTContext *Ctx,
         return false;
     }
 
-    // Check that macro contains no nested expansions
+    // Check if macro contains nested expansions
     if (TopLevelExpansion->SubtreeNodes.size() > 1)
     {
-        if (Verbose)
-        {
-            errs() << "Skipping expanion of "
-                   << TopLevelExpansion->Name
-                   << " because it contained multiple expansions\n";
-        }
         Stats[TopLevelExpansionsWithMultipleExpansionRoots] += 1;
-        return false;
     }
 
     // Check that the expansion maps to a single AST expression
@@ -173,7 +301,8 @@ bool isExpansionHygienic(ASTContext *Ctx,
         {
             errs() << "Skipping expanion of "
                    << TopLevelExpansion->Name
-                   << " because the macro is multiply-defined\n";
+                   << " because the macro is multiply-defined or "
+                   << "redefined \n";
         }
         Stats[TopLevelExpansionsOfMultiplyDefinedMacros] += 1;
         return false;
@@ -221,7 +350,9 @@ bool isExpansionHygienic(ASTContext *Ctx,
         auto ArgFirstExpansion = *Arg.Stmts.begin();
         for (auto ArgExpansion : Arg.Stmts)
         {
-            if (!compareTrees(Ctx, ArgFirstExpansion, ArgExpansion))
+            if (
+                !compareTrees(*Ctx, ArgFirstExpansion, ArgExpansion) &&
+                false)
             {
                 if (Verbose)
                 {
@@ -242,10 +373,12 @@ bool isExpansionHygienic(ASTContext *Ctx,
             // which contain invocations as arguments as
             // untransformable, but that doesn't make the
             // transformation unsound
-            auto ArgExpression = dyn_cast_or_null<Expr>(ArgExpansion);
-            assert(nullptr != ArgExpression);
-            if (!CSubsetExprAndSubExprsSpelledInRanges::exprAndSubExprsSpelledInRanges(
-                    Ctx, ArgExpression, &Arg.TokenRanges))
+            // auto ArgExpression = dyn_cast_or_null<Expr>(ArgExpansion);
+            // assert(nullptr != ArgExpression);
+            // if (!CSubsetExprAndSubExprsSpelledInRanges::exprAndSubExprsSpelledInRanges(
+            //         Ctx, ArgExpression, &Arg.TokenRanges))
+            if (!StmtAndSubStmtsSpelledInRanges(*Ctx, ArgExpansion,
+                                                Arg.TokenRanges))
             {
                 if (Verbose)
                 {
@@ -265,7 +398,8 @@ bool isExpansionHygienic(ASTContext *Ctx,
     }
 
     // Check that the expansion does not contain local variables
-    if (CSubsetContainsLocalVars::containsLocalVars(Ctx, E))
+    // if (CSubsetContainsLocalVars::containsLocalVars(Ctx, E))
+    if (containsLocalVars(*Ctx, E))
     {
         if (Verbose)
         {
@@ -278,7 +412,8 @@ bool isExpansionHygienic(ASTContext *Ctx,
     }
 
     // Check that the expansion does not contain side-effects
-    if (CSubsetHasSideEffects::hasSideEffects(Ctx, E))
+    // if (CSubsetHasSideEffects::hasSideEffects(Ctx, E))
+    if (E->HasSideEffects(*Ctx))
     {
         if (Verbose)
         {
@@ -347,9 +482,9 @@ string getExpansionSignature(ASTContext *Ctx,
         Signature += ")";
     }
     // Add const qualifier if the expansion was transformed to a global var
-    if (TransformToVar)
-    {
-        Signature = "const " + Signature;
-    }
+    // if (TransformToVar)
+    // {
+    //     Signature = "const " + Signature;
+    // }
     return Signature;
 }
