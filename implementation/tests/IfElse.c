@@ -2,10 +2,10 @@
 
 int main()
 {
-    // Should not transform
+    // Should transform
     if (ONE)
     {
-        // Should not transform
+        // Should transform
         ONE;
     }
 

@@ -4,6 +4,8 @@
 #define BAZ FOO
 #define BUZZ 1 + ONE
 
+#define GT_FOO(x) x > FOO
+
 int main()
 {
     // Should transform
@@ -12,14 +14,17 @@ int main()
     // Should transform
     FOO;
 
-    // Should not transform
+    // Should transform
     BAR;
 
-    // Should not transform
+    // Should transform
     BAZ;
 
-    // Should not transform
+    // Should transform
     BUZZ;
+
+    // Should transform
+    GT_FOO(3);
 
     return 0;
 }
