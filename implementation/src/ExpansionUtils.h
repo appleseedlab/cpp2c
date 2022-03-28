@@ -54,9 +54,12 @@ bool containsVars(const Expr *E)
         return false;
     }
 
-    if (isa_and_nonnull<DeclRefExpr>(E))
+    if (auto DRE = dyn_cast_or_null<DeclRefExpr>(E))
     {
-        return true;
+        if (isa_and_nonnull<VarDecl>(DRE->getDecl()))
+        {
+            return true;
+        }
     }
 
     for (auto &&it : E->children())
@@ -178,6 +181,32 @@ bool containsLocalVars(ASTContext &Ctx, const Expr *E)
         }
     }
 
+    return false;
+}
+
+// Returns true if an expression must be a constant expression;
+// i.e., it or its parent expresssion is a global variable initializer,
+// enum initializer, array size initializer, case label, or
+// bit width specifier
+bool mustBeConstExpr(ASTContext &Ctx, const Stmt *S)
+{
+    if (!S)
+    {
+        return false;
+    }
+
+    if (isa<ConstantExpr>(S))
+    {
+        return true;
+    }
+
+    for (auto &&it : Ctx.getParents(*S))
+    {
+        if (mustBeConstExpr(Ctx, it.get<Stmt>()))
+        {
+            return true;
+        }
+    }
     return false;
 }
 
