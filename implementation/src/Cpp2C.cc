@@ -377,6 +377,22 @@ public:
                 continue;
             }
 
+            if (mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin()))
+            {
+                Stats[UntransformedTopLevelExpansions] += 1;
+                if (TopLevelExpansion->MI->isObjectLike())
+                {
+
+                    Stats[UntransformedTopLevelObjectLikeMacroExpansions] += 1;
+                }
+                else
+                {
+                    Stats[UntransformedTopLevelFunctionLikeMacroExpansions]++;
+                }
+                Stats[ConstExprExpansionsFound] += 1;
+                continue;
+            }
+
             //// Transform the expansion
 
             auto ST = *TopLevelExpansion->Stmts.begin();

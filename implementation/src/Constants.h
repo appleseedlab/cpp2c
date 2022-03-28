@@ -32,7 +32,8 @@ std::string
     TransformationTime = "Transformation Time (ms)",
     FileSize = "File Size (bytes)",
     DedupedDefinitions = "Deduped Transformed Definitions",
-    EmittedDefinitions = "Emitted Transformed Definitions";
+    EmittedDefinitions = "Emitted Transformed Definitions",
+    ConstExprExpansionsFound = "Top Level Expansions to Constant Expressions";
 
 std::map<string, unsigned> NewTransformationStats()
 {
@@ -65,7 +66,8 @@ std::map<string, unsigned> NewTransformationStats()
         TransformationTime,
         FileSize,
         DedupedDefinitions,
-        EmittedDefinitions};
+        EmittedDefinitions,
+        ConstExprExpansionsFound};
 
     map<string, unsigned int> Stats;
     for (auto &&Header : CSVHeaders)
