@@ -6,6 +6,7 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
+#include "clang/Lex/Lexer.h"
 #include "clang/Lex/MacroArgs.h"
 #include "clang/Lex/PPCallbacks.h"
 #include "clang/Rewrite/Core/Rewriter.h"
@@ -14,17 +15,10 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include "CollectDeclNamesVisitor.h"
-#include "CSubsetExpansionASTRootsCollector.h"
-#include "CSubsetFindLastDefinedVar.h"
-#include "CSubsetHasSideEffects.h"
-#include "CSubsetExprAndSubExprsSpelledInRanges.h"
-#include "CSubsetContainsLocalVars.h"
-#include "CSubsetContainsVars.h"
-#include "CSubsetInMacroForestExpansionCollector.h"
-#include "CSubsetInSourceRangeCollectionCollector.h"
 #include "ExpansionUtils.h"
 #include "MacroForest.h"
 #include "MacroNameCollector.h"
+#include "Matchers.h"
 #include "TransformedDefinition.h"
 
 #include <iostream>
@@ -77,6 +71,91 @@ void printMapToCSV(llvm::raw_fd_ostream &os, map<K, V> &csv)
     }
     os << "\n";
 }
+
+// A Matcher callback, that collects all AST Nodes that were matched
+// and bound to BindName
+template <typename T>
+class NodeCollector : public MatchFinder::MatchCallback
+{
+    std::string BindName;
+    std::vector<const T *> &Nodes;
+
+public:
+    NodeCollector(std::string BindName, std::vector<const T *> &Nodes)
+        : BindName(BindName), Nodes(Nodes){};
+
+    void
+    run(const clang::ast_matchers::MatchFinder::MatchResult &Result) final
+    {
+        const auto *E = Result.Nodes.getNodeAs<T>(BindName);
+        if (E)
+        {
+            Nodes.push_back(E);
+        }
+    }
+};
+
+class ForestCollector : public MatchFinder::MatchCallback
+{
+    ASTContext &Context;
+    std::set<const Stmt *> &Forest;
+
+public:
+    ForestCollector(ASTContext &Context, std::set<const Stmt *> &Forest)
+        : Context(Context), Forest(Forest){};
+
+    virtual void
+    run(const clang::ast_matchers::MatchFinder::MatchResult &Result) final
+    {
+        const auto *E = Result.Nodes.getNodeAs<Stmt>("stmt");
+        assert(E != nullptr);
+
+        // Have we already recorded a Parent statement? => Skip this one
+        const Stmt *ParentStmt = E;
+        while (ParentStmt)
+        {
+            const auto &Parents = Context.getParents(*ParentStmt);
+            // FIXME: This happens from time to time
+            if (Parents.size() > 1)
+            {
+                // E->getBeginLoc().dump(Context.getSourceManager());
+                // E->dump();
+                return;
+            }
+            assert(Parents.size() <= 1); // C++?
+
+            if (Parents.size() == 0)
+            {
+                // llvm::errs() << "Searched to the top\n";
+                break;
+            }
+
+            if (const Stmt *S = Parents[0].get<Stmt>())
+            {
+                if (Forest.find(S) != Forest.end())
+                {
+                    return;
+                }
+                ParentStmt = S;
+            }
+            else if (const TypeLoc *TL = Parents[0].get<TypeLoc>())
+            {
+                (void)TL;
+                return; // WE DO NOT COLLECT NODES BELOW TypeLoc
+            }
+            else
+            { // Parent is not a stmt -> break
+                // llvm::errs() << "UNKNOWN?\n";
+                // auto &Parent = Parents[0];
+                // Parent.dump(llvm::errs(), Context);
+                // abort();
+                break;
+            }
+        }
+
+        Forest.insert(E);
+    }
+};
 
 // AST consumer which calls the visitor class to perform the transformation
 class Cpp2CConsumer : public ASTConsumer
@@ -146,76 +225,95 @@ public:
         }
 
         // Step 1: Find Top-Level Macro Expansions
-        // Use Cpp2C's visitor to only collect roots in the
-        // C language subset instead of using a matcher
         if (Cpp2CSettings.Verbose)
         {
-            errs() << "Step 1: Search for Macro AST Roots in C subset\n";
+            errs() << "Step 1: Search for macro AST roots\n";
         }
-        vector<const Stmt *> MacroRoots;
-        CSubsetExpansionASTRootsCollector CSEARC(&Ctx, MacroRoots);
-        CSEARC.VisitAST();
+        std::vector<const Stmt *> MacroRoots;
+        {
+            MatchFinder Finder;
+            NodeCollector<Stmt> callback("stmt", MacroRoots);
+            Finder.addMatcher(
+                stmt(isExpansionRoot()).bind("stmt"),
+                &callback);
+            Finder.matchAST(Ctx);
+        }
 
         // Step 2: Find the AST statements that were directly expanded
         // from the top-level expansions
         if (Cpp2CSettings.Verbose)
         {
             errs() << "Step 2: Search for " << ExpansionRoots.size()
-                   << " Top-Level Expansions in "
-                   << MacroRoots.size() << " AST-Macro Roots (in the C subset) \n";
+                   << " top-level expansions in "
+                   << MacroRoots.size() << " AST macro roots\n";
         }
         for (const auto ST : MacroRoots)
         {
-            SourceLocation STExpansionLoc =
-                SM.getExpansionLoc(ST->getBeginLoc());
+            SourceLocation ExpansionLoc = SM.getExpansionLoc(ST->getBeginLoc());
             MacroForest::Node *ExpansionRoot = nullptr;
-            for (auto Expansion : ExpansionRoots)
+            for (auto E : ExpansionRoots)
             {
                 // Check if the ExpansionRoot and the Node have the
                 // same Expansion Location. Previously, we checked if
-                // the STExpansionLoc was contained in the Spelling
+                // the ExpansionLoc was contained in the Spelling
                 // Range. However, this might even span files if macro
                 // name and argument list are composed in a macro.
                 SourceLocation NodeExpansionLoc =
-                    SM.getExpansionLoc(Expansion->SpellingRange.getBegin());
-                if (NodeExpansionLoc == STExpansionLoc)
+                    SM.getExpansionLoc(E->SpellingRange.getBegin());
+                if (NodeExpansionLoc == ExpansionLoc)
                 {
-                    // Found the expansion that this expression was expanded
-                    // from
-                    ExpansionRoot = Expansion;
+                    ExpansionRoot = E;
                     break;
                 }
             }
-
-            // If ExpansionRoot is still nulltpr at this point, then we could
-            // not find an expansion root that this statement expanded from
             if (ExpansionRoot == nullptr)
             {
                 if (Cpp2CSettings.Verbose)
                 {
-                    StringRef Name =
-                        Lexer::getImmediateMacroName(ST->getBeginLoc(), SM, LO);
+
+                    StringRef Name = clang::Lexer::getImmediateMacroName(ST->getBeginLoc(), SM, LO);
                     errs() << "     Skipped macro expansion "
                            << Name << "\n";
                 }
                 continue;
             }
+
+            // llvm::errs() << "     Match macro "
+            //        << ExpansionRoot->Name
+            //        << " with "
+            //        << ExpansionRoot->SubtreeNodes.size()
+            //        << " (nested) expansions\n";
+            // ExpansionRoot->SpellingRange.dump(SM);
+            // ExpansionLoc.dump(SM);
+
             if (Cpp2CSettings.Verbose)
             {
-                errs() << "     Match macro "
-                       << ExpansionRoot->Name
-                       << " with "
-                       << ExpansionRoot->SubtreeNodes.size()
-                       << " (nested) expansions\n";
+                ST->dumpColor();
             }
+
+            // llvm::errs() << "Collecting AST nodes for root expansion " << ExpansionRoot->Name << "\n";
             for (auto Expansion : ExpansionRoot->SubtreeNodes)
             {
-                CSubsetInMacroForestExpansionCollector CSIMFEC(
-                    &Ctx,
-                    Expansion->Stmts, Expansion);
-
-                CSIMFEC.VisitStmt(ST);
+                // llvm::errs() << "Collecting AST nodes for sub expansion " << Expansion->Name << "\n";
+                MatchFinder ExpansionFinder;
+                ForestCollector callback(Ctx, Expansion->Stmts);
+                auto MacroStmt = stmt(unless(implicitCastExpr()),
+                                      inMacroForestExpansion(Expansion))
+                                     .bind("stmt");
+                auto Matcher = stmt(forEachDescendant(MacroStmt));
+                // Order Matters!
+                ExpansionFinder.addMatcher(MacroStmt, &callback);
+                ExpansionFinder.addMatcher(Matcher, &callback);
+                ExpansionFinder.match(*ST, Ctx);
+                // for (auto &&Stm : Expansion->Stmts)
+                // {
+                //     llvm::errs() << "AST node for sub-expansion " << Expansion->Name << "\n";
+                //     Stm->dumpColor();
+                // }
+                // llvm::errs() << "\n";
             }
+            // llvm::errs() << "\n";
+            // llvm::errs() << "\n";
         }
 
         // Step 3 : Within Subtrees, Match the Arguments
@@ -228,21 +326,28 @@ public:
             for (auto Expansion : ToplevelExpansion->SubtreeNodes)
             {
                 for (auto ST : Expansion->Stmts)
-                {
-                    // most of the time only a single one.
+                { // most of the time only a single one.
                     for (auto &Arg : Expansion->Arguments)
                     {
-                        CSubsetInSourceRangeCollectionCollector CSISRCC(
-                            &Ctx, Arg.Stmts, &Arg.TokenRanges);
-                        CSISRCC.VisitStmt(ST);
+                        auto MatcherArg = stmt(
+                                              unless(implicitCastExpr()),
+                                              inSourceRangeCollection(&Arg.TokenRanges))
+                                              .bind("stmt");
+                        auto Matcher = stmt(forEachDescendant(MatcherArg));
+                        MatchFinder ArgumentFinder;
+                        ForestCollector callback(Ctx, Arg.Stmts);
+                        ArgumentFinder.addMatcher(MatcherArg, &callback);
+                        ArgumentFinder.addMatcher(Matcher, &callback);
+                        ArgumentFinder.match(*ST, Ctx);
                     }
                 }
             }
         }
 
         // Mapping of macro names to all emitted transformed definitions for
-        // that macro. This enables to quickly check for duplicate
+        // that macro.This enables to quickly check for duplicate
         // identical transformations
+        // TODO: Use macro definition location as the key instead
         map<string, vector<struct TransformedDefinition>>
             MacroNameToEmittedTransformedDefinitions;
 
@@ -286,7 +391,7 @@ public:
             // expansions containing function calls anyway
             bool TransformToVar =
                 TopLevelExpansion->MI->isObjectLike() &&
-                !CSubsetContainsVars::containsVars(&Ctx, E);
+                containsVars(E);
 
             // Create the transformed definition.
             // Note that this generates the transformed definition as well.
@@ -403,11 +508,11 @@ public:
                 // vars after the global var is declared
                 // NOTE: An invariant at this point is that any vars in
                 // the expansion are global vars
-                if (CSubsetContainsVars::containsVars(&Ctx, E))
+                if (containsVars(E))
                 {
                     SourceLocation EndOfDecl = StartOfFile;
                     auto VD =
-                        CSubsetFindLastDefinedVar::findLastDefinedVar(&Ctx, E);
+                        findLastDefinedVar(E);
                     assert(VD != nullptr);
                     // If the decl has an initialization, then the
                     // transformation location is just beyond it; otherwise
@@ -590,7 +695,7 @@ protected:
             }
             else
             {
-                llvm::errs() << "Unknown argument: " << arg << '\n';
+                errs() << "Unknown argument: " << arg << '\n';
                 exit(-1);
             }
         }
