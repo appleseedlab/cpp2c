@@ -184,6 +184,26 @@ bool containsLocalVars(ASTContext &Ctx, const Expr *E)
     return false;
 }
 
+bool isaTopLevelDecl(ASTContext &Ctx, const Decl *D)
+{
+    if (!D)
+    {
+        return false;
+    }
+
+    // C++ code may have multiple parents
+    auto parents = Ctx.getParents(*D);
+    for (auto &&it : parents)
+    {
+        if (it.get<TranslationUnitDecl>())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Returns true if an expression must be a constant expression;
 // i.e., it or its parent expresssion is a global variable initializer,
 // enum initializer, array size initializer, case label, or
@@ -202,7 +222,9 @@ bool mustBeConstExpr(ASTContext &Ctx, const Stmt *S)
 
     for (auto &&it : Ctx.getParents(*S))
     {
-        if (mustBeConstExpr(Ctx, it.get<Stmt>()))
+        if (mustBeConstExpr(Ctx, it.get<Stmt>()) ||
+            (isaTopLevelDecl(Ctx, it.get<Decl>()) &&
+             !it.get<FunctionDecl>()))
         {
             return true;
         }
@@ -427,7 +449,6 @@ bool isExpansionHygienic(ASTContext *Ctx,
     }
 
     // Check that the expansion does not contain local variables
-    // if (CSubsetContainsLocalVars::containsLocalVars(Ctx, E))
     if (containsLocalVars(*Ctx, E))
     {
         if (Verbose)
