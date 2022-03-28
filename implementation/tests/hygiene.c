@@ -96,7 +96,7 @@ int main()
     N N 1;
     // 1 + 1 + 1
 
-    // Should not transform
+    // Should transform
     OUTER;
     // 1
 
