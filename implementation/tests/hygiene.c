@@ -28,6 +28,8 @@
 
 #define PREFIX_WITH_10(x) 10##x
 
+#define ADDR(x) &x
+
 int main()
 {
     // Should transform
@@ -141,6 +143,15 @@ int main()
 
     // Should not transform
     PREFIX_WITH_10(1);
+
+    int x = 0;
+    int y = 1;
+
+    // Should transform
+    DIV(x, y);
+
+    // Should not transform
+    ADDR(x);
 
     return 0;
 }
