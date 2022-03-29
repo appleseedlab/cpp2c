@@ -1,17 +1,19 @@
-int y;
 int x;
-#define Y y
+int y;
+int z = 1;
 #define X() x
+#define Y y
+#define Z z
 
 int main()
 {
-    y;
+    // Should transform
+    X();
 
     // Should transform
     Y;
 
     // Should transform
-    X();
-
+    Z;
     return 0;
 }
