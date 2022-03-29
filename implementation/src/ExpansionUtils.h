@@ -47,7 +47,16 @@ bool expansionHasUnambiguousSignature(ASTContext *Ctx,
     return true;
 }
 
-bool containsVars(const Expr *E)
+bool isGlobalVar(const VarDecl *VD)
+{
+    if (!VD)
+    {
+        return false;
+    }
+    return (VD->hasGlobalStorage()) && (!VD->isStaticLocal());
+}
+
+bool containsGlobalVars(const Expr *E)
 {
     if (!E)
     {
@@ -56,15 +65,18 @@ bool containsVars(const Expr *E)
 
     if (auto DRE = dyn_cast_or_null<DeclRefExpr>(E))
     {
-        if (isa_and_nonnull<VarDecl>(DRE->getDecl()))
+        if (auto VD = dyn_cast_or_null<VarDecl>(DRE->getDecl()))
         {
-            return true;
+            if (isGlobalVar(VD))
+            {
+                return true;
+            }
         }
     }
 
     for (auto &&it : E->children())
     {
-        if (containsVars(dyn_cast_or_null<Expr>(it)))
+        if (containsGlobalVars(dyn_cast_or_null<Expr>(it)))
         {
             return true;
         }
@@ -73,7 +85,7 @@ bool containsVars(const Expr *E)
     return false;
 }
 
-const VarDecl *findLastDefinedVar(const Expr *E)
+const VarDecl *findLastDefinedGlobalVar(const Expr *E)
 {
     const VarDecl *result = nullptr;
     if (!E)
@@ -85,13 +97,16 @@ const VarDecl *findLastDefinedVar(const Expr *E)
     {
         if (auto VD = dyn_cast_or_null<VarDecl>(DRE->getDecl()))
         {
-            result = VD;
+            if (isGlobalVar(VD))
+            {
+                result = VD;
+            }
         }
     }
 
     for (auto &&it : E->children())
     {
-        auto childResult = findLastDefinedVar(dyn_cast_or_null<Expr>(it));
+        auto childResult = findLastDefinedGlobalVar(dyn_cast_or_null<Expr>(it));
         if ((!result) ||
             ((childResult) &&
              (childResult->getLocation() > result->getLocation())))
@@ -166,7 +181,7 @@ bool containsLocalVars(ASTContext &Ctx, const Expr *E)
     {
         if (auto VD = dyn_cast_or_null<VarDecl>(DeclRef->getDecl()))
         {
-            if (!VD->hasGlobalStorage() || VD->isStaticLocal())
+            if (!isGlobalVar(VD))
             {
                 return true;
             }
@@ -181,6 +196,31 @@ bool containsLocalVars(ASTContext &Ctx, const Expr *E)
         }
     }
 
+    return false;
+}
+
+bool containsAddressOf(const Expr *E)
+{
+    if (!E)
+    {
+        return false;
+    }
+
+    if (auto UO = dyn_cast_or_null<UnaryOperator>(E))
+    {
+        if (UO->getOpcode() == UnaryOperator::Opcode::UO_AddrOf)
+        {
+            return true;
+        }
+    }
+
+    for (auto &&it : E->children())
+    {
+        if (containsAddressOf(dyn_cast_or_null<Expr>(it)))
+        {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -215,7 +255,7 @@ bool mustBeConstExpr(ASTContext &Ctx, const Stmt *S)
         return false;
     }
 
-    if (isa<ConstantExpr>(S))
+    if (isa_and_nonnull<ConstantExpr>(S))
     {
         return true;
     }
@@ -225,6 +265,53 @@ bool mustBeConstExpr(ASTContext &Ctx, const Stmt *S)
         if (mustBeConstExpr(Ctx, it.get<Stmt>()) ||
             (isaTopLevelDecl(Ctx, it.get<Decl>()) &&
              !it.get<FunctionDecl>()))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void collectLocalVarDeclRefExprs(const Expr *E, vector<const DeclRefExpr *> *DREs)
+{
+    if (!E)
+    {
+        return;
+    }
+
+    if (auto DRE = dyn_cast_or_null<DeclRefExpr>(E))
+    {
+        if (auto VD = dyn_cast_or_null<VarDecl>(DRE->getDecl()))
+        {
+            if (!isGlobalVar(VD))
+            {
+                DREs->push_back(DRE);
+            }
+        }
+    }
+
+    for (auto &&it : E->children())
+    {
+        collectLocalVarDeclRefExprs(dyn_cast_or_null<Expr>(it), DREs);
+    }
+}
+
+bool containsDeclRefExpr(const Stmt *S, const DeclRefExpr *DRE)
+{
+    assert(DRE != nullptr);
+    if (!S)
+    {
+        return false;
+    }
+
+    if (dyn_cast_or_null<DeclRefExpr>(S) == DRE)
+    {
+        return true;
+    }
+
+    for (auto &&it : S->children())
+    {
+        if (containsDeclRefExpr(it, DRE))
         {
             return true;
         }
@@ -244,7 +331,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because it did not "
                       "have an expansion\n";
@@ -264,7 +351,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because it did not "
                       "have a single AST node\n";
@@ -278,7 +365,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because its function signature was "
                       "ambiguous \n";
@@ -294,7 +381,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because it did not "
                       "expand to an expression\n";
@@ -318,7 +405,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because its expression did not align perfectly "
                       "with its expansion\n";
@@ -335,7 +422,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because its expression's end did not extend to "
                       "end of its expansion\n";
@@ -350,7 +437,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because the macro is multiply-defined or "
                    << "redefined \n";
@@ -368,12 +455,12 @@ bool isExpansionHygienic(ASTContext *Ctx,
         {
             if (Verbose)
             {
-                errs() << "Skipping expanion of "
+                errs() << "Skipping expansion of "
                        << TopLevelExpansion->Name
                        << " because its argument "
                        << Arg.Name << " was not expanded\n";
             }
-            Stats[TopLevelExpanionsWithUnexpandedArgument] += 1;
+            Stats[TopLevelExpansionsWithUnexpandedArgument] += 1;
             return false;
         }
 
@@ -386,7 +473,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
         {
             if (Verbose)
             {
-                errs() << "Skipping expanion of "
+                errs() << "Skipping expansion of "
                        << TopLevelExpansion->Name
                        << " because its argument "
                        << Arg.Name << " was not expanded the "
@@ -407,7 +494,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
             {
                 if (Verbose)
                 {
-                    errs() << "Skipping expanion of "
+                    errs() << "Skipping expansion of "
                            << TopLevelExpansion->Name
                            << " because its argument "
                            << Arg.Name << " was not expanded to "
@@ -433,7 +520,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
             {
                 if (Verbose)
                 {
-                    errs() << "Skipping expanion of "
+                    errs() << "Skipping expansion of "
                            << TopLevelExpansion->Name
                            << " because its argument "
                            << Arg.Name << " was matched with an AST node "
@@ -448,16 +535,57 @@ bool isExpansionHygienic(ASTContext *Ctx,
         }
     }
 
-    // Check that the expansion does not contain local variables
+    // Check that any local vars that the expansion contains come from its
+    // arguments
     if (containsLocalVars(*Ctx, E))
+    {
+        vector<const DeclRefExpr *> DREs;
+        collectLocalVarDeclRefExprs(E, &DREs);
+        for (auto &&DRE : DREs)
+        {
+            bool varComesFromArg = false;
+            // Check all the macros arguments for the variable
+            for (auto &&Arg : TopLevelExpansion->Arguments)
+            {
+                for (auto &&S : Arg.Stmts)
+                {
+                    if (containsDeclRefExpr(S, DRE))
+                    {
+                        varComesFromArg = true;
+                        break;
+                    }
+                }
+                if (varComesFromArg)
+                {
+                    break;
+                }
+            }
+
+            if (!varComesFromArg)
+            {
+                if (Verbose)
+                {
+                    errs() << "Skipping expansion of "
+                           << TopLevelExpansion->Name
+                           << " because its expression contained local vars "
+                           << "that did not come from its arguments\n";
+                }
+                Stats[TopLevelExpansionsWithLocalVarsInBody] += 1;
+                return false;
+            }
+        }
+    }
+
+    // Check that the expansion does not contain the address (&) operator
+    if (containsAddressOf(E))
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
-                   << " because its expression contained local vars\n";
+                   << " because its expression contained address of (&) \n";
         }
-        Stats[TopLevelExpansionsWithLocalVars] += 1;
+        Stats[TopLevelExpansionsWithAddressOf] += 1;
         return false;
     }
 
@@ -467,7 +595,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     {
         if (Verbose)
         {
-            errs() << "Skipping expanion of "
+            errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because its expression had side-effects\n";
         }

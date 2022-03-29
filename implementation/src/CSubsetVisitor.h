@@ -5,6 +5,10 @@
 #include "clang/AST/Stmt.h"
 #include "clang/Basic/SourceManager.h"
 
+#include <set>
+
+using namespace std;
+
 using namespace clang;
 
 // Copied from clang/AST/OperationKinds.def

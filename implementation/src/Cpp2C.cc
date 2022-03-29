@@ -372,7 +372,7 @@ public:
                 }
                 else
                 {
-                    Stats[UntransformedTopLevelFunctionLikeMacroExpansions]++;
+                    Stats[UntransformedTopLevelFunctionLikeMacroExpansions] += 1;
                 }
                 continue;
             }
@@ -394,7 +394,7 @@ public:
                 }
                 else
                 {
-                    Stats[UntransformedTopLevelFunctionLikeMacroExpansions]++;
+                    Stats[UntransformedTopLevelFunctionLikeMacroExpansions] += 1;
                 }
                 Stats[ConstExprExpansionsFound] += 1;
                 continue;
@@ -413,7 +413,7 @@ public:
             // but this doesn't matter right now since we don't transform
             // expansions containing function calls anyway
             bool TransformToVar =
-                TopLevelExpansion->MI->isObjectLike() && !containsVars(E);
+                TopLevelExpansion->MI->isObjectLike() && !containsGlobalVars(E);
 
             // Create the transformed definition.
             // Note that this generates the transformed definition as well.
@@ -528,45 +528,105 @@ public:
 
                 // Emit transformed definitions that refer to global
                 // vars after the global var is declared
-                // NOTE: An invariant at this point is that any vars in
-                // the expansion are global vars
-                if (containsVars(E))
+                if (containsGlobalVars(E))
                 {
                     SourceLocation EndOfDecl = StartOfFile;
-                    auto VD = findLastDefinedVar(E);
+                    auto VD = findLastDefinedGlobalVar(E);
                     assert(VD != nullptr);
+
+                    // If the var was declared in the main file, then emit the
+                    // transformed definition after its declaration.
+                    // Otherwise, it must have been declared in an #include'd
+                    // file, and we emit the transformed definition after
+                    // the directive that #include'd it
+
                     // If the decl has an initialization, then the
                     // transformation location is just beyond it; otherwise
-                    // its after the decl itself
-                    if (VD->hasInit())
+                    // it's after the decl itself
+                    SourceLocation TransformedDefLocation;
+                    if (SM.isInMainFile(VD->getLocation()))
                     {
-                        auto Init = VD->getInit();
-                        EndOfDecl = Init->getEndLoc();
+
+                        if (VD->hasInit())
+                        {
+                            auto Init = VD->getInit();
+                            EndOfDecl = Init->getEndLoc();
+                        }
+                        else
+                        {
+                            EndOfDecl = VD->getEndLoc();
+                        }
+                        // Go to the spot right after the semicolon at the end of
+                        // this decl, if its not inside a macro
+                        auto NextTok = Lexer::findNextToken(EndOfDecl, SM, LO);
+                        if (NextTok.hasValue())
+                        {
+                            TransformedDefLocation = NextTok.getValue().getLocation();
+                            // Insert the full transformation into the program after
+                            // last-declared decl of var in the expression.
+                            RW.InsertTextAfterToken(
+                                TransformedDefLocation,
+                                StringRef("\n\n" + FullTransformationDefinition));
+                        }
+                        else
+                        {
+                            if (Cpp2CSettings.Verbose)
+                            {
+                                errs() << "Skipping expansion of macro "
+                                       << TopLevelExpansion->Name
+                                       << " @ "
+                                       << (*TopLevelExpansion->Stmts.begin())->getBeginLoc().printToString(SM)
+                                       << " because it contained a global "
+                                       << "var declared inside a macro in "
+                                       << "the main file\n";
+                            }
+                            Stats[TopLevelExpansionsContainingGlobalVarDeclaredInMacroInMainFile] += 1;
+                            continue;
+                        }
                     }
                     else
                     {
-                        EndOfDecl = VD->getEndLoc();
+                        // Emit the transformed definition after the include
+                        auto DefinitionFile = SM.getFileID(VD->getBeginLoc());
+                        auto IncludeLoc = SM.getIncludeLoc(DefinitionFile);
+                        // I think this can happen if the file that the
+                        // var was declared in was not directly included in the
+                        // main file, but in another file that the main file
+                        // included
+                        if (IncludeLoc.isInvalid() || !SM.isInMainFile(IncludeLoc))
+                        {
+                            if (Cpp2CSettings.Verbose)
+                            {
+                                errs() << "Skipping expansion of macro "
+                                       << TopLevelExpansion->Name
+                                       << " @ "
+                                       << (*TopLevelExpansion->Stmts.begin())->getBeginLoc().printToString(SM)
+                                       << " because it contained a global "
+                                       << "var declared inside a macro in "
+                                       << "the main file\n";
+                            }
+                            Stats[TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile] += 1;
+                            continue;
+                        }
+                        else
+                        {
+                            TransformedDefLocation = SM.translateLineCol(
+                                SM.getMainFileID(),
+                                SM.getSpellingColumnNumber(IncludeLoc) + 1,
+                                0);
+                            if (TransformedDefLocation.isValid())
+                            {
+                                RW.InsertTextAfterToken(
+                                    TransformedDefLocation,
+                                    StringRef("\n\n" + FullTransformationDefinition));
+                            }
+                            else
+                            {
+                                // TODO: Emit an error message
+                                continue;
+                            }
+                        }
                     }
-                    // Go to the spot right after the semicolon at the end of
-                    // this decl
-                    auto NextTok =
-                        Lexer::findNextToken(EndOfDecl, SM, LO);
-                    assert(NextTok.hasValue());
-                    auto Semicolon = NextTok.getValue();
-
-                    // Check that emitting the transformation here
-                    // doesn't cause us to emit the transformation outside
-                    // of the main file
-                    if (!SM.isInMainFile(Semicolon.getLocation()))
-                    {
-                        Stats[TopLevelExpanionsWithTransformationsNotInMainFile] += 1;
-                        continue;
-                    }
-                    // Insert the full transformation into the program after
-                    // last-declared decl of var in the expression.
-                    RW.InsertTextAfterToken(
-                        Semicolon.getLocation(),
-                        StringRef("\n\n" + FullTransformationDefinition));
                 }
                 else
                 {

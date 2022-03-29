@@ -16,11 +16,11 @@ std::string
     TopLevelExpansionsWithUnalignedBody = "Top Level Expansions with an Unaligned Body",
     TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion = "Top Level Expansions with an Expression that did not End at the End of the Expansion",
     TopLevelExpansionsOfMultiplyDefinedMacros = "Top Level Expansions of Multiply Defined (or Redefined) Macros",
-    TopLevelExpanionsWithUnexpandedArgument = "Top Level Expansions with an Unexpanded Argument",
+    TopLevelExpansionsWithUnexpandedArgument = "Top Level Expansions with an Unexpanded Argument",
     TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes = "Top Level Expansions with Mismatching Argument Expansions and AST Nodes",
     TopLevelExpansionsWithInconsistentArgumentExpansions = "Top Level Expansions with Inconsistent Argument Expansions",
     TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges = "Top Level Expansions with Arguments whose AST Nodes have Spelling Locations not in Argument Token Rages",
-    TopLevelExpansionsWithLocalVars = "Top Level Expansions with Local Vars",
+    TopLevelExpansionsWithLocalVarsInBody = "Top Level Expansions with Local Vars",
     TopLevelExpansionsWithSideEffects = "Top Level Expansions with Side-effects",
     TransformedTopLevelExpansions = "Successfully Transformed Top Level Expansions",
     TransformedTopLevelObjectLikeMacroExpansions = "Successfully Transformed Top Level Object-like Macro Expansions",
@@ -28,12 +28,14 @@ std::string
     UntransformedTopLevelExpansions = "Top Level Expansions not Transformed",
     UntransformedTopLevelObjectLikeMacroExpansions = "Top Level Object-like Expansions not Transformed",
     UntransformedTopLevelFunctionLikeMacroExpansions = "Top Level Function-like Expansions not Transformed",
-    TopLevelExpanionsWithTransformationsNotInMainFile = "Top Level Expansions with Transformations Not In Main File (not transformed)",
+    TopLevelExpansionsContainingGlobalVarDeclaredInMacroInMainFile = "Top Level Expansions Containing Global Vars Declared Inside a Macro Inside the Main File",
     TransformationTime = "Transformation Time (ms)",
     FileSize = "File Size (bytes)",
     DedupedDefinitions = "Deduped Transformed Definitions",
     EmittedDefinitions = "Emitted Transformed Definitions",
-    ConstExprExpansionsFound = "Top Level Expansions to Constant Expressions";
+    ConstExprExpansionsFound = "Top Level Expansions to Constant Expressions",
+    TopLevelExpansionsWithAddressOf = "Top Level Expansions with Address Of (&)",
+    TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile = "Top Level Expansions Containing Global Vars Not Declared In a Directly Included File";
 
 std::map<string, unsigned> NewTransformationStats()
 {
@@ -50,11 +52,11 @@ std::map<string, unsigned> NewTransformationStats()
         TopLevelExpansionsWithUnalignedBody,
         TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion,
         TopLevelExpansionsOfMultiplyDefinedMacros,
-        TopLevelExpanionsWithUnexpandedArgument,
+        TopLevelExpansionsWithUnexpandedArgument,
         TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes,
         TopLevelExpansionsWithInconsistentArgumentExpansions,
         TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges,
-        TopLevelExpansionsWithLocalVars,
+        TopLevelExpansionsWithLocalVarsInBody,
         TopLevelExpansionsWithSideEffects,
         TransformedTopLevelExpansions,
         TransformedTopLevelObjectLikeMacroExpansions,
@@ -62,12 +64,14 @@ std::map<string, unsigned> NewTransformationStats()
         UntransformedTopLevelExpansions,
         UntransformedTopLevelObjectLikeMacroExpansions,
         UntransformedTopLevelFunctionLikeMacroExpansions,
-        TopLevelExpanionsWithTransformationsNotInMainFile,
+        TopLevelExpansionsContainingGlobalVarDeclaredInMacroInMainFile,
         TransformationTime,
         FileSize,
         DedupedDefinitions,
         EmittedDefinitions,
-        ConstExprExpansionsFound};
+        ConstExprExpansionsFound,
+        TopLevelExpansionsWithAddressOf,
+        TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile};
 
     map<string, unsigned int> Stats;
     for (auto &&Header : CSVHeaders)
