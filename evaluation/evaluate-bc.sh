@@ -14,6 +14,10 @@ rm -fr $CSV_DIR
 mkdir -p $CSV_DIR
 rm -fr $SOURCE_DIR
 
+if [ ! -f "$SOURCE_ZIP" ]; then
+    wget https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz
+fi
+
 echo "Unzipping $PROJECT_NAME to $SOURCE_DIR"
 tar -xvf $SOURCE_ZIP
 

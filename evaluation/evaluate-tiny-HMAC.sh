@@ -1,9 +1,7 @@
 #!/bin/bash
 
-TINY_HMAC_REPO=tiny-HMAC-c-93bdfa8114a32cf25ba70cb1f0957d3bf0f180af
-TINY_HMAC_ZIP=$TINY_HMAC_REPO.zip
-TINY_HMAC_UNZIP_DIR=$TINY_HMAC_REPO
-TINY_HMAC_DIR=tiny-HMAC
+TINY_HMAC_ZIP=93bdfa8114a32cf25ba70cb1f0957d3bf0f180af.zip
+TINY_HMAC_DIR=tiny-HMAC-c-93bdfa8114a32cf25ba70cb1f0957d3bf0f180af
 SRC_DIR=$TINY_HMAC_DIR/src
 
 CSV_DIR=stats/tiny-HMAC
@@ -15,9 +13,13 @@ rm -fr $CSV_DIR
 mkdir -p $CSV_DIR
 rm -fr $TINY_HMAC_DIR
 
+if [ ! -f "$TINY_HMAC_ZIP" ]; then
+    echo "Downloading Tiny HMAC"
+    wget https://github.com/kokke/tiny-HMAC-c/archive/93bdfa8114a32cf25ba70cb1f0957d3bf0f180af.zip
+fi
+
 echo "Unzipping Tiny HMAC to $TINY_HMAC_DIR"
 unzip $TINY_HMAC_ZIP
-mv $TINY_HMAC_UNZIP_DIR $TINY_HMAC_DIR
 
 echo "Transforming C files in $SRC_DIR"
 for FILEPATH in $(ls $SRC_DIR/*.c); do

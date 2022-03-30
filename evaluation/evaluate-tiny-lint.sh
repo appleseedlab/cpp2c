@@ -1,9 +1,7 @@
 #!/bin/bash
 
-TINY_LINT_REPO=tiny-lint-c-4de8b64c97fda3117a7ddc9895a30adb97fbae97
-TINY_LINT_ZIP=$TINY_LINT_REPO.zip
-TINY_LINT_UNZIP_DIR=$TINY_LINT_REPO
-TINY_LINT_DIR=tiny-lint
+TINY_LINT_ZIP=4de8b64c97fda3117a7ddc9895a30adb97fbae97.zip
+TINY_LINT_DIR=tiny-lint-c-4de8b64c97fda3117a7ddc9895a30adb97fbae97
 SRC_DIR=$TINY_LINT_DIR/src
 
 CSV_DIR=stats/tiny-lint
@@ -15,9 +13,13 @@ rm -fr $CSV_DIR
 mkdir -p $CSV_DIR
 rm -fr $TINY_LINT_DIR
 
+if [ ! -f "$TINY_LINT_ZIP" ]; then
+    echo "Downloading Tiny Lint"
+    wget https://github.com/kokke/tiny-lint-c/archive/4de8b64c97fda3117a7ddc9895a30adb97fbae97.zip
+fi
+
 echo "Unzipping Tiny Lint to $TINY_LINT_DIR"
 unzip $TINY_LINT_ZIP
-mv $TINY_LINT_UNZIP_DIR $TINY_LINT_DIR
 
 echo "Transforming C files in $SRC_DIR"
 for FILEPATH in $(ls $SRC_DIR/*.c); do

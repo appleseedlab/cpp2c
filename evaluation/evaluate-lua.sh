@@ -19,6 +19,11 @@ rm -fr $TEST_DIR
 rm -fr $CSV_DIR
 mkdir -p $CSV_DIR
 
+if [ ! -f "$LUA_ZIP" ]; then
+    echo "Downloading Lua"
+    wget https://www.lua.org/ftp/lua-5.4.4.tar.gz
+fi
+
 echo "Unzipping Lua to $LUA_DIR"
 tar -xvf $LUA_ZIP
 
@@ -33,6 +38,11 @@ done
 # Exit prematurely unless arg passed to run tests
 if [ $# -eq 0 ] || [ $1 != '-run-tests' ]; then
     exit
+fi
+
+if [ ! -f "$TEST_ZIP" ]; then
+    echo "Downloading Lua"
+    wget https://www.lua.org/tests/lua-5.4.4-tests.tar.gz
 fi
 
 echo "Making Lua"

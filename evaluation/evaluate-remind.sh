@@ -13,6 +13,11 @@ rm -fr $CSV_DIR
 mkdir -p $CSV_DIR
 rm -fr $REMIND_DIR
 
+if [ ! -f "$REMIND_ZIP" ]; then
+    echo "Downloading Remind"
+    wget https://dianne.skoll.ca/projects/remind/download/remind-03.04.02.tar.gz
+fi
+
 echo "Unzipping Remind to $REMIND_DIR"
 tar -xvf $REMIND_ZIP
 
