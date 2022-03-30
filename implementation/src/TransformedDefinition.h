@@ -9,37 +9,49 @@ using namespace clang;
 
 struct TransformedDefinition
 {
+    // The original expansion that we are transforming
+    MacroForest::Node *Expansion;
     // The name of the original macro that this transformation came from
     string OriginalMacroName;
     // Whether this transformation is to a variable or a function
     bool IsVar;
     // The type of the variable we transform to, or the type of the function if we are
     // transforming to a function
-    string VarOrReturnType;
+    QualType VarOrReturnType;
     // A vector of the types of the transformed function's arguments
-    vector<string> ArgTypes;
+    vector<QualType> ArgTypes;
     // The body of the transformed definition
     string InitializerOrDefinition;
     // The name used when emitting this definition
     string EmittedName;
+
+    // Gets the signature for this transformed expansion if it's a function;
+    // otherwise gets the declaration
+    string getExpansionSignatureOrDeclaration(ASTContext &Ctx);
+
+    // Returns true if any of the transformed definition's types are
+    // user-defined, false otherwise
+    bool hasNonBuiltinTypes();
+
+    bool hasArrayTypes();
 };
 
 struct TransformedDefinition NewTransformedDefinition(
-    ASTContext *Ctx, MacroForest::Node *Expansion, bool IsVar)
+    ASTContext &Ctx, MacroForest::Node *Expansion, bool IsVar)
 {
-    auto &SM = Ctx->getSourceManager();
-    auto &LO = Ctx->getLangOpts();
-
+    auto &SM = Ctx.getSourceManager();
+    auto &LO = Ctx.getLangOpts();
     struct TransformedDefinition TD;
+    TD.Expansion = Expansion;
     TD.OriginalMacroName = Expansion->Name;
     TD.IsVar = IsVar;
     assert(Expansion->Stmts.size() == 1);
-    TD.VarOrReturnType = getType(Ctx, *(Expansion->Stmts.begin()));
+    TD.VarOrReturnType = getDesugaredCanonicalType(Ctx, *(Expansion->Stmts.begin()));
     for (auto &&Arg : Expansion->Arguments)
     {
         // Note that we don't assert that the argument has only one stmt.
         // This is because the argument may have been asserted multiple times.
-        string ArgType = getType(Ctx, *(Arg.Stmts.begin()));
+        QualType ArgType = getDesugaredCanonicalType(Ctx, *(Arg.Stmts.begin()));
         TD.ArgTypes.push_back(ArgType);
     }
 
@@ -64,4 +76,98 @@ struct TransformedDefinition NewTransformedDefinition(
     TD.InitializerOrDefinition = InitializerOrDefinition;
 
     return TD;
+}
+
+void replaceBracketsWithPointer(string *s)
+{
+    size_t indexOfLBracket = s->find("[");
+    // If the type of the var/function is an array, change it to a pointer
+    if (indexOfLBracket != string::npos)
+    {
+        auto indexOfRBracket = s->find_last_of("]");
+        assert(indexOfRBracket != string::npos);
+        s->replace(indexOfLBracket,
+                   indexOfRBracket - indexOfLBracket + 1, "*");
+    }
+}
+
+string TransformedDefinition::getExpansionSignatureOrDeclaration(ASTContext &Ctx)
+{
+    assert(expansionHasUnambiguousSignature(Ctx, this->Expansion));
+    assert(this->EmittedName != "");
+
+    // Decls begin with the type of the var/return type of function
+    string Signature = this->VarOrReturnType.getAsString();
+
+    replaceBracketsWithPointer(&Signature);
+
+    Signature += " " + this->EmittedName;
+
+    // If it's not a var, then add formal params
+    if (!this->IsVar)
+    {
+        Signature += "(";
+        unsigned i = 0;
+        for (auto &&Arg : Expansion->Arguments)
+        {
+            QualType ArgType =
+                getDesugaredCanonicalType(Ctx, *(Arg.Stmts.begin()));
+            if (i >= 1)
+            {
+                Signature += ", ";
+            }
+            string TString = ArgType.getAsString();
+            replaceBracketsWithPointer(&TString);
+            Signature += TString + " " + Arg.Name;
+            i += 1;
+        }
+        Signature += ")";
+    }
+    return Signature;
+}
+
+bool TransformedDefinition::hasNonBuiltinTypes()
+{
+    if (auto T = this->VarOrReturnType.getTypePtr())
+    {
+        if (!T->isBuiltinType())
+        {
+            return true;
+        }
+    }
+
+    for (auto &&it : this->ArgTypes)
+    {
+        if (auto T = it.getTypePtr())
+        {
+            if (!T->isBuiltinType())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool TransformedDefinition::hasArrayTypes()
+{
+    if (auto T = this->VarOrReturnType.getTypePtr())
+    {
+        if (T->isArrayType())
+        {
+            return true;
+        }
+    }
+
+    for (auto &&it : this->ArgTypes)
+    {
+        if (auto T = it.getTypePtr())
+        {
+            if (T->isArrayType())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }

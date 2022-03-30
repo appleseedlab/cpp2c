@@ -12,17 +12,17 @@ using namespace std;
 using namespace clang;
 using namespace llvm;
 
-string getType(ASTContext *Ctx, const Stmt *ST)
+QualType getDesugaredCanonicalType(ASTContext &Ctx, const Stmt *ST)
 {
     if (const auto E = dyn_cast_or_null<Expr>(ST))
     {
         QualType T = E->getType();
-        return T.getDesugaredType(*Ctx).getCanonicalType().getAsString();
+        return T.getDesugaredType(Ctx).getCanonicalType();
     }
-    return "@stmt";
+    return QualType();
 }
 
-bool expansionHasUnambiguousSignature(ASTContext *Ctx,
+bool expansionHasUnambiguousSignature(ASTContext &Ctx,
                                       MacroForest::Node *Expansion)
 {
     if (Expansion->Stmts.size() != 1)
@@ -36,7 +36,8 @@ bool expansionHasUnambiguousSignature(ASTContext *Ctx,
             std::set<std::string> ArgTypes;
             for (const auto *ST : Arg.Stmts)
             {
-                ArgTypes.insert('"' + getType(Ctx, ST) + '"');
+                auto QT = getDesugaredCanonicalType(Ctx, ST);
+                ArgTypes.insert('"' + QT.getAsString() + '"');
             }
             if (ArgTypes.size() != 1)
             {
@@ -77,6 +78,29 @@ bool containsGlobalVars(const Expr *E)
     for (auto &&it : E->children())
     {
         if (containsGlobalVars(dyn_cast_or_null<Expr>(it)))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool containsFunctionCalls(const Expr *E)
+{
+    if (!E)
+    {
+        return false;
+    }
+
+    if (auto DRE = dyn_cast_or_null<CallExpr>(E))
+    {
+        return true;
+    }
+
+    for (auto &&it : E->children())
+    {
+        if (containsFunctionCalls(dyn_cast_or_null<Expr>(it)))
         {
             return true;
         }
@@ -244,6 +268,24 @@ bool isaTopLevelDecl(ASTContext &Ctx, const Decl *D)
     return false;
 }
 
+bool isaStaticOrConstDecl(ASTContext &Ctx, const Decl *D)
+{
+    if (!D)
+    {
+        return false;
+    }
+
+    if (auto VD = dyn_cast_or_null<VarDecl>(D))
+    {
+        if (VD->getType().isConstQualified() || VD->isStaticLocal())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Returns true if an expression must be a constant expression;
 // i.e., it or its parent expresssion is a global variable initializer,
 // enum initializer, array size initializer, case label, or
@@ -264,7 +306,8 @@ bool mustBeConstExpr(ASTContext &Ctx, const Stmt *S)
     {
         if (mustBeConstExpr(Ctx, it.get<Stmt>()) ||
             (isaTopLevelDecl(Ctx, it.get<Decl>()) &&
-             !it.get<FunctionDecl>()))
+             !it.get<FunctionDecl>()) ||
+            isaStaticOrConstDecl(Ctx, it.get<Decl>()))
         {
             return true;
         }
@@ -319,6 +362,29 @@ bool containsDeclRefExpr(const Stmt *S, const DeclRefExpr *DRE)
     return false;
 }
 
+// Returns a pointer to the FunctionDecl that the given statement
+// was expanded in
+const FunctionDecl *getFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S)
+{
+    if (!S)
+    {
+        return nullptr;
+    }
+
+    for (auto &&it : Ctx.getParents(*S))
+    {
+        if (auto FD = it.get<FunctionDecl>())
+        {
+            return FD;
+        }
+        else if (auto FD = getFunctionDeclStmtExpandedIn(Ctx, it.get<Stmt>()))
+        {
+            return FD;
+        }
+    }
+    return nullptr;
+}
+
 bool isExpansionHygienic(ASTContext *Ctx,
                          Preprocessor &PP,
                          MacroForest::Node *TopLevelExpansion,
@@ -361,7 +427,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     }
 
     // Check that expansion has an unambiguous signature
-    if (!expansionHasUnambiguousSignature(Ctx, TopLevelExpansion))
+    if (!expansionHasUnambiguousSignature(*Ctx, TopLevelExpansion))
     {
         if (Verbose)
         {
@@ -511,10 +577,6 @@ bool isExpansionHygienic(ASTContext *Ctx,
             // which contain invocations as arguments as
             // untransformable, but that doesn't make the
             // transformation unsound
-            // auto ArgExpression = dyn_cast_or_null<Expr>(ArgExpansion);
-            // assert(nullptr != ArgExpression);
-            // if (!CSubsetExprAndSubExprsSpelledInRanges::exprAndSubExprsSpelledInRanges(
-            //         Ctx, ArgExpression, &Arg.TokenRanges))
             if (!StmtAndSubStmtsSpelledInRanges(*Ctx, ArgExpansion,
                                                 Arg.TokenRanges))
             {
@@ -590,8 +652,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     }
 
     // Check that the expansion does not contain side-effects
-    // if (CSubsetHasSideEffects::hasSideEffects(Ctx, E))
-    if (E->HasSideEffects(*Ctx))
+    if (E->HasSideEffects(*Ctx) || containsFunctionCalls(E))
     {
         if (Verbose)
         {
@@ -631,38 +692,4 @@ string getNameForExpansionTransformation(SourceManager &SM,
     // We would then get new errors if we try to link these transformed files
     // together.
     return Filename + "_" + Expansion->Name + "_" + transformType;
-}
-
-string getExpansionSignature(ASTContext *Ctx,
-                             MacroForest::Node *Expansion,
-                             bool TransformToVar,
-                             string TransformedName)
-{
-    assert(expansionHasUnambiguousSignature(Ctx, Expansion));
-
-    string Signature = getType(Ctx, *Expansion->Stmts.begin());
-    Signature += " " + TransformedName;
-    if (!TransformToVar)
-    {
-
-        Signature += "(";
-        unsigned i = 0;
-        for (auto &&Arg : Expansion->Arguments)
-        {
-            string ArgType = getType(Ctx, *(Arg.Stmts.begin()));
-            if (i >= 1)
-            {
-                Signature += ", ";
-            }
-            Signature += ArgType + " " + Arg.Name;
-            i += 1;
-        }
-        Signature += ")";
-    }
-    // Add const qualifier if the expansion was transformed to a global var
-    // if (TransformToVar)
-    // {
-    //     Signature = "const " + Signature;
-    // }
-    return Signature;
 }
