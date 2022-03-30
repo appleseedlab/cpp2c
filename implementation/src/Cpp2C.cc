@@ -430,6 +430,21 @@ public:
             //     continue;
             // }
 
+            if (TD.IsVar && containsFunctionCalls(E))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it would have been transformed to "
+                           << "a var with a call in its initializer\n";
+                }
+                // TODO: Emit stats
+                continue;
+            }
+
             // Don't transform definitions which contain array types
             if (TD.hasArrayTypes())
             {
@@ -538,8 +553,7 @@ public:
 
             // Check that type is not a function pointer or void pointer
             if (TD.VarOrReturnType.getTypePtr() &&
-                (TD.VarOrReturnType.getTypePtr()->isFunctionPointerType() ||
-                 TD.VarOrReturnType.getTypePtr()->isVoidPointerType()))
+                TD.VarOrReturnType.getTypePtr()->isFunctionPointerType())
             {
 
                 if (Cpp2CSettings.Verbose)

@@ -652,7 +652,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     }
 
     // Check that the expansion does not contain side-effects
-    if (E->HasSideEffects(*Ctx) || containsFunctionCalls(E))
+    if (E->HasSideEffects(*Ctx))
     {
         if (Verbose)
         {
