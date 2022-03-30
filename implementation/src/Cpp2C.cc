@@ -33,14 +33,11 @@ using namespace clang::ast_matchers;
 // This file is hardly a paragon of pulchritude, but the logic is correct
 // and so far Cpp2C works without issue
 
-// TODO: Add transformation of object-like macros to variables to soundness
-// proof
-
 struct PluginSettings
 {
     bool OverwriteFiles = false;
     bool Verbose = false;
-    bool UnifyMacrosWithDifferentNames = false;
+    bool UnifyMacrosWithSameSignature = false;
     raw_fd_ostream *StatsFile = nullptr;
 };
 
@@ -347,9 +344,11 @@ public:
         // Mapping of macro names to all emitted transformed definitions for
         // that macro.This enables to quickly check for duplicate
         // identical transformations
-        // TODO: Use macro definition location as the key instead
-        map<string, vector<struct TransformedDefinition>>
-            MacroNameToEmittedTransformedDefinitions;
+        map<SourceLocation, vector<struct TransformedDefinition>>
+            MacroDefinitionLocationToTransformedDefinition;
+
+        set<string> TransformedPrototypes;
+        set<pair<string, const FunctionDecl *>> TransformedDefinitionsAndFunctionDeclExpandedIn;
 
         // Step 4: Transform hygienic macros.
         if (Cpp2CSettings.Verbose)
@@ -359,44 +358,38 @@ public:
 
         for (auto TopLevelExpansion : ExpansionRoots)
         {
+            // Don't transform expansions appearing where a const expr
+            // is required
+            bool NeedConst =
+                mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin());
 
-            if (!isExpansionHygienic(&Ctx, PP, TopLevelExpansion, Stats,
+            // Don't transform unhygienic expansions
+            if (NeedConst ||
+                !isExpansionHygienic(&Ctx, PP, TopLevelExpansion, Stats,
                                      Cpp2CSettings.Verbose,
                                      MultiplyDefinedMacros))
             {
+                if (NeedConst)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        errs() << "Not transforming expansion of "
+                               << TopLevelExpansion->Name + " @ "
+                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                               << " because needed to be a const expr\n";
+                    }
+                    Stats[ConstExprExpansionsFound] += 1;
+                }
+
                 Stats[UntransformedTopLevelExpansions] += 1;
                 if (TopLevelExpansion->MI->isObjectLike())
                 {
-
                     Stats[UntransformedTopLevelObjectLikeMacroExpansions] += 1;
                 }
                 else
                 {
                     Stats[UntransformedTopLevelFunctionLikeMacroExpansions] += 1;
                 }
-                continue;
-            }
-
-            if (mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin()))
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Not transforming expansion of " +
-                                  TopLevelExpansion->Name + " @ " +
-                                  (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM) +
-                                  " because needed to be a const expr\n";
-                }
-                Stats[UntransformedTopLevelExpansions] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-
-                    Stats[UntransformedTopLevelObjectLikeMacroExpansions] += 1;
-                }
-                else
-                {
-                    Stats[UntransformedTopLevelFunctionLikeMacroExpansions] += 1;
-                }
-                Stats[ConstExprExpansionsFound] += 1;
                 continue;
             }
 
@@ -413,25 +406,198 @@ public:
             // but this doesn't matter right now since we don't transform
             // expansions containing function calls anyway
             bool TransformToVar =
-                TopLevelExpansion->MI->isObjectLike() && !containsGlobalVars(E);
+                TopLevelExpansion->MI->isObjectLike() &&
+                !containsGlobalVars(E);
 
             // Create the transformed definition.
             // Note that this generates the transformed definition as well.
             struct TransformedDefinition TD =
-                NewTransformedDefinition(&Ctx, TopLevelExpansion,
+                NewTransformedDefinition(Ctx, TopLevelExpansion,
                                          TransformToVar);
+
+            // Don't transform definitions which rely on user-defined types
+            // if (TD.hasNonBuiltinTypes())
+            // {
+            //     if (Cpp2CSettings.Verbose)
+            //     {
+            //         errs() << "Not transforming "
+            //                << TopLevelExpansion->Name
+            //                << " @ "
+            //                << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+            //                << " because it involved user-defined types\n";
+            //     }
+            //     // TODO: Emit stats
+            //     continue;
+            // }
+
+            // Don't transform definitions which contain array types
+            if (TD.hasArrayTypes())
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it involved array types\n";
+                }
+                // TODO: Emit stats
+                continue;
+            }
+
+            // Don't transform definitions which would become void vars
+            if (TD.IsVar &&
+                (TD.VarOrReturnType.isNull() ||
+                 TD.VarOrReturnType.getAsString() == "void"))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it was a var with type void\n";
+                }
+                // TODO: Emit stats
+                continue;
+            }
+
+            // Perform function-specific checks
+            if (!TD.IsVar)
+            {
+                auto Parents = Ctx.getParents(*E);
+                if (Parents.size() > 1)
+                {
+                    continue;
+                }
+
+                // Check that function call is not on LHS of assignment
+                bool isLHSOfAssignment = false;
+                while (Parents.size() > 0)
+                {
+                    auto P = Parents[0];
+                    if (auto BO = P.get<BinaryOperator>())
+                    {
+                        if (BO->isAssignmentOp())
+                        {
+                            if (SM.getExpansionRange(BO->getLHS()->getSourceRange()).getAsRange().fullyContains(SM.getExpansionRange(E->getSourceRange()).getAsRange()))
+                            {
+                                isLHSOfAssignment = true;
+                                break;
+                            }
+                        }
+                    }
+                    Parents = Ctx.getParents(P);
+                }
+                if (isLHSOfAssignment)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        errs() << "Not transforming "
+                               << TopLevelExpansion->Name
+                               << " @ "
+                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                               << " because it was a function call used as "
+                               << "an L-value\n";
+                    }
+                    // TODO: Emit stats
+                    continue;
+                }
+
+                // Check that function call is not the operand of an inc or dec
+                Parents = Ctx.getParents(*E);
+                bool isOperandOfDecOrInc = false;
+                while (Parents.size() > 0)
+                {
+                    auto P = Parents[0];
+                    if (auto UO = P.get<UnaryOperator>())
+                    {
+                        if (UO->isIncrementDecrementOp())
+                        {
+                            isOperandOfDecOrInc = true;
+                            break;
+                        }
+                    }
+                    Parents = Ctx.getParents(P);
+                }
+                if (isOperandOfDecOrInc)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        errs() << "Not transforming "
+                               << TopLevelExpansion->Name
+                               << " @ "
+                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                               << " because it was a function call used as "
+                               << "an L-value\n";
+                    }
+                    // TODO: Emit stats
+                    continue;
+                }
+            }
+
+            // Check that type is not a function pointer or void pointer
+            if (TD.VarOrReturnType.getTypePtr() &&
+                (TD.VarOrReturnType.getTypePtr()->isFunctionPointerType() ||
+                 TD.VarOrReturnType.getTypePtr()->isVoidPointerType()))
+            {
+
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it had function/void pointer type \n";
+                }
+                // TODO: Emit stats
+                continue;
+            }
+
+            if (isa_and_nonnull<clang::StringLiteral>(*(TopLevelExpansion->Stmts.begin())))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it was a string literal \n";
+                }
+                // TODO: Emit stats
+                continue;
+            }
+
+            auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->Stmts.begin());
+
+            if (FD == nullptr ||
+                !RW.isRewritable(FD->getBeginLoc()) ||
+                !SM.isInMainFile(FD->getBeginLoc()))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it was not expanded inside a function "
+                           << "definition\n";
+                }
+                // TODO: Emit stats
+                continue;
+            }
 
             // If an identical transformation for this expansion exists,
             // use it; otherwise generate a unique name for this transformation
             // and insert its definition into the program
             string EmittedName = "";
-            if (Cpp2CSettings.UnifyMacrosWithDifferentNames)
+            if (Cpp2CSettings.UnifyMacrosWithSameSignature)
             {
-                // If we are ignoring macro names, then we have to check
+                // If we are unifying macros, then we have to check
                 // all transformed definitions for an identical one
-                for (auto &&MacroNameAndTransformedDefinitions : MacroNameToEmittedTransformedDefinitions)
+                for (auto &&MacroLocationAndTransformedDefinitions : MacroDefinitionLocationToTransformedDefinition)
                 {
-                    for (auto &&ETD : MacroNameAndTransformedDefinitions.second)
+                    for (auto &&ETD : MacroLocationAndTransformedDefinitions.second)
                     {
                         // Find which, if any, of the prior transformation
                         // definitions of this macro are identical to the one
@@ -454,15 +620,15 @@ public:
             }
             else
             {
-                // Otherwise, we can use the macro name to quickly find
-                // any identical prior transformations
-                if (MacroNameToEmittedTransformedDefinitions.find(TD.OriginalMacroName) !=
-                    MacroNameToEmittedTransformedDefinitions.end())
+                // Otherwise, we can use the macro definition location to
+                // quickly find any identical prior transformations
+                if (MacroDefinitionLocationToTransformedDefinition.find(TD.Expansion->MI->getDefinitionLoc()) !=
+                    MacroDefinitionLocationToTransformedDefinition.end())
                 {
                     // Find which, if any, of the prior transformation
                     // definitions of this macro are identical to the one
                     // we are considering adding to the program.
-                    for (auto &&ETD : MacroNameToEmittedTransformedDefinitions[TD.OriginalMacroName])
+                    for (auto &&ETD : MacroDefinitionLocationToTransformedDefinition[TD.Expansion->MI->getDefinitionLoc()])
                     {
                         if (ETD.IsVar == TD.IsVar &&
                             ETD.VarOrReturnType == TD.VarOrReturnType &&
@@ -488,6 +654,8 @@ public:
                 }
                 Stats[DedupedDefinitions] += 1;
             }
+            // Otherwise, we need to generate a unique name for this
+            // transformation and emit its definition
             else
             {
                 string Basename = getNameForExpansionTransformation(
@@ -509,143 +677,21 @@ public:
                 TD.EmittedName = EmittedName;
 
                 string TransformedSignature =
-                    getExpansionSignature(&Ctx, TopLevelExpansion,
-                                          TransformToVar,
-                                          EmittedName);
+                    TD.getExpansionSignatureOrDeclaration(Ctx);
+
                 string FullTransformationDefinition =
-                    TransformedSignature + TD.InitializerOrDefinition + "\n\n";
+                    TransformedSignature + TD.InitializerOrDefinition;
 
-                // Emit the transformation to the top of the file in which
-                // the macro was expanded.
-                // If we were to emit the transformation at the top of the
-                // file in which the macro was defined, we may end up writing
-                // the transformation to a header file. This would be bad
-                // because that header file may be included by other files
-                // with vars/functions/macros that have the same identifier
-                // as the transformed name
-                SourceLocation StartOfFile = SM.getLocForStartOfFile(
-                    SM.getFileID(TopLevelExpansion->SpellingRange.getBegin()));
+                TransformedPrototypes.insert(TransformedSignature + ";");
+                TransformedDefinitionsAndFunctionDeclExpandedIn.emplace(FullTransformationDefinition, FD);
 
-                // Emit transformed definitions that refer to global
-                // vars after the global var is declared
-                if (containsGlobalVars(E))
-                {
-                    SourceLocation EndOfDecl = StartOfFile;
-                    auto VD = findLastDefinedGlobalVar(E);
-                    assert(VD != nullptr);
+                MacroDefinitionLocationToTransformedDefinition[TD.Expansion->MI->getDefinitionLoc()]
+                    .push_back(TD);
 
-                    // If the var was declared in the main file, then emit the
-                    // transformed definition after its declaration.
-                    // Otherwise, it must have been declared in an #include'd
-                    // file, and we emit the transformed definition after
-                    // the directive that #include'd it
-
-                    // If the decl has an initialization, then the
-                    // transformation location is just beyond it; otherwise
-                    // it's after the decl itself
-                    SourceLocation TransformedDefLocation;
-                    if (SM.isInMainFile(VD->getLocation()))
-                    {
-
-                        if (VD->hasInit())
-                        {
-                            auto Init = VD->getInit();
-                            EndOfDecl = Init->getEndLoc();
-                        }
-                        else
-                        {
-                            EndOfDecl = VD->getEndLoc();
-                        }
-                        // Go to the spot right after the semicolon at the end of
-                        // this decl, if its not inside a macro
-                        auto NextTok = Lexer::findNextToken(EndOfDecl, SM, LO);
-                        if (NextTok.hasValue())
-                        {
-                            TransformedDefLocation = NextTok.getValue().getLocation();
-                            // Insert the full transformation into the program after
-                            // last-declared decl of var in the expression.
-                            RW.InsertTextAfterToken(
-                                TransformedDefLocation,
-                                StringRef("\n\n" + FullTransformationDefinition));
-                        }
-                        else
-                        {
-                            if (Cpp2CSettings.Verbose)
-                            {
-                                errs() << "Skipping expansion of macro "
-                                       << TopLevelExpansion->Name
-                                       << " @ "
-                                       << (*TopLevelExpansion->Stmts.begin())->getBeginLoc().printToString(SM)
-                                       << " because it contained a global "
-                                       << "var declared inside a macro in "
-                                       << "the main file\n";
-                            }
-                            Stats[TopLevelExpansionsContainingGlobalVarDeclaredInMacroInMainFile] += 1;
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        // Emit the transformed definition after the include
-                        auto DefinitionFile = SM.getFileID(VD->getBeginLoc());
-                        auto IncludeLoc = SM.getIncludeLoc(DefinitionFile);
-                        // I think this can happen if the file that the
-                        // var was declared in was not directly included in the
-                        // main file, but in another file that the main file
-                        // included
-                        if (IncludeLoc.isInvalid() || !SM.isInMainFile(IncludeLoc))
-                        {
-                            if (Cpp2CSettings.Verbose)
-                            {
-                                errs() << "Skipping expansion of macro "
-                                       << TopLevelExpansion->Name
-                                       << " @ "
-                                       << (*TopLevelExpansion->Stmts.begin())->getBeginLoc().printToString(SM)
-                                       << " because it contained a global "
-                                       << "var declared inside a macro in "
-                                       << "the main file\n";
-                            }
-                            Stats[TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile] += 1;
-                            continue;
-                        }
-                        else
-                        {
-                            TransformedDefLocation = SM.translateLineCol(
-                                SM.getMainFileID(),
-                                SM.getSpellingColumnNumber(IncludeLoc) + 1,
-                                0);
-                            if (TransformedDefLocation.isValid())
-                            {
-                                RW.InsertTextAfterToken(
-                                    TransformedDefLocation,
-                                    StringRef("\n\n" + FullTransformationDefinition));
-                            }
-                            else
-                            {
-                                // TODO: Emit an error message
-                                continue;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // Insert the full transformation at the start
-                    // of the program
-                    RW.InsertText(StartOfFile,
-                                  StringRef(FullTransformationDefinition));
-                }
-
-                MacroNameToEmittedTransformedDefinitions[TD.OriginalMacroName].push_back(TD);
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Emitted a definition: " +
-                                  EmittedName + "\n";
-                }
                 Stats[EmittedDefinitions] += 1;
             }
 
-            // Rewrite the invocation into a function call
+            // Rewrite the invocation into a function call or var ref
             string CallOrRef = EmittedName;
             if (!TransformToVar)
             {
@@ -664,7 +710,7 @@ public:
                         auto CTR = CharSourceRange::getCharRange(TR);
                         string ArgSourceText =
                             Lexer::getSourceText(CTR, SM, LO).str();
-                        CallOrRef += ArgSourceText;
+                        CallOrRef += ArgSourceText + " ";
                     }
 
                     i += 1;
@@ -684,6 +730,39 @@ public:
                 Stats[TransformedTopLevelFunctionLikeMacroExpansions] += 1;
             }
         }
+
+        // Emit transformed definitions after functions in which they appear
+        for (auto &&it : TransformedDefinitionsAndFunctionDeclExpandedIn)
+        {
+            auto StartOfFD = it.second->getBeginLoc();
+            // RW.InsertTextAfter(
+            //     SM.getLocForEndOfFile(SM.getMainFileID()),
+            //     StringRef(it + "\n\n"));
+            RW.InsertTextBefore(
+                StartOfFD,
+                StringRef(it.first + "\n\n"));
+            if (Cpp2CSettings.Verbose)
+            {
+                errs() << "Emitted a definition: "
+                       << it.first + "\n";
+            }
+        }
+
+        // Emit transformed prototypes at the start of the file
+        // TODO: Emit after #includes
+        // NOTE: In C, we can actually emit multiple declarations of a global
+        // var so long as the only one with an initializer is the last one
+        // for (auto &&it : TransformedPrototypes)
+        // {
+        //     RW.InsertText(
+        //         SM.getLocForStartOfFile(SM.getMainFileID()),
+        //         StringRef(it + "\n\n"));
+        //     if (Cpp2CSettings.Verbose)
+        //     {
+        //         errs() << "Emitted a prototype: "
+        //                << it + "\n";
+        //     }
+        // }
 
         // Get size of the file in bytes
         Stats[FileSize] = SM.getFileEntryForID(SM.getMainFileID())->getSize();
@@ -760,7 +839,7 @@ protected:
             }
             else if (arg == "-u" || arg == "--unify-macros-with-different-names")
             {
-                Cpp2CSettings.UnifyMacrosWithDifferentNames = true;
+                Cpp2CSettings.UnifyMacrosWithSameSignature = true;
             }
             else if (arg == "-ds" || arg == "-dump-stats")
             {
