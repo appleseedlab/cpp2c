@@ -35,7 +35,15 @@ std::string
     EmittedDefinitions = "Emitted Transformed Definitions",
     ConstExprExpansionsFound = "Constant Expression Required",
     TopLevelExpansionsWithAddressOf = "Contains Address Of (&)",
-    TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile = "Contains Global Var Not Declared In Directly Included File";
+    TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile = "Contains Global Var Not Declared In Directly Included File",
+    TopLevelExpansionsTransformedToVarWithCallInInitializer = "Would be Transformed to Global Var with Call in Initializer",
+    TopLevelExpansionsWithArrayTypesInSignature = "Array Type in Signature",
+    TopLevelExpansionsTransformedToVarWithNullOrVoidType = "Would be Transformed to Var with Null or Void Type",
+    TopLevelExpansionsTransformedToFunctionCallUsedAsLHSOfAssign = "Would be Transformed to a Function Call on the LHS of an Assignment",
+    TopLevelExpansionsTransformedToFunctionCallAsOperandOfDecOrInc = "Would be Transformed to a Function Call as Operand of Dec or Inc",
+    TopLevelExpansionsWithFunctionPointerType = "Has Function Pointer Type",
+    TopLevelExpansionsToStringLiteral = "Expanded to String Literal",
+    TransformationLocationNotRewritable = "Transformation Location not Rewritable";
 
 std::map<string, unsigned> NewTransformationStats()
 {
@@ -71,7 +79,15 @@ std::map<string, unsigned> NewTransformationStats()
         EmittedDefinitions,
         ConstExprExpansionsFound,
         TopLevelExpansionsWithAddressOf,
-        TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile};
+        TopLevelExpansionsContainingGlobalVarsNotDeclaredInDirectlyIncludedFile,
+        TopLevelExpansionsTransformedToVarWithCallInInitializer,
+        TopLevelExpansionsWithArrayTypesInSignature,
+        TopLevelExpansionsTransformedToVarWithNullOrVoidType,
+        TopLevelExpansionsTransformedToFunctionCallUsedAsLHSOfAssign,
+        TopLevelExpansionsTransformedToFunctionCallAsOperandOfDecOrInc,
+        TopLevelExpansionsWithFunctionPointerType,
+        TopLevelExpansionsToStringLiteral,
+        TransformationLocationNotRewritable};
 
     map<string, unsigned int> Stats;
     for (auto &&Header : CSVHeaders)

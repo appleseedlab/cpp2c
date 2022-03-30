@@ -415,21 +415,6 @@ public:
                 NewTransformedDefinition(Ctx, TopLevelExpansion,
                                          TransformToVar);
 
-            // Don't transform definitions which rely on user-defined types
-            // if (TD.hasNonBuiltinTypes())
-            // {
-            //     if (Cpp2CSettings.Verbose)
-            //     {
-            //         errs() << "Not transforming "
-            //                << TopLevelExpansion->Name
-            //                << " @ "
-            //                << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-            //                << " because it involved user-defined types\n";
-            //     }
-            //     // TODO: Emit stats
-            //     continue;
-            // }
-
             if (TD.IsVar && containsFunctionCalls(E))
             {
                 if (Cpp2CSettings.Verbose)
@@ -441,7 +426,7 @@ public:
                            << " because it would have been transformed to "
                            << "a var with a call in its initializer\n";
                 }
-                // TODO: Emit stats
+                Stats[TopLevelExpansionsTransformedToVarWithCallInInitializer] += 1;
                 continue;
             }
 
@@ -456,7 +441,7 @@ public:
                            << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
                            << " because it involved array types\n";
                 }
-                // TODO: Emit stats
+                Stats[TopLevelExpansionsWithArrayTypesInSignature] += 1;
                 continue;
             }
 
@@ -473,7 +458,7 @@ public:
                            << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
                            << " because it was a var with type void\n";
                 }
-                // TODO: Emit stats
+                Stats[TopLevelExpansionsTransformedToVarWithNullOrVoidType] += 1;
                 continue;
             }
 
@@ -515,7 +500,7 @@ public:
                                << " because it was a function call used as "
                                << "an L-value\n";
                     }
-                    // TODO: Emit stats
+                    Stats[TopLevelExpansionsTransformedToFunctionCallUsedAsLHSOfAssign] += 1;
                     continue;
                 }
 
@@ -546,7 +531,7 @@ public:
                                << " because it was a function call used as "
                                << "an L-value\n";
                     }
-                    // TODO: Emit stats
+                    Stats[TopLevelExpansionsTransformedToFunctionCallAsOperandOfDecOrInc] += 1;
                     continue;
                 }
             }
@@ -564,7 +549,7 @@ public:
                            << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
                            << " because it had function/void pointer type \n";
                 }
-                // TODO: Emit stats
+                Stats[TopLevelExpansionsWithFunctionPointerType] += 1;
                 continue;
             }
 
@@ -578,7 +563,7 @@ public:
                            << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
                            << " because it was a string literal \n";
                 }
-                // TODO: Emit stats
+                Stats[TopLevelExpansionsToStringLiteral] += 1;
                 continue;
             }
 
@@ -597,7 +582,7 @@ public:
                            << " because it was not expanded inside a function "
                            << "definition\n";
                 }
-                // TODO: Emit stats
+                Stats[TransformationLocationNotRewritable] += 1;
                 continue;
             }
 
@@ -761,22 +746,6 @@ public:
                        << it.first + "\n";
             }
         }
-
-        // Emit transformed prototypes at the start of the file
-        // TODO: Emit after #includes
-        // NOTE: In C, we can actually emit multiple declarations of a global
-        // var so long as the only one with an initializer is the last one
-        // for (auto &&it : TransformedPrototypes)
-        // {
-        //     RW.InsertText(
-        //         SM.getLocForStartOfFile(SM.getMainFileID()),
-        //         StringRef(it + "\n\n"));
-        //     if (Cpp2CSettings.Verbose)
-        //     {
-        //         errs() << "Emitted a prototype: "
-        //                << it + "\n";
-        //     }
-        // }
 
         // Get size of the file in bytes
         Stats[FileSize] = SM.getFileEntryForID(SM.getMainFileID())->getSize();
