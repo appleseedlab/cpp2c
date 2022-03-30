@@ -12,6 +12,7 @@ using namespace std;
 using namespace clang;
 using namespace llvm;
 
+// Gets the desugared, canonical QualType of the given Stmt*
 QualType getDesugaredCanonicalType(ASTContext &Ctx, const Stmt *ST)
 {
     if (const auto E = dyn_cast_or_null<Expr>(ST))
@@ -22,6 +23,8 @@ QualType getDesugaredCanonicalType(ASTContext &Ctx, const Stmt *ST)
     return QualType();
 }
 
+// Returns true if the given macro expansion has a single, unambiguous
+// function signature; false otherwise
 bool expansionHasUnambiguousSignature(ASTContext &Ctx,
                                       MacroForest::Node *Expansion)
 {
@@ -48,6 +51,8 @@ bool expansionHasUnambiguousSignature(ASTContext &Ctx,
     return true;
 }
 
+// Returns true if the given variable declaration is a global variable,
+// false otherwise
 bool isGlobalVar(const VarDecl *VD)
 {
     if (!VD)
@@ -57,6 +62,7 @@ bool isGlobalVar(const VarDecl *VD)
     return (VD->hasGlobalStorage()) && (!VD->isStaticLocal());
 }
 
+// Returns true if the the given expression references any global variables
 bool containsGlobalVars(const Expr *E)
 {
     if (!E)
@@ -86,6 +92,7 @@ bool containsGlobalVars(const Expr *E)
     return false;
 }
 
+// Returns true if the given expression contains any function calls
 bool containsFunctionCalls(const Expr *E)
 {
     if (!E)
@@ -109,6 +116,9 @@ bool containsFunctionCalls(const Expr *E)
     return false;
 }
 
+// Returns a pointer to the last-defined global var references in the
+// given expression, or nullptr if the expression does not reference any
+// global vars
 const VarDecl *findLastDefinedGlobalVar(const Expr *E)
 {
     const VarDecl *result = nullptr;
@@ -142,6 +152,8 @@ const VarDecl *findLastDefinedGlobalVar(const Expr *E)
     return result;
 }
 
+// Returns true if the two Stmts have the same structure, false
+// otherwise
 bool compareTrees(ASTContext &Ctx, const Stmt *S1, const Stmt *S2)
 {
     // TODO: Check for semantic equivalence, right now this
@@ -168,6 +180,9 @@ bool compareTrees(ASTContext &Ctx, const Stmt *S1, const Stmt *S2)
     return it1 == S1->child_end() && it2 == S2->child_end();
 }
 
+// Returns true if the given Stmt and all its sub Stmts have a spelling
+// location in range of any of the source ranges in the given
+// SourceRangeCollection
 bool StmtAndSubStmtsSpelledInRanges(ASTContext &Ctx, const Stmt *S,
                                     SourceRangeCollection &Ranges)
 {
@@ -194,6 +209,7 @@ bool StmtAndSubStmtsSpelledInRanges(ASTContext &Ctx, const Stmt *S,
     return true;
 }
 
+// Returns true if the given expression references any local variables
 bool containsLocalVars(ASTContext &Ctx, const Expr *E)
 {
     if (!E)
@@ -223,6 +239,8 @@ bool containsLocalVars(ASTContext &Ctx, const Expr *E)
     return false;
 }
 
+// Returns true if the given expression contains the unary address of (&)
+// operator
 bool containsAddressOf(const Expr *E)
 {
     if (!E)
@@ -248,6 +266,8 @@ bool containsAddressOf(const Expr *E)
     return false;
 }
 
+// Returns true if the given Decl is a top-level Decl;
+// i.e., it does not appear within a function
 bool isaTopLevelDecl(ASTContext &Ctx, const Decl *D)
 {
     if (!D)
@@ -268,6 +288,8 @@ bool isaTopLevelDecl(ASTContext &Ctx, const Decl *D)
     return false;
 }
 
+// Returns true if the given Decl is const-qualified
+// or for a static local variable
 bool isaStaticOrConstDecl(ASTContext &Ctx, const Decl *D)
 {
     if (!D)
@@ -315,7 +337,10 @@ bool mustBeConstExpr(ASTContext &Ctx, const Stmt *S)
     return false;
 }
 
-void collectLocalVarDeclRefExprs(const Expr *E, vector<const DeclRefExpr *> *DREs)
+// Finds all the references to local vars in the given expression, and pushes
+// them all to the back of the given vector
+void collectLocalVarDeclRefExprs(const Expr *E,
+                                 vector<const DeclRefExpr *> *DREs)
 {
     if (!E)
     {
@@ -339,6 +364,7 @@ void collectLocalVarDeclRefExprs(const Expr *E, vector<const DeclRefExpr *> *DRE
     }
 }
 
+// Returns true if the given Stmt referenceds any decls
 bool containsDeclRefExpr(const Stmt *S, const DeclRefExpr *DRE)
 {
     assert(DRE != nullptr);
@@ -385,6 +411,9 @@ const FunctionDecl *getFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S
     return nullptr;
 }
 
+// Returns true if the given expansion is hygienic.
+// If it's not, records the reason why not in the given map
+// TODO: Decide which checks to include when checking for hygiene
 bool isExpansionHygienic(ASTContext *Ctx,
                          Preprocessor &PP,
                          MacroForest::Node *TopLevelExpansion,
