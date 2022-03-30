@@ -7,9 +7,9 @@ PROJECT_AGGREGATED_RESULTS_DIR=$STATS_DIR/project_aggregated_results
 ALL_AGGREGATED_RESULTS_DIR=$STATS_DIR/all_aggregated_results
 
 declare -A EVALUATION_SCRIPT_PROJECT_DIR=(
-    ["evaluate-tiny-regex.sh"]="tiny-regex"
-    ["evaluate-tiny-HMAC.sh"]="tiny-HMAC"
-    ["evaluate-tiny-lint.sh"]="tiny-lint"
+    # ["evaluate-tiny-regex.sh"]="tiny-regex"
+    # ["evaluate-tiny-HMAC.sh"]="tiny-HMAC"
+    # ["evaluate-tiny-lint.sh"]="tiny-lint"
     ["evaluate-remind.sh"]="remind-03.04.02"
     ["evaluate-lua.sh"]="lua-5.4.4"
     ["evaluate-bc.sh"]="bc-1.07"
