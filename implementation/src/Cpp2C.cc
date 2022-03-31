@@ -393,8 +393,6 @@ public:
                 continue;
             }
 
-            //// Transform the expansion
-
             auto ST = *TopLevelExpansion->Stmts.begin();
             auto E = dyn_cast_or_null<Expr>(ST);
             assert(E != nullptr);
@@ -415,6 +413,103 @@ public:
                 NewTransformedDefinition(Ctx, TopLevelExpansion,
                                          TransformToVar);
 
+            // Don't transform expansions which:
+            // 1) Change the R-value associated with the L-value of a symbol
+            //    in one of their arguments
+            // 2) Retrieve the L-value of a symbol in one of their arguments
+            bool writesToRValueFromArg = false;
+            bool readsLValueFromArg = false;
+            set<const Stmt *> LValuesFromArgs;
+            set<const Stmt *> StmtsThatChangeRValue;
+            set<const Stmt *> StmtsThatReadLValue;
+            for (auto &&it : TopLevelExpansion->Arguments)
+            {
+                collectLValuesSpelledInRange(Ctx, ST, it.TokenRanges, &LValuesFromArgs);
+            }
+
+            collectStmtsThatChangeRValue(ST, &StmtsThatChangeRValue);
+            for (auto &&StmtThatChangesRValue : StmtsThatChangeRValue)
+            {
+                for (auto &&LVal : LValuesFromArgs)
+                {
+                    if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(StmtThatChangesRValue))
+                    {
+
+                        if (containsStmt(UO, LVal))
+                        {
+                            writesToRValueFromArg = true;
+                            break;
+                        }
+                    }
+                    else if (auto BO = dyn_cast_or_null<BinaryOperator>(StmtThatChangesRValue))
+                    {
+                        if (containsStmt(BO->getLHS(), LVal))
+                        {
+                            writesToRValueFromArg = true;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        // NOTE: This shouldn't happen? What do we do here?
+                    }
+                }
+                if (writesToRValueFromArg)
+                {
+                    break;
+                }
+            }
+            if (writesToRValueFromArg)
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it writes to an R-value from "
+                           << "from its arguments\n";
+                }
+                // TODO: Emit stats
+                // Stats[] += 1;
+                continue;
+            }
+
+            collectStmtsThatReadLValue(ST, &StmtsThatReadLValue);
+            for (auto &&StmtThatReadsLValue : StmtsThatReadLValue)
+            {
+                for (auto &&LVal : LValuesFromArgs)
+                {
+
+                    if (containsStmt(StmtThatReadsLValue, LVal))
+                    {
+                        readsLValueFromArg = true;
+                        break;
+                    }
+                }
+                if (readsLValueFromArg)
+                {
+                    break;
+                }
+            }
+            if (readsLValueFromArg)
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it reads an L-value from "
+                           << "from its arguments\n";
+                }
+                // TODO: Emit stats
+                // Stats[] += 1;
+                continue;
+            }
+
+            // Don't transform expansions which would be transformed to vars,
+            // but contain function calls in their initializers
             if (TD.IsVar && containsFunctionCalls(E))
             {
                 if (Cpp2CSettings.Verbose)
@@ -510,7 +605,7 @@ public:
                 while (Parents.size() > 0)
                 {
                     auto P = Parents[0];
-                    if (auto UO = P.get<UnaryOperator>())
+                    if (auto UO = P.get<clang::UnaryOperator>())
                     {
                         if (UO->isIncrementDecrementOp())
                         {
@@ -536,11 +631,10 @@ public:
                 }
             }
 
-            // Check that type is not a function pointer or void pointer
-            if (TD.VarOrReturnType.getTypePtr() &&
-                TD.VarOrReturnType.getTypePtr()->isFunctionPointerType())
+            // Check that the transformed definition does not have a
+            // is not a function pointer type
+            if (TD.hasFunctionTypes())
             {
-
                 if (Cpp2CSettings.Verbose)
                 {
                     errs() << "Not transforming "
@@ -585,6 +679,8 @@ public:
                 Stats[TransformationLocationNotRewritable] += 1;
                 continue;
             }
+
+            //// Transform the expansion
 
             // If an identical transformation for this expansion exists,
             // use it; otherwise generate a unique name for this transformation

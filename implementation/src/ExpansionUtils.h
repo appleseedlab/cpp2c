@@ -209,6 +209,104 @@ bool StmtAndSubStmtsSpelledInRanges(ASTContext &Ctx, const Stmt *S,
     return true;
 }
 
+void collectLValuesSpelledInRange(ASTContext &Ctx,
+                                  const Stmt *S,
+                                  SourceRangeCollection &Ranges,
+                                  set<const Stmt *> *LValuesFromArgs)
+{
+    if (!S)
+    {
+        return;
+    }
+
+    if (auto E = dyn_cast_or_null<Expr>(S))
+    {
+        if (E->isLValue())
+        {
+            if (StmtAndSubStmtsSpelledInRanges(Ctx, S, Ranges))
+            {
+                LValuesFromArgs->insert(S);
+            }
+        }
+    }
+
+    for (auto &&it : S->children())
+    {
+        collectLValuesSpelledInRange(Ctx, it, Ranges, LValuesFromArgs);
+    }
+}
+
+bool containsStmt(const Stmt *Haystack, const Stmt *Needle)
+{
+    if (!Haystack)
+    {
+        return false;
+    }
+    if (Haystack == Needle)
+    {
+        return true;
+    }
+    for (auto &&it : Haystack->children())
+    {
+        if (containsStmt(it, Needle))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void collectStmtsThatChangeRValue(const Stmt *S,
+                                  set<const Stmt *> *StmtsThatChangeRValue)
+{
+    if (!S)
+    {
+        return;
+    }
+
+    if (auto BO = dyn_cast_or_null<BinaryOperator>(S))
+    {
+        if (BO->isAssignmentOp())
+        {
+            StmtsThatChangeRValue->insert(S);
+        }
+    }
+    else if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(S))
+    {
+        if (UO->isIncrementDecrementOp())
+        {
+            StmtsThatChangeRValue->insert(S);
+        }
+    }
+
+    for (auto &&it : S->children())
+    {
+        collectStmtsThatChangeRValue(it, StmtsThatChangeRValue);
+    }
+}
+
+void collectStmtsThatReadLValue(const Stmt *S,
+                                set<const Stmt *> *StmtsThatReadLValue)
+{
+    if (!S)
+    {
+        return;
+    }
+
+    else if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(S))
+    {
+        if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
+        {
+            StmtsThatReadLValue->insert(S);
+        }
+    }
+
+    for (auto &&it : S->children())
+    {
+        collectStmtsThatChangeRValue(it, StmtsThatReadLValue);
+    }
+}
+
 // Returns true if the given expression references any local variables
 bool containsLocalVars(ASTContext &Ctx, const Expr *E)
 {
@@ -248,9 +346,9 @@ bool containsAddressOf(const Expr *E)
         return false;
     }
 
-    if (auto UO = dyn_cast_or_null<UnaryOperator>(E))
+    if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(E))
     {
-        if (UO->getOpcode() == UnaryOperator::Opcode::UO_AddrOf)
+        if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
         {
             return true;
         }
@@ -680,18 +778,18 @@ bool isExpansionHygienic(ASTContext *Ctx,
         return false;
     }
 
-    // Check that the expansion does not contain side-effects
-    if (E->HasSideEffects(*Ctx))
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because its expression had side-effects\n";
-        }
-        Stats[TopLevelExpansionsWithSideEffects] += 1;
-        return false;
-    }
+    // // Check that the expansion does not contain side-effects
+    // if (E->HasSideEffects(*Ctx))
+    // {
+    //     if (Verbose)
+    //     {
+    //         errs() << "Skipping expansion of "
+    //                << TopLevelExpansion->Name
+    //                << " because its expression had side-effects\n";
+    //     }
+    //     Stats[TopLevelExpansionsWithSideEffects] += 1;
+    //     return false;
+    // }
 
     return true;
 }
