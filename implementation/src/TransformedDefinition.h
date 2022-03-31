@@ -34,6 +34,8 @@ struct TransformedDefinition
     bool hasNonBuiltinTypes();
 
     bool hasArrayTypes();
+
+    bool hasFunctionTypes();
 };
 
 struct TransformedDefinition NewTransformedDefinition(
@@ -78,19 +80,6 @@ struct TransformedDefinition NewTransformedDefinition(
     return TD;
 }
 
-void replaceBracketsWithPointer(string *s)
-{
-    size_t indexOfLBracket = s->find("[");
-    // If the type of the var/function is an array, change it to a pointer
-    if (indexOfLBracket != string::npos)
-    {
-        auto indexOfRBracket = s->find_last_of("]");
-        assert(indexOfRBracket != string::npos);
-        s->replace(indexOfLBracket,
-                   indexOfRBracket - indexOfLBracket + 1, "*");
-    }
-}
-
 string TransformedDefinition::getExpansionSignatureOrDeclaration(ASTContext &Ctx)
 {
     assert(expansionHasUnambiguousSignature(Ctx, this->Expansion));
@@ -98,8 +87,6 @@ string TransformedDefinition::getExpansionSignatureOrDeclaration(ASTContext &Ctx
 
     // Decls begin with the type of the var/return type of function
     string Signature = this->VarOrReturnType.getAsString();
-
-    replaceBracketsWithPointer(&Signature);
 
     Signature += " " + this->EmittedName;
 
@@ -110,14 +97,14 @@ string TransformedDefinition::getExpansionSignatureOrDeclaration(ASTContext &Ctx
         unsigned i = 0;
         for (auto &&Arg : Expansion->Arguments)
         {
-            QualType ArgType =
-                getDesugaredCanonicalType(Ctx, *(Arg.Stmts.begin()));
             if (i >= 1)
             {
                 Signature += ", ";
             }
+            QualType ArgType =
+                getDesugaredCanonicalType(Ctx, *(Arg.Stmts.begin()));
             string TString = ArgType.getAsString();
-            replaceBracketsWithPointer(&TString);
+            // NOTE: This doesn't work for function types
             Signature += TString + " " + Arg.Name;
             i += 1;
         }
@@ -164,6 +151,29 @@ bool TransformedDefinition::hasArrayTypes()
         if (auto T = it.getTypePtr())
         {
             if (T->isArrayType())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool TransformedDefinition::hasFunctionTypes()
+{
+    if (auto T = this->VarOrReturnType.getTypePtr())
+    {
+        if (T->isFunctionPointerType() || T->isFunctionType())
+        {
+            return true;
+        }
+    }
+
+    for (auto &&it : this->ArgTypes)
+    {
+        if (auto T = it.getTypePtr())
+        {
+            if (T->isFunctionPointerType() || T->isFunctionType())
             {
                 return true;
             }
