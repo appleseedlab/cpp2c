@@ -511,13 +511,15 @@ const FunctionDecl *getFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S
 
 // Returns true if the given expansion is hygienic.
 // If it's not, records the reason why not in the given map
-// TODO: Decide which checks to include when checking for hygiene
+// NOTE: We define hygienic macros as those which meet the following conditions:
+//       1) The entire expansions maps to a single argument
+//       2) Their arguments expand to a single expression
+//       3) They do not capture variables from their environment
 bool isExpansionHygienic(ASTContext *Ctx,
                          Preprocessor &PP,
                          MacroForest::Node *TopLevelExpansion,
                          map<string, unsigned> &Stats,
-                         bool Verbose,
-                         set<string> &MultiplyDefinedMacros)
+                         bool Verbose)
 {
     // Check that the expansion maps to a single expansion
     if (TopLevelExpansion->SubtreeNodes.size() < 1)
@@ -536,7 +538,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
     // Check if macro contains nested expansions
     if (TopLevelExpansion->SubtreeNodes.size() > 1)
     {
-        Stats[TopLevelExpansionsWithMultipleExpansionRoots] += 1;
+        Stats[TopLevelExpansionsWithNestedExpansions] += 1;
     }
 
     // Check that the expansion maps to a single AST expression
@@ -609,7 +611,7 @@ bool isExpansionHygienic(ASTContext *Ctx,
 
     // It would be better to check that the number of tokens in the
     // expression is >= to the number of tokens in the macro
-    // definition, but we don't an easy way of accessing the number
+    // definition, but we don't have an easy way of accessing the number
     // of tokens in an arbitrary expression
     if (!PP.isAtEndOfMacroExpansion(E->getEndLoc()))
     {
@@ -621,21 +623,6 @@ bool isExpansionHygienic(ASTContext *Ctx,
                       "end of its expansion\n";
         }
         Stats[TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion] += 1;
-        return false;
-    }
-
-    // Check that expanded macro is not multiply defined
-    if (MultiplyDefinedMacros.find(TopLevelExpansion->Name) !=
-        MultiplyDefinedMacros.end())
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because the macro is multiply-defined or "
-                   << "redefined \n";
-        }
-        Stats[TopLevelExpansionsOfMultiplyDefinedMacros] += 1;
         return false;
     }
 
@@ -760,36 +747,18 @@ bool isExpansionHygienic(ASTContext *Ctx,
                            << "that did not come from its arguments\n";
                 }
                 Stats[TopLevelExpansionsWithLocalVarsInBody] += 1;
+                if (TopLevelExpansion->MI->isObjectLike())
+                {
+                    Stats[OLMsWithLocalVarsInBody] += 1;
+                }
+                else
+                {
+                    Stats[FLMsWithLocalVarsInBody] += 1;
+                }
                 return false;
             }
         }
     }
-
-    // Check that the expansion does not contain the address (&) operator
-    if (containsAddressOf(E))
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because its expression contained address of (&) \n";
-        }
-        Stats[TopLevelExpansionsWithAddressOf] += 1;
-        return false;
-    }
-
-    // // Check that the expansion does not contain side-effects
-    // if (E->HasSideEffects(*Ctx))
-    // {
-    //     if (Verbose)
-    //     {
-    //         errs() << "Skipping expansion of "
-    //                << TopLevelExpansion->Name
-    //                << " because its expression had side-effects\n";
-    //     }
-    //     Stats[TopLevelExpansionsWithSideEffects] += 1;
-    //     return false;
-    // }
 
     return true;
 }

@@ -350,47 +350,95 @@ public:
         set<string> TransformedPrototypes;
         set<pair<string, const FunctionDecl *>> TransformedDefinitionsAndFunctionDeclExpandedIn;
 
-        // Step 4: Transform hygienic macros.
+        // Step 4: Transform hygienic and transformable macros.
         if (Cpp2CSettings.Verbose)
         {
-            errs() << "Step 4: Transform hygienic macros \n";
+            errs() << "Step 4: Transform hygienic and transformable macros \n";
         }
 
         for (auto TopLevelExpansion : ExpansionRoots)
         {
-            // Don't transform expansions appearing where a const expr
-            // is required
-            bool NeedConst =
-                mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin());
 
-            // Don't transform unhygienic expansions
-            if (NeedConst ||
-                !isExpansionHygienic(&Ctx, PP, TopLevelExpansion, Stats,
-                                     Cpp2CSettings.Verbose,
-                                     MultiplyDefinedMacros))
+            // Check that expanded macro is not multiply defined or redefined
+            if (MultiplyDefinedMacros.find(TopLevelExpansion->Name) !=
+                MultiplyDefinedMacros.end())
             {
-                if (NeedConst)
+                if (Cpp2CSettings.Verbose)
                 {
-                    if (Cpp2CSettings.Verbose)
-                    {
-                        errs() << "Not transforming expansion of "
-                               << TopLevelExpansion->Name + " @ "
-                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                               << " because needed to be a const expr\n";
-                    }
-                    Stats[ConstExprExpansionsFound] += 1;
+                    errs() << "Skipping expansion of "
+                           << TopLevelExpansion->Name
+                           << " because the macro is multiply-defined or "
+                           << "redefined \n";
                 }
-
-                Stats[UntransformedTopLevelExpansions] += 1;
+                Stats[TopLevelExpansionsOfMultiplyOrRedefinedDefinedMacros] += 1;
                 if (TopLevelExpansion->MI->isObjectLike())
                 {
-                    Stats[UntransformedTopLevelObjectLikeMacroExpansions] += 1;
+                    Stats[MultiplyOrRedefinedOLMExpansions] += 1;
                 }
                 else
                 {
-                    Stats[UntransformedTopLevelFunctionLikeMacroExpansions] += 1;
+                    Stats[MultiplyOrRedefinedFLMExpansions] += 1;
                 }
                 continue;
+            }
+
+            {
+                auto E = dyn_cast_or_null<Expr>(*TopLevelExpansion->Stmts.begin());
+                if (E && E->HasSideEffects(Ctx))
+                {
+                    Stats[TopLevelExpansionsWithSideEffects] += 1;
+                    if (TopLevelExpansion->MI->isObjectLike())
+                    {
+                        Stats[TopLevelOLMExpansionsWithSideEffects] += 1;
+                    }
+                    else
+                    {
+                        Stats[TopLevelFLMExpansionsWithSideEffects] += 1;
+                    }
+                }
+            }
+
+            // Don't transform expansions appearing where a const expr
+            // is required
+            if (mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin()))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming expansion of "
+                           << TopLevelExpansion->Name + " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because needed to be a const expr\n";
+                }
+                Stats[ConstExprExpansionsFound] += 1;
+                continue;
+            }
+
+            // Don't transform unhygienic expansions
+            if (!isExpansionHygienic(&Ctx, PP, TopLevelExpansion, Stats,
+                                     Cpp2CSettings.Verbose))
+            {
+                Stats[TopLevelUnhygienicExpansions] += 1;
+                if (TopLevelExpansion->MI->isObjectLike())
+                {
+                    Stats[UnhygienicOLMs] += 1;
+                }
+                else
+                {
+                    Stats[UnhygienicFLMs] += 1;
+                }
+                continue;
+            }
+            else
+            {
+                Stats[HygienicExpansions] += 1;
+                if (TopLevelExpansion->MI->isObjectLike())
+                {
+                    Stats[HygienicOLMExpansions] += 1;
+                }
+                else
+                {
+                    Stats[HygienicFLMExpansions] += 1;
+                }
             }
 
             auto ST = *TopLevelExpansion->Stmts.begin();
@@ -470,8 +518,7 @@ public:
                            << " because it writes to an R-value from "
                            << "from its arguments\n";
                 }
-                // TODO: Emit stats
-                // Stats[] += 1;
+                Stats[TopLevelExpansionsThatWriteToRValueFromSymbolInArgument] += 1;
                 continue;
             }
 
@@ -503,8 +550,7 @@ public:
                            << " because it reads an L-value from "
                            << "from its arguments\n";
                 }
-                // TODO: Emit stats
-                // Stats[] += 1;
+                Stats[TopLevelExpansionsThatReadFromLValueFromSymbolInArgument] += 1;
                 continue;
             }
 
@@ -629,6 +675,54 @@ public:
                     Stats[TopLevelExpansionsTransformedToFunctionCallAsOperandOfDecOrInc] += 1;
                     continue;
                 }
+
+                // Check that function call is not the operand of address of
+                // (&)
+                Parents = Ctx.getParents(*E);
+                bool isOperandOfAddressOf = false;
+                while (Parents.size() > 0)
+                {
+                    auto P = Parents[0];
+                    if (auto UO = P.get<clang::UnaryOperator>())
+                    {
+                        if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
+                        {
+                            isOperandOfAddressOf = true;
+                            break;
+                        }
+                    }
+                    Parents = Ctx.getParents(P);
+                }
+                if (isOperandOfAddressOf)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        errs() << "Not transforming "
+                               << TopLevelExpansion->Name
+                               << " @ "
+                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                               << " because it was a function call used as "
+                               << "an L-value\n";
+                    }
+                    Stats[TopLevelExpansionsTransformedToFunctionCallAsOperandOfAddressOf] += 1;
+                    continue;
+                }
+            }
+
+            // Check that the expansion does not contain the address (&) operator
+            // FIXME: We shouldn't need this check, but for some reason
+            // lua tests crash without it...
+            if (containsAddressOf(E))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Skipping expansion of "
+                           << TopLevelExpansion->Name
+                           << " because its expression contained the "
+                           << "address of (&) operator\n";
+                }
+                Stats[TopLevelExpansionsWithAddressOf] += 1;
+                continue;
             }
 
             // Check that the transformed definition does not have a
@@ -748,6 +842,14 @@ public:
                                   "definition already exists\n";
                 }
                 Stats[DedupedDefinitions] += 1;
+                if (TopLevelExpansion->MI->isObjectLike())
+                {
+                    Stats[DedupedOLMDefinitions] += 1;
+                }
+                else
+                {
+                    Stats[DedupedFLMDefinitions] += 1;
+                }
             }
             // Otherwise, we need to generate a unique name for this
             // transformation and emit its definition
@@ -784,6 +886,14 @@ public:
                     .push_back(TD);
 
                 Stats[EmittedDefinitions] += 1;
+                if (TopLevelExpansion->MI->isObjectLike())
+                {
+                    Stats[EmittedOLMDefinitions] += 1;
+                }
+                else
+                {
+                    Stats[EmittedFLMDefinitions] += 1;
+                }
             }
 
             // Rewrite the invocation into a function call or var ref
@@ -823,6 +933,19 @@ public:
             else
             {
                 Stats[TransformedTopLevelFunctionLikeMacroExpansions] += 1;
+            }
+
+            if (E->HasSideEffects(Ctx))
+            {
+                Stats[TransformedTopLevelExpansionsWithSideEffects] += 1;
+                if (TopLevelExpansion->MI->isObjectLike())
+                {
+                    Stats[TransformedOLMExpansionsWithSideEffects] += 1;
+                }
+                else
+                {
+                    Stats[TransformedFLMExpansionsWithSideEffects] += 1;
+                }
             }
         }
 
