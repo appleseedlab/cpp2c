@@ -129,7 +129,6 @@ Inductive TransformExpr :
       a macro invocation. Since we stipulate that the argument is side-effect
       free, however, and treat all macro invocations as having side-effects,
       this cannot happen. *)
-  (*  TODO: Transform macro arguments? *)
   | Transform_Macro :
     forall  M F F' x params mexpr mexpr' es newdef
             fname Fresult Fesresult F'' es' S'0 es'0,
@@ -138,9 +137,6 @@ Inductive TransformExpr :
 
     (*  The macro arguments contain no side-effects *)
     ExprListNoSideEffects es ->
-
-    (*  mexpr has no side-effects *)
-    ExprNoSideEffects mexpr ->
 
     (*  Assert that we could evaluate this macro's arguments *)
     (forall S E G v1 S',
@@ -203,10 +199,6 @@ Inductive TransformExpr :
         (we could prove this if were to define side-effect
         freedom inductively, but that's beyond the scope of this proof *)
     ExprListNoSideEffects es' ->
-
-    (*  The transformed macro body does not have side-effects
-        (again, we could prove this but it should be obvious *)
-    ExprNoSideEffects mexpr' ->
 
     (* Add the transformed function definition to the function table *)
     ~ StringMap.In fname M ->
