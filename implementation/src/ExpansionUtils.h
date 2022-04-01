@@ -303,7 +303,7 @@ void collectStmtsThatReadLValue(const Stmt *S,
 
     for (auto &&it : S->children())
     {
-        collectStmtsThatChangeRValue(it, StmtsThatReadLValue);
+        collectStmtsThatReadLValue(it, StmtsThatReadLValue);
     }
 }
 
