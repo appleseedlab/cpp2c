@@ -13,7 +13,7 @@ class MacroNameCollector : public PPCallbacks
 private:
     set<string> &MacroNames;
     set<string> &MultiplyDefinedMacros;
-    map<string, unsigned> &MacroNameTypeToCount;
+    map<string, unsigned> &MacroNameTypeToTransformedDefinitionCount;
 
 public:
     MacroNameCollector(set<string> &MacroNames,
@@ -21,7 +21,7 @@ public:
                        map<string, unsigned> &MacroNameTypeToCount)
         : MacroNames(MacroNames),
           MultiplyDefinedMacros(MultiplyDefinedMacros),
-          MacroNameTypeToCount(MacroNameTypeToCount){};
+          MacroNameTypeToTransformedDefinitionCount(MacroNameTypeToCount){};
 
     void MacroDefined(
         const Token &MacroNameTok, const MacroDirective *MD) override
@@ -40,11 +40,7 @@ public:
                 key += "+";
                 key += MI->isObjectLike() ? "ObjectLike" : "FunctionLike";
             }
-            if (MacroNameTypeToCount.find(key) == MacroNameTypeToCount.end())
-            {
-                MacroNameTypeToCount[key] = 0;
-            }
-            MacroNameTypeToCount[key] += 1;
+            MacroNameTypeToTransformedDefinitionCount[key] = 0;
         }
     }
 };

@@ -183,7 +183,7 @@ private:
     MacroForest::Roots ExpansionRoots;
     set<string> MacroNames;
     set<string> MultiplyDefinedMacros;
-    map<string, unsigned> MacroNameTypeToCount;
+    map<string, unsigned> MacroNameTypeToTransformedDefinitionCount;
 
     // To give it access to members
     friend class PluginCpp2CAction;
@@ -370,7 +370,8 @@ public:
             MacroDefinitionLocationToTransformedDefinition;
 
         set<string> TransformedPrototypes;
-        set<pair<string, const FunctionDecl *>> TransformedDefinitionsAndFunctionDeclExpandedIn;
+        set<pair<string, const FunctionDecl *>>
+            TransformedDefinitionsAndFunctionDeclExpandedIn;
 
         // Step 4: Transform hygienic and transformable macros.
         if (Cpp2CSettings.Verbose)
@@ -888,6 +889,16 @@ public:
 
                 TransformedPrototypes.insert(TransformedSignature + ";");
                 TransformedDefinitionsAndFunctionDeclExpandedIn.emplace(FullTransformationDefinition, FD);
+                // Record the number of unique definitions emitted for this
+                // macro definition
+                // NOTE: This is coupled with MacroNameCollector.h
+                // We have to generate the map key in the same way
+                {
+                    string key = TopLevelExpansion->Name;
+                    key += "+";
+                    key += TopLevelExpansion->MI->isObjectLike() ? "ObjectLike" : "FunctionLike";
+                    MacroNameTypeToTransformedDefinitionCount[key] += 1;
+                }
 
                 MacroDefinitionLocationToTransformedDefinition[TD.Expansion->MI->getDefinitionLoc()]
                     .push_back(TD);
@@ -1010,7 +1021,8 @@ public:
         // Dump the macro definition stats to JSON
         if (Cpp2CSettings.MacroDefinitionStatsFile != nullptr)
         {
-            printMapToJSON(*(Cpp2CSettings.MacroDefinitionStatsFile), MacroNameTypeToCount);
+            printMapToJSON(*(Cpp2CSettings.MacroDefinitionStatsFile),
+                           MacroNameTypeToTransformedDefinitionCount);
             Cpp2CSettings.MacroDefinitionStatsFile->flush();
         }
     }
@@ -1031,7 +1043,7 @@ protected:
         MacroNameCollector *MNC = new MacroNameCollector(
             Cpp2C->MacroNames,
             Cpp2C->MultiplyDefinedMacros,
-            Cpp2C->MacroNameTypeToCount);
+            Cpp2C->MacroNameTypeToTransformedDefinitionCount);
         MacroForest *MF = new MacroForest(CI, Cpp2C->ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
