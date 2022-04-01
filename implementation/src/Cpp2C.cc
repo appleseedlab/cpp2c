@@ -39,6 +39,7 @@ struct PluginSettings
     bool Verbose = false;
     bool UnifyMacrosWithSameSignature = false;
     raw_fd_ostream *StatsFile = nullptr;
+    raw_fd_ostream *MacroDefinitionStatsFile = nullptr;
 };
 
 template <typename K, typename V>
@@ -67,6 +68,25 @@ void printMapToCSV(llvm::raw_fd_ostream &os, map<K, V> &csv)
         i++;
     }
     os << "\n";
+}
+
+void printMapToJSON(llvm::raw_fd_ostream &os, map<string, unsigned> &m)
+{
+    os << "{\n";
+    unsigned i = 0;
+    for (auto &&pair : m)
+    {
+        if (i > 0)
+        {
+            os << ",\n";
+        }
+        os << "    \""
+           << pair.first
+           << "\": "
+           << to_string(pair.second);
+        i++;
+    }
+    os << "\n}\n";
 }
 
 // A Matcher callback, that collects all AST Nodes that were matched
@@ -163,6 +183,8 @@ private:
     MacroForest::Roots ExpansionRoots;
     set<string> MacroNames;
     set<string> MultiplyDefinedMacros;
+    map<string, unsigned> MacroNameTypeToCount;
+
     // To give it access to members
     friend class PluginCpp2CAction;
 
@@ -984,6 +1006,13 @@ public:
             printMapToCSV(*(Cpp2CSettings.StatsFile), Stats);
             Cpp2CSettings.StatsFile->flush();
         }
+
+        // Dump the macro definition stats to JSON
+        if (Cpp2CSettings.MacroDefinitionStatsFile != nullptr)
+        {
+            printMapToJSON(*(Cpp2CSettings.MacroDefinitionStatsFile), MacroNameTypeToCount);
+            Cpp2CSettings.MacroDefinitionStatsFile->flush();
+        }
     }
 };
 
@@ -1001,7 +1030,8 @@ protected:
 
         MacroNameCollector *MNC = new MacroNameCollector(
             Cpp2C->MacroNames,
-            Cpp2C->MultiplyDefinedMacros);
+            Cpp2C->MultiplyDefinedMacros,
+            Cpp2C->MacroNameTypeToCount);
         MacroForest *MF = new MacroForest(CI, Cpp2C->ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
@@ -1034,6 +1064,18 @@ protected:
                 ++it;
                 assert(it != args.end());
                 Cpp2CSettings.StatsFile = new raw_fd_ostream(*it, str_err);
+                if (str_err.value() != 0)
+                {
+                    errs() << str_err.message() << '\n';
+                    exit(-1);
+                }
+            }
+            else if (arg == "-dmds" || arg == "-dump-macro-definition-stats")
+            {
+                error_code str_err;
+                ++it;
+                assert(it != args.end());
+                Cpp2CSettings.MacroDefinitionStatsFile = new raw_fd_ostream(*it, str_err);
                 if (str_err.value() != 0)
                 {
                     errs() << str_err.message() << '\n';
