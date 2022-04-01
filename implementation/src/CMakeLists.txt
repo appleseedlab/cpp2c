@@ -35,8 +35,6 @@ add_library(Cpp2C SHARED
   Constants.h
   Cpp2C.cc
   CollectDeclNamesVisitor.h
-  CSubsetExprInCSubset.h
-  CSubsetVisitor.h
   ExpansionUtils.h
   MacroForest.h
   MacroNameCollector.h
