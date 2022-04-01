@@ -150,6 +150,9 @@ int main()
     // Should transform
     DIV(x, y);
 
+    // Should transform
+    DIV(1.0, 2.0);
+
     // Should not transform
     ADDR(x);
 
