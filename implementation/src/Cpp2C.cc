@@ -500,6 +500,7 @@ public:
                     else
                     {
                         // NOTE: This shouldn't happen? What do we do here?
+                        assert(false);
                     }
                 }
                 if (writesToRValueFromArg)
@@ -707,22 +708,6 @@ public:
                     Stats[TopLevelExpansionsTransformedToFunctionCallAsOperandOfAddressOf] += 1;
                     continue;
                 }
-            }
-
-            // Check that the expansion does not contain the address (&) operator
-            // FIXME: We shouldn't need this check, but for some reason
-            // lua tests crash without it...
-            if (containsAddressOf(E))
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Skipping expansion of "
-                           << TopLevelExpansion->Name
-                           << " because its expression contained the "
-                           << "address of (&) operator\n";
-                }
-                Stats[TopLevelExpansionsWithAddressOf] += 1;
-                continue;
             }
 
             // Check that the transformed definition does not have a
