@@ -27,7 +27,7 @@ struct TransformedDefinition
 
     // Gets the signature for this transformed expansion if it's a function;
     // otherwise gets the declaration
-    string getExpansionSignatureOrDeclaration(ASTContext &Ctx);
+    string getExpansionSignatureOrDeclaration(ASTContext &Ctx, bool CanBeAnonymous);
 
     // Returns true if any of the transformed definition's types are
     // user-defined, false otherwise
@@ -80,15 +80,20 @@ struct TransformedDefinition NewTransformedDefinition(
     return TD;
 }
 
-string TransformedDefinition::getExpansionSignatureOrDeclaration(ASTContext &Ctx)
+string TransformedDefinition::getExpansionSignatureOrDeclaration(
+    ASTContext &Ctx,
+    bool CanBeAnonymous)
 {
     assert(expansionHasUnambiguousSignature(Ctx, this->Expansion));
-    assert(this->EmittedName != "");
+    assert(CanBeAnonymous || this->EmittedName != "");
 
     // Decls begin with the type of the var/return type of function
     string Signature = this->VarOrReturnType.getAsString();
 
-    Signature += " " + this->EmittedName;
+    if (EmittedName != "")
+    {
+        Signature += " " + this->EmittedName;
+    }
 
     // If it's not a var, then add formal params
     if (!this->IsVar)
