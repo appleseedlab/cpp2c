@@ -4,28 +4,23 @@ Aggregates transformation data for an evaluation program into a single CSV file
 '''
 
 import csv
+import json
 import os
 import sys
 from collections import defaultdict
 from statistics import mean
 from typing import DefaultDict, Dict, List
 
-TOTAL_EXPANSIONS_HEADER = 'Top Level Expansions In Main File'
-SUCCESSFUL_TRANSFORMATIONS_HEADER = 'Successfully Transformed Top Level Expansions'
-PERCENT_TRANSFORMED_HEADER = 'Percentage of Expansions Transformed'
-NUM_FILES_PROCESSED_HEADER = 'Number of Files Processed'
-TRANSFORMATION_TIME_HEADER = 'Transformation Time (ms)'
-AVG_TRANSFORMATION_TIME_HEADER = 'Average Transformation Time (ms)'
-AVG_EXPANSIONS_PER_FILE = 'Average Top Level Expansions per File in Program'
-FILE_SIZE_HEADER = 'File Size (bytes)'
-AVG_FILE_SIZE_HEADER = 'Average File Size (bytes)'
-AVG_TRANSFORMATIONS_HEADER = 'Average Successfully Transformed Top Level Expansions per File in Program'
-
 
 def print_dict_as_csv(d: Dict, file=sys.stdout) -> None:
     keys = d.keys()
     print(*keys, sep=", ", file=file)
     print(*[d[k] for k in keys], sep=", ", file=file)
+
+
+def json_to_dict(filename: str) -> Dict:
+    with open(filename) as fp:
+        return json.load(fp)
 
 
 def one_row_csv_to_dict(filename: str) -> Dict[str, int]:
@@ -47,67 +42,63 @@ def sum_dict_vals(lhs: DefaultDict[str, int], rhs: Dict[str, int]) -> None:
         lhs[k] += rhs[k]
 
 
-def rounded_mean_or_zero(data: List[int]) -> int:
+def rounded_mean_or_zero(data: List[int], ndigits: int = None) -> int:
     '''Returns the arithmetic mean of the data, or 0 if the data is empty'''
-    return round(mean(data)) if data != [] else 0
+    return round(mean(data), ndigits) if data != [] else 0
 
 
 def main():
     if len(sys.argv) < 2:
-        print('USAGE: python3 aggregate_program_stats.py PROGRAM_DIR',
-              file=sys.stderr)
+        print(
+            'USAGE: python3 aggregate_program_stats.py EVALUATION_RESULTS_DIR',
+            file=sys.stderr)
         exit(1)
-    evaluation_program = sys.argv[1]
-    filenames = os.listdir(evaluation_program)
+    evaluation_results_dir = sys.argv[1]
+    filenames = os.listdir(evaluation_results_dir)
 
     # Collect stats of all transformed files into one CSV
-    aggregated: DefaultDict[str, int] = defaultdict(int)
-    file_stat_dicts = [
-        one_row_csv_to_dict(os.path.join(evaluation_program, filename))
-        for filename in filenames]
-    for file_stat_dict in file_stat_dicts:
-        sum_dict_vals(aggregated, file_stat_dict)
+    aggregated_csv: DefaultDict[str, int] = defaultdict(int)
+    csv_file_stat_dicts = [
+        one_row_csv_to_dict(os.path.join(evaluation_results_dir, filename))
+        for filename in filenames
+        if filename.endswith(".csv")]
+    for file_stat_dict in csv_file_stat_dicts:
+        sum_dict_vals(aggregated_csv, file_stat_dict)
 
-    # # Record the percentage of expansions successfully transformed
-    # total_expansions = aggregated[TOTAL_EXPANSIONS_HEADER]
-    # transformed_expansions = aggregated[SUCCESSFUL_TRANSFORMATIONS_HEADER]
-    # percent_transformed = 0
-    # if total_expansions > 0:
-    #     percent_transformed = transformed_expansions / total_expansions
-    #     percent_transformed *= 100
-    #     percent_transformed = round(percent_transformed)
-    # aggregated[PERCENT_TRANSFORMED_HEADER] = percent_transformed
+    # Collect number of transformed definitions for each original definition
+    # into one JSON
+    aggregated_json: DefaultDict[str, int] = defaultdict(int)
+    json_file_stat_dicts = [
+        json_to_dict(os.path.join(evaluation_results_dir, filename))
+        for filename in filenames
+        if filename.endswith(".json")]
+    for file_stat_dict in json_file_stat_dicts:
+        sum_dict_vals(aggregated_json, file_stat_dict)
 
-    # # Record the number of files processed
-    # aggregated[NUM_FILES_PROCESSED_HEADER] = len(filenames)
+    # Count the number of unique definitions that were emitted, on average,
+    # for each definition that had at least one transformation
+    aggregated_csv['Average Number of Defnitions Emitted per Original Definition that was Transformed At Least Once'] = \
+        rounded_mean_or_zero([v for v in aggregated_json.values() if v > 0], 2)
 
-    # # Record the average file transformation time
-    # transformation_times = [
-    #     d[TRANSFORMATION_TIME_HEADER] for d in file_stat_dicts]
-    # avg_transformation_time = rounded_mean_or_zero(transformation_times)
-    # aggregated[AVG_TRANSFORMATION_TIME_HEADER] = avg_transformation_time
+    aggregated_csv['Greatest Number of Defnitions Emitted per Original Definition'] = \
+        max(aggregated_json.values())
 
-    # # Record the average number of expansions per file in program
-    # expansions_per_file = [
-    #     d[TOTAL_EXPANSIONS_HEADER] for d in file_stat_dicts]
-    # avg_expansions_per_file = rounded_mean_or_zero(expansions_per_file)
-    # aggregated[AVG_EXPANSIONS_PER_FILE] = avg_expansions_per_file
+    aggregated_csv['Average Number of Defnitions Emitted per Original OLM Definition that was Transformed At Least Once'] = \
+        rounded_mean_or_zero(
+            [v for k, v in aggregated_json.items() if 'ObjectLike' in k and v > 0], 2)
 
-    # # Record the average file size
-    # file_sizes = [
-    #     d[FILE_SIZE_HEADER] for d in file_stat_dicts]
-    # avg_file_size = rounded_mean_or_zero(file_sizes)
-    # aggregated[AVG_FILE_SIZE_HEADER] = avg_file_size
+    aggregated_csv['Greatest Number of Defnitions Emitted per Original OLM Definition'] = \
+        max([v for k, v in aggregated_json.items() if 'ObjectLike' in k])
 
-    # # Record the average number of successful top level expansions per file
-    # # in program
-    # num_transformations = [
-    #     d[SUCCESSFUL_TRANSFORMATIONS_HEADER] for d in file_stat_dicts]
-    # avg_num_transformed = rounded_mean_or_zero(num_transformations)
-    # aggregated[AVG_TRANSFORMATIONS_HEADER] = avg_num_transformed
+    aggregated_csv['Average Number of Defnitions Emitted per Original FLM Definition that was Transformed At Least Once'] = \
+        rounded_mean_or_zero(
+            [v for k, v in aggregated_json.items() if 'FunctionLike' in k and v > 0], 2)
+
+    aggregated_csv['Greatest Number of Defnitions Emitted per Original FLM Definition'] = \
+        max([v for k, v in aggregated_json.items() if 'FunctionLike' in k])
 
     # Print the dict in CSV format
-    print_dict_as_csv(aggregated)
+    print_dict_as_csv(aggregated_csv)
 
 
 if __name__ == '__main__':
