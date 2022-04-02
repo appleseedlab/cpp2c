@@ -21,7 +21,7 @@ echo "Unzipping Tiny Regex to $TINY_REGEX_DIR"
 unzip $TINY_REGEX_ZIP
 
 echo "Transforming $TINY_REGEX_DIR/re.c"
-$CPP2_C -fsyntax-only $TINY_REGEX_DIR/re.c -Xclang -plugin-arg-cpp2c -Xclang -overwrite-files -Xclang -plugin-arg-cpp2c -Xclang -dump-stats -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/re.csv
+$CPP2_C -fsyntax-only $TINY_REGEX_DIR/re.c -Xclang -plugin-arg-cpp2c -Xclang -overwrite-files -Xclang -plugin-arg-cpp2c -Xclang -dump-stats -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/re.csv -Xclang -plugin-arg-cpp2c -Xclang -dmds -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/re.json
 
 # Exit prematurely unless arg passed to run tests
 if [ $# -eq 0 ] || [ $1 != '-run-tests' ]; then

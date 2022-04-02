@@ -32,7 +32,7 @@ for FILEPATH in $(find $SRC_DIR -type f -name *.c); do
     FN=$(basename $FILEPATH)
     FN_NO_EXT=${FN%.c}
     echo "Transforming $FILEPATH"
-    $CPP2C -fsyntax-only $FILEPATH -Xclang -plugin-arg-cpp2c -Xclang -overwrite-files -Xclang -plugin-arg-cpp2c -Xclang -dump-stats -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/$FN_NO_EXT.csv
+    $CPP2C -fsyntax-only $FILEPATH -Xclang -plugin-arg-cpp2c -Xclang -overwrite-files -Xclang -plugin-arg-cpp2c -Xclang -dump-stats -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/$FN_NO_EXT.csv -Xclang -plugin-arg-cpp2c -Xclang -dmds -Xclang -plugin-arg-cpp2c -Xclang $CSV_DIR/$FN_NO_EXT.json
 done
 
 # Exit prematurely unless arg passed to run tests
