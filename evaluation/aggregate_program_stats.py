@@ -90,8 +90,26 @@ def main():
             file_stat_dict[k] = set(v)
         union_dict_vals(aggregated_json, file_stat_dict)
 
-    # Count the number of unique definitions that were emitted, on average,
-    # for each definition that had at least one transformation
+    # Record definition stats
+
+    aggregated_csv['Original Definitions Found'] = \
+        len(aggregated_json.keys())
+
+    aggregated_csv['Original OLM Definitions Found'] = \
+        len([k for k in aggregated_json.keys() if k.endswith('ObjectLike')])
+
+    aggregated_csv['Original FLM Definitions Found'] = \
+        len([k for k in aggregated_json.keys() if k.endswith('FunctionLike')])
+
+    aggregated_csv['Unique Emitted Transformed Definitions'] = \
+        sum([len(v) for v in aggregated_json.values()])
+
+    aggregated_csv['Unique Emitted Transformed OLM Definitions'] = \
+        sum([len(v) for k, v in aggregated_json.items() if k.endswith('ObjectLike')])
+
+    aggregated_csv['Unique Emitted Transformed FLM Definitions'] = \
+        sum([len(v) for k, v in aggregated_json.items() if k.endswith('FunctionLike')])
+
     aggregated_csv['Avg # of Unique Defs Emitted per Original Def that was Transformed At Least Once'] = \
         rounded_mean_or_zero(
             [len(v) for v in aggregated_json.values() if len(v) > 0], 2)
