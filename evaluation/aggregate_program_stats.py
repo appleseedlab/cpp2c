@@ -9,7 +9,7 @@ import os
 import sys
 from collections import defaultdict
 from statistics import mean
-from typing import DefaultDict, Dict, List
+from typing import DefaultDict, Dict, List, Set
 
 
 def print_dict_as_csv(d: Dict, file=sys.stdout) -> None:
@@ -42,6 +42,15 @@ def sum_dict_vals(lhs: DefaultDict[str, int], rhs: Dict[str, int]) -> None:
         lhs[k] += rhs[k]
 
 
+def union_dict_vals(lhs: DefaultDict[str, Set[str]], rhs: Dict[str, Set[str]]) -> None:
+    '''
+    Unions the sets of each key in lhs with the set associated with
+    it in rhs, or adds the key in rhs to lhs if it does not exist
+    '''
+    for k in rhs:
+        lhs[k] |= rhs[k]
+
+
 def rounded_mean_or_zero(data: List[int], ndigits: int = None) -> int:
     '''Returns the arithmetic mean of the data, or 0 if the data is empty'''
     return round(mean(data), ndigits) if data != [] else 0
@@ -67,35 +76,42 @@ def main():
 
     # Collect number of transformed definitions for each original definition
     # into one JSON
-    aggregated_json: DefaultDict[str, int] = defaultdict(int)
+    aggregated_json: DefaultDict[str, set] = defaultdict(set)
     json_file_stat_dicts = [
         json_to_dict(os.path.join(evaluation_results_dir, filename))
         for filename in filenames
         if filename.endswith(".json")]
+    # Convert transformed prototype lists to sets
+    for k, v in aggregated_json.items():
+        aggregated_json[k] = set(v)
     for file_stat_dict in json_file_stat_dicts:
-        sum_dict_vals(aggregated_json, file_stat_dict)
+        # Convert transformed prototype lists to sets
+        for k, v in file_stat_dict.items():
+            file_stat_dict[k] = set(v)
+        union_dict_vals(aggregated_json, file_stat_dict)
 
     # Count the number of unique definitions that were emitted, on average,
     # for each definition that had at least one transformation
-    aggregated_csv['Average Number of Defnitions Emitted per Original Definition that was Transformed At Least Once'] = \
-        rounded_mean_or_zero([v for v in aggregated_json.values() if v > 0], 2)
-
-    aggregated_csv['Greatest Number of Defnitions Emitted per Original Definition'] = \
-        max(aggregated_json.values())
-
-    aggregated_csv['Average Number of Defnitions Emitted per Original OLM Definition that was Transformed At Least Once'] = \
+    aggregated_csv['Avg # of Unique Defs Emitted per Original Def that was Transformed At Least Once'] = \
         rounded_mean_or_zero(
-            [v for k, v in aggregated_json.items() if 'ObjectLike' in k and v > 0], 2)
+            [len(v) for v in aggregated_json.values() if len(v) > 0], 2)
 
-    aggregated_csv['Greatest Number of Defnitions Emitted per Original OLM Definition'] = \
-        max([v for k, v in aggregated_json.items() if 'ObjectLike' in k])
+    aggregated_csv['Greatest Number of Unique Defs Emitted per Original Def'] = \
+        max([len(v) for v in aggregated_json.values()])
 
-    aggregated_csv['Average Number of Defnitions Emitted per Original FLM Definition that was Transformed At Least Once'] = \
+    aggregated_csv['Avg # of Unique Defs Emitted per Original OLM Def that was Transformed At Least Once'] = \
         rounded_mean_or_zero(
-            [v for k, v in aggregated_json.items() if 'FunctionLike' in k and v > 0], 2)
+            [len(v) for k, v in aggregated_json.items() if 'ObjectLike' in k and len(v) > 0], 2)
 
-    aggregated_csv['Greatest Number of Defnitions Emitted per Original FLM Definition'] = \
-        max([v for k, v in aggregated_json.items() if 'FunctionLike' in k])
+    aggregated_csv['Greatest Number of Unique Defs Emitted per Original OLM Def'] = \
+        max([len(v) for k, v in aggregated_json.items() if 'ObjectLike' in k])
+
+    aggregated_csv['Avg # of Unique Defs Emitted per Original FLM Def that was Transformed At Least Once'] = \
+        rounded_mean_or_zero(
+            [len(v) for k, v in aggregated_json.items() if 'FunctionLike' in k and len(v) > 0], 2)
+
+    aggregated_csv['Greatest Number of Unique Defs Emitted per Original FLM Def'] = \
+        max([len(v) for k, v in aggregated_json.items() if 'FunctionLike' in k])
 
     # Print the dict in CSV format
     print_dict_as_csv(aggregated_csv)

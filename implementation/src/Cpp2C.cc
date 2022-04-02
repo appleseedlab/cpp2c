@@ -70,7 +70,7 @@ void printMapToCSV(llvm::raw_fd_ostream &os, map<K, V> &csv)
     os << "\n";
 }
 
-void printMapToJSON(llvm::raw_fd_ostream &os, map<string, unsigned> &m)
+void printMapToJSON(llvm::raw_fd_ostream &os, map<string, set<string>> &m)
 {
     os << "{\n";
     unsigned i = 0;
@@ -82,8 +82,21 @@ void printMapToJSON(llvm::raw_fd_ostream &os, map<string, unsigned> &m)
         }
         os << "    \""
            << pair.first
-           << "\": "
-           << to_string(pair.second);
+           << "\": [";
+
+        unsigned j = 0;
+        for (auto &&it : pair.second)
+        {
+            if (j > 0)
+            {
+                os << ", ";
+            }
+            os << '"' << it << '"';
+
+            j++;
+        }
+        os << ']';
+
         i++;
     }
     os << "\n}\n";
@@ -183,7 +196,7 @@ private:
     MacroForest::Roots ExpansionRoots;
     set<string> MacroNames;
     set<string> MultiplyDefinedMacros;
-    map<string, unsigned> MacroNameTypeToTransformedDefinitionCount;
+    map<string, set<string>> MacroNamePlusTypeToTransformedDefinitionPrototypes;
 
     // To give it access to members
     friend class PluginCpp2CAction;
@@ -882,7 +895,7 @@ public:
                 TD.EmittedName = EmittedName;
 
                 string TransformedSignature =
-                    TD.getExpansionSignatureOrDeclaration(Ctx);
+                    TD.getExpansionSignatureOrDeclaration(Ctx, false);
 
                 string FullTransformationDefinition =
                     TransformedSignature + TD.InitializerOrDefinition;
@@ -891,13 +904,17 @@ public:
                 TransformedDefinitionsAndFunctionDeclExpandedIn.emplace(FullTransformationDefinition, FD);
                 // Record the number of unique definitions emitted for this
                 // macro definition
-                // NOTE: This is coupled with MacroNameCollector.h
-                // We have to generate the map key in the same way
                 {
                     string key = TopLevelExpansion->Name;
                     key += "+";
                     key += TopLevelExpansion->MI->isObjectLike() ? "ObjectLike" : "FunctionLike";
-                    MacroNameTypeToTransformedDefinitionCount[key] += 1;
+                    // Set the emitted name to the empty string right before
+                    // recording the signature so that we get an anonymous
+                    // signature
+                    string temp = TD.EmittedName;
+                    TD.EmittedName = "";
+                    MacroNamePlusTypeToTransformedDefinitionPrototypes[key].insert(TD.getExpansionSignatureOrDeclaration(Ctx, true));
+                    TD.EmittedName = temp;
                 }
 
                 MacroDefinitionLocationToTransformedDefinition[TD.Expansion->MI->getDefinitionLoc()]
@@ -1022,7 +1039,7 @@ public:
         if (Cpp2CSettings.MacroDefinitionStatsFile != nullptr)
         {
             printMapToJSON(*(Cpp2CSettings.MacroDefinitionStatsFile),
-                           MacroNameTypeToTransformedDefinitionCount);
+                           MacroNamePlusTypeToTransformedDefinitionPrototypes);
             Cpp2CSettings.MacroDefinitionStatsFile->flush();
         }
     }
@@ -1043,7 +1060,7 @@ protected:
         MacroNameCollector *MNC = new MacroNameCollector(
             Cpp2C->MacroNames,
             Cpp2C->MultiplyDefinedMacros,
-            Cpp2C->MacroNameTypeToTransformedDefinitionCount);
+            Cpp2C->MacroNamePlusTypeToTransformedDefinitionPrototypes);
         MacroForest *MF = new MacroForest(CI, Cpp2C->ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
