@@ -96,40 +96,54 @@ def main():
         len(aggregated_json.keys())
 
     aggregated_csv['Original OLM Definitions Found'] = \
-        len([k for k in aggregated_json.keys() if k.endswith('ObjectLike')])
+        len([k for k in aggregated_json.keys() if k.startswith('ObjectLike')])
 
     aggregated_csv['Original FLM Definitions Found'] = \
-        len([k for k in aggregated_json.keys() if k.endswith('FunctionLike')])
+        len([k for k in aggregated_json.keys() if k.startswith('FunctionLike')])
 
     aggregated_csv['Unique Emitted Transformed Definitions'] = \
         sum([len(v) for v in aggregated_json.values()])
 
     aggregated_csv['Unique Emitted Transformed OLM Definitions'] = \
-        sum([len(v) for k, v in aggregated_json.items() if k.endswith('ObjectLike')])
+        sum([len(v) for k, v in aggregated_json.items() if k.startswith('ObjectLike')])
 
     aggregated_csv['Unique Emitted Transformed FLM Definitions'] = \
-        sum([len(v) for k, v in aggregated_json.items() if k.endswith('FunctionLike')])
+        sum([len(v) for k, v in aggregated_json.items()
+            if k.startswith('FunctionLike')])
+
+    aggregated_csv['Avg # of Unique Defs Emitted per Original Def'] = \
+        rounded_mean_or_zero(
+            [len(v) for v in aggregated_json.values()], 2)
+
+    aggregated_csv['Avg # of Unique Defs Emitted per Original OLM Def'] = \
+        rounded_mean_or_zero(
+            [len(v) for k, v in aggregated_json.items() if k.startswith('ObjectLike')], 2)
+
+    aggregated_csv['Avg # of Unique Defs Emitted per Original FLM Def'] = \
+        rounded_mean_or_zero(
+            [len(v) for k, v in aggregated_json.items() if k.startswith('FunctionLike')], 2)
 
     aggregated_csv['Avg # of Unique Defs Emitted per Original Def that was Transformed At Least Once'] = \
         rounded_mean_or_zero(
             [len(v) for v in aggregated_json.values() if len(v) > 0], 2)
 
-    aggregated_csv['Greatest Number of Unique Defs Emitted per Original Def'] = \
-        max([len(v) for v in aggregated_json.values()])
-
     aggregated_csv['Avg # of Unique Defs Emitted per Original OLM Def that was Transformed At Least Once'] = \
         rounded_mean_or_zero(
-            [len(v) for k, v in aggregated_json.items() if 'ObjectLike' in k and len(v) > 0], 2)
-
-    aggregated_csv['Greatest Number of Unique Defs Emitted per Original OLM Def'] = \
-        max([len(v) for k, v in aggregated_json.items() if 'ObjectLike' in k])
+            [len(v) for k, v in aggregated_json.items() if k.startswith('ObjectLike') and len(v) > 0], 2)
 
     aggregated_csv['Avg # of Unique Defs Emitted per Original FLM Def that was Transformed At Least Once'] = \
         rounded_mean_or_zero(
-            [len(v) for k, v in aggregated_json.items() if 'FunctionLike' in k and len(v) > 0], 2)
+            [len(v) for k, v in aggregated_json.items() if k.startswith('FunctionLike') and len(v) > 0], 2)
+
+    aggregated_csv['Greatest Number of Unique Defs Emitted per Original Def'] = \
+        max([len(v) for v in aggregated_json.values()])
+
+    aggregated_csv['Greatest Number of Unique Defs Emitted per Original OLM Def'] = \
+        max([len(v) for k, v in aggregated_json.items() if k.startswith('ObjectLike')])
 
     aggregated_csv['Greatest Number of Unique Defs Emitted per Original FLM Def'] = \
-        max([len(v) for k, v in aggregated_json.items() if 'FunctionLike' in k])
+        max([len(v) for k, v in aggregated_json.items()
+            if k.startswith('FunctionLike')])
 
     # Print the dict in CSV format
     print_dict_as_csv(aggregated_csv)
