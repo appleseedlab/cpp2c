@@ -196,7 +196,7 @@ private:
     MacroForest::Roots ExpansionRoots;
     set<string> MacroNames;
     set<string> MultiplyDefinedMacros;
-    map<string, set<string>> MacroNamePlusTypeToTransformedDefinitionPrototypes;
+    map<string, set<string>> MacroDefinitionToTransformedDefinitionPrototypes;
 
     // To give it access to members
     friend class PluginCpp2CAction;
@@ -905,15 +905,13 @@ public:
                 // Record the number of unique definitions emitted for this
                 // macro definition
                 {
-                    string key = TopLevelExpansion->Name;
-                    key += "+";
-                    key += TopLevelExpansion->MI->isObjectLike() ? "ObjectLike" : "FunctionLike";
+                    string key = getKey(TopLevelExpansion->MI, SM, LO);
                     // Set the emitted name to the empty string right before
                     // recording the signature so that we get an anonymous
                     // signature
                     string temp = TD.EmittedName;
                     TD.EmittedName = "";
-                    MacroNamePlusTypeToTransformedDefinitionPrototypes[key].insert(TD.getExpansionSignatureOrDeclaration(Ctx, true));
+                    MacroDefinitionToTransformedDefinitionPrototypes[key].insert(TD.getExpansionSignatureOrDeclaration(Ctx, true));
                     TD.EmittedName = temp;
                 }
 
@@ -1039,7 +1037,7 @@ public:
         if (Cpp2CSettings.MacroDefinitionStatsFile != nullptr)
         {
             printMapToJSON(*(Cpp2CSettings.MacroDefinitionStatsFile),
-                           MacroNamePlusTypeToTransformedDefinitionPrototypes);
+                           MacroDefinitionToTransformedDefinitionPrototypes);
             Cpp2CSettings.MacroDefinitionStatsFile->flush();
         }
     }
@@ -1057,10 +1055,14 @@ protected:
         auto &PP = CI.getPreprocessor();
         auto Cpp2C = make_unique<Cpp2CConsumer>(&CI, Cpp2CSettings);
 
+        // Note: There is a little bit of coupling here with getting
+        // the source manager and lang options from the CO
         MacroNameCollector *MNC = new MacroNameCollector(
             Cpp2C->MacroNames,
             Cpp2C->MultiplyDefinedMacros,
-            Cpp2C->MacroNamePlusTypeToTransformedDefinitionPrototypes);
+            Cpp2C->MacroDefinitionToTransformedDefinitionPrototypes,
+            CI.getSourceManager(),
+            CI.getLangOpts());
         MacroForest *MF = new MacroForest(CI, Cpp2C->ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));

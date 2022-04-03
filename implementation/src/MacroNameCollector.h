@@ -7,21 +7,74 @@
 using namespace clang;
 using namespace std;
 
+string getKey(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
+{
+    string key = MI->isObjectLike()
+                     ? "ObjectLike"
+                     : "FunctionLike";
+    key += "+";
+    string def =
+        Lexer::getSourceText(
+            Lexer::getAsCharRange(
+                SourceRange(
+                    MI->getDefinitionLoc(),
+                    MI->getDefinitionEndLoc()),
+                SM, LO),
+            SM, LO)
+            .str();
+    key += def;
+
+    // https://stackoverflow.com/a/26559133/6824430
+    string result;
+    size_t const len(key.length());
+    result.reserve(len + 100); // assume up to 100 double quotes...
+    for (size_t idx(0); idx < len; ++idx)
+    {
+        if (key[idx] == '"')
+        {
+            result += "\\\"";
+        }
+        else if (key[idx] == '\\')
+        {
+            result += "\\\\";
+        }
+        else if (key[idx] == '\n')
+        {
+            result += "";
+        }
+        else if (key[idx] == '\t')
+        {
+            result += "\\t";
+        }
+        else
+        {
+            result += key[idx];
+        }
+    }
+    return result;
+}
+
 class MacroNameCollector : public PPCallbacks
 {
 
 private:
     set<string> &MacroNames;
     set<string> &MultiplyDefinedMacros;
-    map<string, set<string>> &MacroNamePlusTypeToTransformedDefinitionPrototypes;
+    map<string, set<string>> &MacroDefinitionToTransformedDefinitionPrototypes;
+    SourceManager &SM;
+    const LangOptions &LO;
 
 public:
     MacroNameCollector(set<string> &MacroNames,
                        set<string> &MultiplyDefinedMacros,
-                       map<string, set<string>> &MacroNamePlusTypeToTransformedDefinitionPrototypes)
+                       map<string, set<string>> &MacroDefinitionToTransformedDefinitionPrototypes,
+                       SourceManager &SM,
+                       const LangOptions &LO)
         : MacroNames(MacroNames),
           MultiplyDefinedMacros(MultiplyDefinedMacros),
-          MacroNamePlusTypeToTransformedDefinitionPrototypes(MacroNamePlusTypeToTransformedDefinitionPrototypes){};
+          MacroDefinitionToTransformedDefinitionPrototypes(MacroDefinitionToTransformedDefinitionPrototypes),
+          SM(SM),
+          LO(LO){};
 
     void MacroDefined(
         const Token &MacroNameTok, const MacroDirective *MD) override
@@ -35,5 +88,7 @@ public:
                 MultiplyDefinedMacros.insert(MacroName);
             }
         }
+        string key = getKey(MD->getMacroInfo(), SM, LO);
+        MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
     }
 };
