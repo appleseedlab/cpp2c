@@ -30,6 +30,9 @@
 
 #define ADDR(x) &x
 
+#define QUOTE " \
+        "
+
 int main()
 {
     // Should transform
