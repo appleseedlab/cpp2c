@@ -38,6 +38,7 @@ struct PluginSettings
     bool OverwriteFiles = false;
     bool Verbose = false;
     bool UnifyMacrosWithSameSignature = false;
+    bool OnlyCollectNotDefinedInStdHeaders = true;
     raw_fd_ostream *StatsFile = nullptr;
     raw_fd_ostream *MacroDefinitionStatsFile = nullptr;
 };
@@ -228,16 +229,28 @@ public:
         CollectDeclNamesVisitor CDNvisitor(CI, &FunctionNames, &VarNames);
         CDNvisitor.TraverseTranslationUnitDecl(TUD);
 
+        bool OnlyCollectNotDefinedInStdHeaders =
+            Cpp2CSettings.OnlyCollectNotDefinedInStdHeaders;
+
         // Step 0: Remove all Macro Roots that are not expanded
         // in the main file
         ExpansionRoots.erase(
             remove_if(ExpansionRoots.begin(),
                       ExpansionRoots.end(),
-                      [&SM](const MacroForest::Node *N)
+                      [&SM, &OnlyCollectNotDefinedInStdHeaders](const MacroForest::Node *N)
                       {
-                          // Only look at source files
+                          // Only look at expansions source files
                           SourceLocation Loc = N->SpellingRange.getBegin();
-                          return !SM.isInMainFile(Loc) ||
+
+                          // Only look at expansions of macros defined in
+                          // source files (non-builtin macros and non-
+                          // standard header macros)
+                          auto definedInAllowedLocation =
+                              (!OnlyCollectNotDefinedInStdHeaders) ||
+                              (!isInStdHeader(N->MI->getDefinitionLoc(), SM));
+
+                          return !definedInAllowedLocation ||
+                                 !SM.isInMainFile(Loc) ||
                                  SM.isWrittenInScratchSpace(Loc);
                       }),
             ExpansionRoots.end());
@@ -1062,7 +1075,8 @@ protected:
             Cpp2C->MultiplyDefinedMacros,
             Cpp2C->MacroDefinitionToTransformedDefinitionPrototypes,
             CI.getSourceManager(),
-            CI.getLangOpts());
+            CI.getLangOpts(),
+            Cpp2CSettings.OnlyCollectNotDefinedInStdHeaders);
         MacroForest *MF = new MacroForest(CI, Cpp2C->ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
@@ -1088,6 +1102,10 @@ protected:
             else if (arg == "-u" || arg == "--unify-macros-with-different-names")
             {
                 Cpp2CSettings.UnifyMacrosWithSameSignature = true;
+            }
+            else if (arg == "-shm" || arg == "--standard-header-macros")
+            {
+                Cpp2CSettings.OnlyCollectNotDefinedInStdHeaders = false;
             }
             else if (arg == "-ds" || arg == "-dump-stats")
             {

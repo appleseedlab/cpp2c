@@ -7,6 +7,14 @@
 using namespace clang;
 using namespace std;
 
+bool isInStdHeader(SourceLocation L, SourceManager &SM)
+{
+    auto FN = SM.getFilename(L);
+    return (FN.str() == "" ||
+            FN.startswith("/usr/include") ||
+            FN.startswith("/usr/lib"));
+}
+
 string getKey(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
 {
     string key = MI->isObjectLike()
@@ -63,18 +71,21 @@ private:
     map<string, set<string>> &MacroDefinitionToTransformedDefinitionPrototypes;
     SourceManager &SM;
     const LangOptions &LO;
+    bool OnlyCollectNotDefinedInStdHeaders;
 
 public:
     MacroNameCollector(set<string> &MacroNames,
                        set<string> &MultiplyDefinedMacros,
                        map<string, set<string>> &MacroDefinitionToTransformedDefinitionPrototypes,
                        SourceManager &SM,
-                       const LangOptions &LO)
+                       const LangOptions &LO,
+                       bool OnlyCollectNotDefinedInStdHeaders)
         : MacroNames(MacroNames),
           MultiplyDefinedMacros(MultiplyDefinedMacros),
           MacroDefinitionToTransformedDefinitionPrototypes(MacroDefinitionToTransformedDefinitionPrototypes),
           SM(SM),
-          LO(LO){};
+          LO(LO),
+          OnlyCollectNotDefinedInStdHeaders(OnlyCollectNotDefinedInStdHeaders){};
 
     void MacroDefined(
         const Token &MacroNameTok, const MacroDirective *MD) override
@@ -88,7 +99,22 @@ public:
                 MultiplyDefinedMacros.insert(MacroName);
             }
         }
-        string key = getKey(MD->getMacroInfo(), SM, LO);
-        MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
+
+        if (OnlyCollectNotDefinedInStdHeaders)
+        {
+            if (auto MI = MD->getMacroInfo())
+            {
+                if (!isInStdHeader(MI->getDefinitionLoc(), SM))
+                {
+                    string key = getKey(MD->getMacroInfo(), SM, LO);
+                    MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
+                }
+            }
+        }
+        else
+        {
+            string key = getKey(MD->getMacroInfo(), SM, LO);
+            MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
+        }
     }
 };
