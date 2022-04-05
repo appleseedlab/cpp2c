@@ -14,7 +14,7 @@ std::string
     TopLevelExpansionsWithAmbiguousSignature = "Ambiguous Signature",
     TopLevelExpansionsThatDidNotExpandToAnExpression = "Did not Expand to an Expression",
     TopLevelExpansionsWithUnalignedBody = "Unaligned Body",
-    TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion = "Expression not Expansion End",
+    TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion = "Expression End not Expansion End",
     TopLevelExpansionsOfMultiplyOrRedefinedDefinedMacros = "Multiply/Redefined Macro Expansions",
     MultiplyOrRedefinedOLMExpansions = "Multiply/Redefined OLM Expansions",
     MultiplyOrRedefinedFLMExpansions = "Multiply/Redefined FLM Expansions",
@@ -22,10 +22,10 @@ std::string
     TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes = "Mismatching Argument Expansions and AST Nodes",
     TopLevelExpansionsWithInconsistentArgumentExpansions = "Inconsistent Argument Expansions",
     TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges = "Argument AST Nodes have Spelling Locations not in Argument Token Ranges",
-    TopLevelExpansionsWithLocalVarsInBody = "Contains Local Vars",
+    TopLevelExpansionsWithLocalVarsInBody = "Contains Local Vars Expanded From Macro Body",
     TopLevelExpansionsWithSideEffects = "Side-effects",
-    TopLevelOLMExpansionsWithSideEffects = "OLM Expansion with Side-effects",
-    TopLevelFLMExpansionsWithSideEffects = "DLM Expansion with Side-effects",
+    TopLevelOLMExpansionsWithSideEffects = "OLM Expansions with Side-effects",
+    TopLevelFLMExpansionsWithSideEffects = "FLM Expansions with Side-effects",
     TransformedTopLevelExpansions = "Total Transformed Expansions",
     TransformedTopLevelObjectLikeMacroExpansions = "Transformed OLM Expansions",
     TransformedTopLevelFunctionLikeMacroExpansions = "Transformed FLM Expansions",
@@ -60,12 +60,12 @@ std::string
     UnhygienicFLMs = "Unhygienic FLMs",
     OLMsWithLocalVarsInBody = "OLMs With Local Vars In Body",
     FLMsWithLocalVarsInBody = "FLMs With Local Vars In Body",
-    HygienicExpansions = "Hygienic Top Level Expansions",
-    HygienicOLMExpansions = "Hygienic Top Level OLM Expansions",
-    HygienicFLMExpansions = "Hygienic Top Level FLM Expansions",
-    TransformedTopLevelExpansionsWithSideEffects = "Transformed Top Level Expansions With Side-effects",
-    TransformedOLMExpansionsWithSideEffects = "Transformed Top Level OLM Expansions With Side-effects",
-    TransformedFLMExpansionsWithSideEffects = "Transformed Top Level FLM Expansions With Side-effects";
+    HygienicExpansions = "Hygienic Expansions",
+    HygienicOLMExpansions = "Hygienic OLM Expansions",
+    HygienicFLMExpansions = "Hygienic FLM Expansions",
+    TransformedTopLevelExpansionsWithSideEffects = "Transformed Expansions With Side-effects",
+    TransformedOLMExpansionsWithSideEffects = "Transformed OLM Expansions With Side-effects",
+    TransformedFLMExpansionsWithSideEffects = "Transformed FLM Expansions With Side-effects";
 
 std::map<string, unsigned> NewTransformationStats()
 {
