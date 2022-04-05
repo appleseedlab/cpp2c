@@ -431,6 +431,7 @@ public:
                 continue;
             }
 
+            // Check if the expansion has side-effects
             {
                 auto E = dyn_cast_or_null<Expr>(*TopLevelExpansion->Stmts.begin());
                 if (E && E->HasSideEffects(Ctx))
@@ -981,6 +982,7 @@ public:
                 Stats[TransformedTopLevelFunctionLikeMacroExpansions] += 1;
             }
 
+            // Check if we transformed an expansion with side-effects
             if (E->HasSideEffects(Ctx))
             {
                 Stats[TransformedTopLevelExpansionsWithSideEffects] += 1;
