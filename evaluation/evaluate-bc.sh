@@ -24,7 +24,7 @@ tar -xvf $SOURCE_ZIP
 echo "Configuring $PROJECT_NAME"
 cd $SOURCE_DIR
 bash configure
-make
+# make
 cd ..
 
 echo "Transforming C files in $SRC_DIR"

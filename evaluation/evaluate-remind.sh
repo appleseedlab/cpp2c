@@ -21,9 +21,9 @@ fi
 echo "Unzipping Remind to $REMIND_DIR"
 tar -xvf $REMIND_ZIP
 
-echo "Making remind so that config.h is available"
+echo "Configure remind so that config.h is available"
 cd $REMIND_DIR
-make
+bash configure
 cd ..
 
 echo "Transforming C files in $SRC_DIR"

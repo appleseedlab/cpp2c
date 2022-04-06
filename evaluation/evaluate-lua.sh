@@ -41,7 +41,7 @@ if [ $# -eq 0 ] || [ $1 != '-run-tests' ]; then
 fi
 
 if [ ! -f "$TEST_ZIP" ]; then
-    echo "Downloading Lua"
+    echo "Downloading Lua tests"
     wget https://www.lua.org/tests/lua-5.4.4-tests.tar.gz
 fi
 

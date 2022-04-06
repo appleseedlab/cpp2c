@@ -25,7 +25,7 @@ tar -xvf $PROGRAM_ZIP
 echo "Configuring $PROGRAM_NAME"
 cd $PROGRAM_DIR
 bash configure
-make
+# make
 cd ..
 
 echo "Transforming C files in $SRC_DIR"
