@@ -767,6 +767,11 @@ string getNameForExpansionTransformation(SourceManager &SM,
                                          MacroForest::Node *Expansion,
                                          bool TransformToVar)
 {
+    // TODO: Add a flag to optionally prepend the transformed name with
+    // the filepath. If we are only transforming a single compilation unit,
+    // we shouldn't need to prepend the function name with the path
+    // to the file the macro was expanded in. This would make
+    // the transformed definition name cleaner
     string Filename =
         SM.getFilename(Expansion->SpellingRange.getBegin()).str();
 
