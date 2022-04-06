@@ -8,7 +8,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from statistics import mean
+from statistics import mean, median
 from typing import DefaultDict, Dict, List, Set
 
 
@@ -134,6 +134,17 @@ def main():
     aggregated_csv['Avg # of Unique Defs Emitted per Original FLM Def that was Transformed At Least Once'] = \
         rounded_mean_or_zero(
             [len(v) for k, v in aggregated_json.items() if k.startswith('FunctionLike') and len(v) > 0], 2)
+
+    aggregated_csv['# of Original Defs Transformed At Least Once'] = \
+        len([v for v in aggregated_json.values() if len(v) > 0])
+
+    aggregated_csv['# of Original OLM Defs Transformed At Least Once'] = \
+        len([v for k, v in aggregated_json.items()
+            if k.startswith('ObjectLike') and len(v) > 0])
+
+    aggregated_csv['# of Original FLM Defs Transformed At Least Once'] = \
+        len([v for k, v in aggregated_json.items()
+            if k.startswith('FunctionLike') and len(v) > 0])
 
     aggregated_csv['Greatest Number of Unique Defs Emitted per Original Def'] = \
         max([len(v) for v in aggregated_json.values()])
