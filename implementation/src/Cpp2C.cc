@@ -916,10 +916,23 @@ public:
 
                 TransformedPrototypes.insert(TransformedSignature + ";");
                 TransformedDefinitionsAndFunctionDeclExpandedIn.emplace(FullTransformationDefinition, FD);
+                // TODO: Only emit transformed definition if verbose
+                {
+                    TD.EmittedName = "";
+                    string TransformedSignatureNoName =
+                        TD.getExpansionSignatureOrDeclaration(Ctx, true);
+                    errs() << "CPP2C:"
+                           << "Transformed Definition,"
+                           << "\"" << hashMacro(TopLevelExpansion->MI, SM, LO) << "\","
+                           << "\"" << TransformedSignatureNoName << "\""
+                           << ","
+                           << EmittedName << "\n";
+                    TD.EmittedName = EmittedName;
+                }
                 // Record the number of unique definitions emitted for this
                 // macro definition
                 {
-                    string key = getKey(TopLevelExpansion->MI, SM, LO);
+                    string key = hashMacro(TopLevelExpansion->MI, SM, LO);
                     // Set the emitted name to the empty string right before
                     // recording the signature so that we get an anonymous
                     // signature
@@ -971,6 +984,16 @@ public:
             }
             SourceRange InvocationRange = TopLevelExpansion->SpellingRange;
             RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
+
+            // TODO: Only emit transformed expansion if verbose
+            {
+                auto FDecl = getFunctionDeclStmtExpandedIn(Ctx, ST);
+                errs() << "CPP2C:"
+                       << "Transformed Expansion,"
+                       << "\"" << hashMacro(TopLevelExpansion->MI, SM, LO) << "\","
+                       << TopLevelExpansion->SpellingRange.getBegin().printToString(SM) << ","
+                       << FDecl->getName().str() << "\n";
+            }
 
             Stats[TransformedTopLevelExpansions] += 1;
             if (TopLevelExpansion->MI->isObjectLike())
