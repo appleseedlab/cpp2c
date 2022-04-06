@@ -43,10 +43,6 @@ string hashMacro(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
         {
             result += "\"\"";
         }
-        else if (key[idx] == '\'')
-        {
-            result += "''";
-        }
         else if (key[idx] == '\\')
         {
             result += "\\\\";
@@ -57,7 +53,7 @@ string hashMacro(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
         }
         else if (key[idx] == '\t')
         {
-            result += "\"\t";
+            result += "    ";
         }
         else
         {
