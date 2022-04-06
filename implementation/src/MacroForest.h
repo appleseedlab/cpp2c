@@ -1,9 +1,10 @@
 #pragma once
 
+#include "MacroNameCollector.h"
+
 using namespace clang;
 using namespace llvm;
 using namespace std;
-
 
 void insertIntoForest(ASTContext *Ctx, const Stmt *S, set<const Stmt *> &Forest)
 {
@@ -271,6 +272,15 @@ public:
 
         // Get the source manager
         SourceManager &SM = Ctx.getSourceManager();
+
+        // TODO: Only emit macro expansions if verbose
+        {
+            auto SpellingLoc = SM.getSpellingLoc(Range.getBegin());
+            errs() << "CPP2C:"
+                   << "Macro Expansion,"
+                   << "\"" << hashMacro(MD.getMacroInfo(), SM, Ctx.getLangOpts()) << "\","
+                   << SpellingLoc.printToString(SM) << "\n";
+        }
 
         // ATTENTION: If we are in a macro-argument expansion, we have to
         // store our expansion stack beforehand as we would pop too much here.
