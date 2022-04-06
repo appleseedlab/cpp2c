@@ -8,8 +8,6 @@ from sys import stderr
 from typing import Deque, Dict, List, Set
 from urllib.request import urlretrieve
 
-# TODO: Need to transform each program multiple times, keeping track of transformed expansions each time, and not counting transformed expansions in transformed definitions twice
-
 CPP2C_PREFIX = 'CPP2C:'
 
 MACRO_DEFINITION = 'Macro Definition'
