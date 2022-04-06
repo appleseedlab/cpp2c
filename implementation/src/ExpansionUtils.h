@@ -509,6 +509,40 @@ const FunctionDecl *getFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S
     return nullptr;
 }
 
+string getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S)
+{
+    if (!S)
+    {
+        return "";
+    }
+
+    Ctx.getParents(*S);
+    auto P = (Ctx.getParents(*S).begin());
+    // Walk the statement tree up to the top level declarations
+    while (P)
+    {
+        if (auto D = P->get<Decl>())
+        {
+            if (D->getParentFunctionOrMethod() == nullptr)
+            {
+                // Found a top level declaration
+                if (auto FD = dyn_cast_or_null<FunctionDecl>(D))
+                {
+                    return FD->getName().str();
+                }
+                else if (auto VD = dyn_cast_or_null<VarDecl>(D))
+                {
+                    return VD->getName().str();
+                }
+            }
+        }
+        P = (Ctx.getParents(*P).begin());
+    }
+
+    // This _shouldn't_ happen
+    return "";
+}
+
 // Returns true if the given expansion is hygienic.
 // If it's not, records the reason why not in the given map
 // NOTE: We define hygienic macros as those which meet the following conditions:
@@ -767,6 +801,14 @@ string getNameForExpansionTransformation(SourceManager &SM,
                                          MacroForest::Node *Expansion,
                                          bool TransformToVar)
 {
+
+    // Generate a unique basename using a timetamp
+    auto t = std::chrono::system_clock::now();
+    string transformType = TransformToVar ? "var" : "function";
+    return Expansion->Name + "_" + to_string(t.time_since_epoch().count()) + transformType;
+
+    /*
+
     // TODO: Add a flag to optionally prepend the transformed name with
     // the filepath. If we are only transforming a single compilation unit,
     // we shouldn't need to prepend the function name with the path
@@ -793,4 +835,6 @@ string getNameForExpansionTransformation(SourceManager &SM,
     // We would then get new errors if we try to link these transformed files
     // together.
     return Filename + "_" + Expansion->Name + "_" + transformType;
+
+    */
 }
