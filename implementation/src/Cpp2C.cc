@@ -776,6 +776,7 @@ public:
                 continue;
             }
 
+            // Check that this expansion is not string literal
             if (isa_and_nonnull<clang::StringLiteral>(*(TopLevelExpansion->Stmts.begin())))
             {
                 if (Cpp2CSettings.Verbose)
@@ -790,6 +791,7 @@ public:
                 continue;
             }
 
+            // Get the location to emit the transformed definition
             auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->Stmts.begin());
 
             if (FD == nullptr ||
@@ -987,12 +989,12 @@ public:
 
             // TODO: Only emit transformed expansion if verbose
             {
-                auto FDecl = getFunctionDeclStmtExpandedIn(Ctx, ST);
+                auto s = getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(Ctx, ST);
                 errs() << "CPP2C:"
                        << "Transformed Expansion,"
                        << "\"" << hashMacro(TopLevelExpansion->MI, SM, LO) << "\","
                        << TopLevelExpansion->SpellingRange.getBegin().printToString(SM) << ","
-                       << FDecl->getName().str() << "\n";
+                       << s << "\n";
             }
 
             Stats[TransformedTopLevelExpansions] += 1;
