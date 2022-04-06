@@ -15,7 +15,7 @@ bool isInStdHeader(SourceLocation L, SourceManager &SM)
             FN.startswith("/usr/lib"));
 }
 
-string getKey(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
+string hashMacro(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
 {
     string key = MI->isObjectLike()
                      ? "ObjectLike"
@@ -36,11 +36,16 @@ string getKey(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
     string result;
     size_t const len(key.length());
     result.reserve(len + 100); // assume up to 100 double quotes...
+    // Use double quotes to escape special characters
     for (size_t idx(0); idx < len; ++idx)
     {
         if (key[idx] == '"')
         {
-            result += "\\\"";
+            result += "\"\"";
+        }
+        else if (key[idx] == '\'')
+        {
+            result += "''";
         }
         else if (key[idx] == '\\')
         {
@@ -52,7 +57,7 @@ string getKey(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
         }
         else if (key[idx] == '\t')
         {
-            result += "\\t";
+            result += "\"\t";
         }
         else
         {
@@ -99,6 +104,11 @@ public:
                 MultiplyDefinedMacros.insert(MacroName);
             }
         }
+        // TODO: Only emit macro definition if verbose
+        llvm::errs() << "CPP2C:"
+                     << "Macro Definition,"
+                     << '"' << hashMacro(MD->getMacroInfo(), SM, LO) << '"' << ','
+                     << MD->getMacroInfo()->getDefinitionLoc().printToString(SM) << "\n";
 
         if (OnlyCollectNotDefinedInStdHeaders)
         {
@@ -106,14 +116,14 @@ public:
             {
                 if (!isInStdHeader(MI->getDefinitionLoc(), SM))
                 {
-                    string key = getKey(MD->getMacroInfo(), SM, LO);
+                    string key = hashMacro(MD->getMacroInfo(), SM, LO);
                     MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
                 }
             }
         }
         else
         {
-            string key = getKey(MD->getMacroInfo(), SM, LO);
+            string key = hashMacro(MD->getMacroInfo(), SM, LO);
             MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
         }
     }
