@@ -371,5 +371,10 @@ def main():
                 print(','.join([str(v) for v in stats.values()]), file=ofp)
 
 
+    # TODO: Add flag to run these programs' tests
+    # W have hand-confirmed that they all work after the current
+    # implementation transforms them, but it would greatly facilitate future
+    # testing
+
 if __name__ == '__main__':
     main()
