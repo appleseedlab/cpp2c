@@ -114,11 +114,9 @@ Inductive TransformExpr :
 
     (* We don't transform the macro if:
        - One of its arguments has side-effects
-       - Its body has side-effects
        - Its body shares variables with its caller's environment
     *)
     ~ Forall ExprNoSideEffects es \/
-    ~ ExprNoSideEffects mexpr \/
     (forall S E G v S',
       EvalExpr S E G F M (CallOrInvocation x nil) v S' ->
       ~ ExprNoVarsInLocalEnvironment mexpr E) ->
