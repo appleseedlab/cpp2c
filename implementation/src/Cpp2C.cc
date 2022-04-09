@@ -794,9 +794,7 @@ public:
             // Get the location to emit the transformed definition
             auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->Stmts.begin());
 
-            if (FD == nullptr ||
-                !RW.isRewritable(FD->getBeginLoc()) ||
-                !SM.isInMainFile(FD->getBeginLoc()))
+            if (FD == nullptr)
             {
                 if (Cpp2CSettings.Verbose)
                 {
@@ -808,6 +806,36 @@ public:
                            << "definition\n";
                 }
                 Stats[TransformationLocationNotRewritable] += 1;
+                continue;
+            }
+
+            auto RewriteLoc = SM.getExpansionLoc(FD->getBeginLoc());
+
+            if (!RW.isRewritable(RewriteLoc))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because its emitted definition would not be "
+                           << "to a rewritable location\n";
+                }
+                continue;
+            }
+
+            if (!SM.isInMainFile(RewriteLoc))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because it was emitted definition would not "
+                           << "be in the main file\n";
+                }
                 continue;
             }
 
@@ -1026,11 +1054,15 @@ public:
         for (auto &&it : TransformedDefinitionsAndFunctionDeclExpandedIn)
         {
             auto StartOfFD = it.second->getBeginLoc();
+            // NOTE: This has some coupling with an earlier check
+            // that the spelling location of the start fo the function decl
+            // is rewritable
+            auto RewriteLoc = SM.getExpansionLoc(StartOfFD);
             // RW.InsertTextAfter(
             //     SM.getLocForEndOfFile(SM.getMainFileID()),
             //     StringRef(it + "\n\n"));
             RW.InsertTextBefore(
-                StartOfFD,
+                RewriteLoc,
                 StringRef(it.first + "\n\n"));
             if (Cpp2CSettings.Verbose)
             {
