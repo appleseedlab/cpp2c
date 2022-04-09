@@ -495,17 +495,18 @@ const FunctionDecl *getFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S
         return nullptr;
     }
 
-    for (auto &&it : Ctx.getParents(*S))
+    auto Parents = Ctx.getParents(*S);
+    while (Parents.size() != 0)
     {
-        if (auto FD = it.get<FunctionDecl>())
+        // Since we only transform C code, we only have to look at one parent
+        auto P = Parents.begin();
+        if (auto FD = P->get<FunctionDecl>())
         {
             return FD;
         }
-        else if (auto FD = getFunctionDeclStmtExpandedIn(Ctx, it.get<Stmt>()))
-        {
-            return FD;
-        }
+        Parents = Ctx.getParents(*P);
     }
+
     return nullptr;
 }
 
