@@ -5,6 +5,7 @@ from collections import deque
 from dataclasses import dataclass
 from subprocess import CompletedProcess, run
 from sys import stderr
+import sys
 from typing import Deque, Dict, List
 from urllib.request import urlretrieve
 
@@ -17,10 +18,8 @@ MACRO_EXPANSION = 'Macro Expansion'
 TRANSFORMED_DEFINITION = 'Transformed Definition'
 TRANSFORMED_EXPANSION = 'Transformed Expansion'
 
-BUILTIN = r'<built-in>'
-SCRATCH_SPACE = r'<scratch space>'
-STD_HEADER_PATH = r'/usr/include'
-CLANG_HEADER_PATH = r'/usr/lib'
+OBJECT_LIKE_PREFIX = 'ObjectLike'
+FUNCTION_LIKE_PREFIX = 'FunctionLike'
 EXTRACTED_EVALUATION_PROGRAMS_DIR = r'extracted_evaluation_programs/'
 STATS_DIR = r'stats/'
 
@@ -91,36 +90,40 @@ def is_location_in_extracted_program_c_or_h_file(location: str) -> bool:
 # Taken from Wikipedia
 def fivenum(data):
     """Five-number summary."""
-    return np.percentile(data, [0, 25, 50, 75, 100], method='midpoint')
+    try:
+        return np.percentile(data, [0, 25, 50, 75, 100], method='midpoint')
+    # Happens if we pass an empty array
+    except IndexError:
+        return [0, 0, 0, 0, 0]
 
 
 def main():
 
     evaluation_programs = [
-        EvaluationProgram(
-            r'bc-1.07',
-            r'https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz',
-            r'bc',
-            r'bash configure'
-        ),
-        EvaluationProgram(
-            r'gzip-1.10',
-            r'https://gnu.mirror.constant.com/gzip/gzip-1.10.tar.gz',
-            r'.',
-            r'bash configure'
-        ),
-        EvaluationProgram(
-            r'remind-03.04.02',
-            r'https://dianne.skoll.ca/projects/remind/download/OLD/remind-03.04.02.tar.gz',
-            r'src',
-            r'bash configure'
-        ),
-        EvaluationProgram(
-            r'lua-5.4.4',
-            r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
-            r'src',
-            r''
-        ),
+        # EvaluationProgram(
+        #     r'bc-1.07',
+        #     r'https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz',
+        #     r'bc',
+        #     r'bash configure'
+        # ),
+        # EvaluationProgram(
+        #     r'gzip-1.10',
+        #     r'https://gnu.mirror.constant.com/gzip/gzip-1.10.tar.gz',
+        #     r'.',
+        #     r'bash configure'
+        # ),
+        # EvaluationProgram(
+        #     r'remind-03.04.02',
+        #     r'https://dianne.skoll.ca/projects/remind/download/OLD/remind-03.04.02.tar.gz',
+        #     r'src',
+        #     r'bash configure'
+        # ),
+        # EvaluationProgram(
+        #     r'lua-5.4.4',
+        #     r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
+        #     r'src',
+        #     r''
+        # ),
         EvaluationProgram(
             r'test',
             r'test.zip',
@@ -131,7 +134,6 @@ def main():
 
     shutil.rmtree(STATS_DIR, ignore_errors=True)
     os.makedirs(STATS_DIR, exist_ok=True)
-    all_stats_file = os.path.join(STATS_DIR, 'all-stats.csv')
 
     for evaluation_program in evaluation_programs:
 
@@ -291,6 +293,14 @@ def main():
         total_unique_macro_definitions = \
             len(hashes_of_run_1_macro_definitions_in_evaluation_program)
 
+        total_unique_object_like_macro_definitions = \
+            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program if mh.startswith(
+                OBJECT_LIKE_PREFIX)})
+
+        total_unique_function_like_macro_definitions =\
+            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program if mh.startswith(
+                FUNCTION_LIKE_PREFIX)})
+
         # Collect the set of expansions of macros defined in the source program
         run_1_expansions_of_macros_defined_in_evaluation_program = \
             [
@@ -307,12 +317,23 @@ def main():
                 me.spelling_location
                 for me in run_1_expansions_of_macros_defined_in_evaluation_program
             }
-
         # Count the number of unique original macro expansions
         # This includes, but does not duplicate, spelling locations
         # of nested macro expansions
         total_unique_original_expansions = \
             len(unique_original_expansion_spelling_locations)
+        total_unique_original_object_like_expansions = \
+            len({
+                me.spelling_location
+                for me in run_1_expansions_of_macros_defined_in_evaluation_program
+                if me.macro_hash.startswith(OBJECT_LIKE_PREFIX)
+            })
+        total_unique_original_function_like_expansions = \
+            len({
+                me.spelling_location
+                for me in run_1_expansions_of_macros_defined_in_evaluation_program
+                if me.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
+            })
 
         # Map each original macro definition in the evaluation program
         # to the set of unique spelling locations it was expanded at
@@ -325,6 +346,20 @@ def main():
         five_point_summary_of_unique_invocations_per_definition = fivenum(
             [len(unique_invocations)
              for unique_invocations in hashes_of_run_1_macro_definitions_in_evaluation_program_to_unique_invocations.values()]
+        )
+        five_point_summary_of_unique_object_like_invocations_per_definition = fivenum(
+            [
+                len(unique_invocations)
+                for mh, unique_invocations in hashes_of_run_1_macro_definitions_in_evaluation_program_to_unique_invocations.items()
+                if mh.startswith(OBJECT_LIKE_PREFIX)
+            ]
+        )
+        five_point_summary_of_unique_function_like_invocations_per_definition = fivenum(
+            [
+                len(unique_invocations)
+                for mh, unique_invocations in hashes_of_run_1_macro_definitions_in_evaluation_program_to_unique_invocations.items()
+                if mh.startswith(FUNCTION_LIKE_PREFIX)
+            ]
         )
 
         all_expansions_of_macros_defined_in_evaluation_program = \
@@ -349,7 +384,6 @@ def main():
         # of in a prior run to make them polymorphic
         hashes_of_macros_to_no_longer_check_for_transformed_expansions_in = set()
         for i in range(2, run_no):
-            # print('Counting unique expansions in round', i)
             names_of_functions_emitted_in_previous_round = \
                 {
                     td.emitted_name for td in all_transformed_definitions
@@ -388,6 +422,10 @@ def main():
                 unique_transformations_found_this_round)
 
         num_unique_transformed_expansions = len(unique_transformed_expansions)
+        num_unique_object_like_transformed_expansions = len(
+            [te for te in unique_transformed_expansions if te.macro_hash.startswith(OBJECT_LIKE_PREFIX)])
+        num_unique_function_like_transformed_expansions = len(
+            [te for te in unique_transformed_expansions if te.macro_hash.startswith(FUNCTION_LIKE_PREFIX)])
 
         # Map the hashes of each macro defined in the evaluation program to
         # the set of signatures for the definitions we emitted for it
@@ -412,11 +450,39 @@ def main():
         # a transformed definition for
         num_run_1_macro_definitions_transformed_at_least_once = \
             len(hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once)
+        num_run_1_object_like_macro_definitions_transformed_at_least_once = \
+            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once if mh.startswith(
+                OBJECT_LIKE_PREFIX)})
+        num_run_1_function_like_macro_definitions_transformed_at_least_once = \
+            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once if mh.startswith(
+                FUNCTION_LIKE_PREFIX)})
 
         distribution_of_unique_function_signatures_per_transformed_definition = fivenum(
             [
                 len(sigs) for sigs in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.values()
                 if len(sigs) > 0
+            ]
+        )
+        distribution_of_unique_function_signatures_per_transformed_object_like_definition = fivenum(
+            [
+                len(sigs)
+                for mh, sigs
+                in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.items()
+                if (
+                    len(sigs) > 0 and
+                    mh.startswith(OBJECT_LIKE_PREFIX)
+                )
+            ]
+        )
+        distribution_of_unique_function_signatures_per_transformed_function_like_definition = fivenum(
+            [
+                len(sigs)
+                for mh, sigs
+                in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.items()
+                if (
+                    len(sigs) > 0 and
+                    mh.startswith(FUNCTION_LIKE_PREFIX)
+                )
             ]
         )
 
@@ -444,6 +510,20 @@ def main():
             [
                 len(unique_transformations) for unique_transformations in
                 hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_unique_transformed_expansions_in_evaluation_program.values()
+            ])
+        five_point_summary_of_transformed_object_like_invocations_per_transformed_defintion = fivenum(
+            [
+                len(unique_transformations)
+                for mh, unique_transformations in
+                hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_unique_transformed_expansions_in_evaluation_program.items()
+                if mh.startswith(OBJECT_LIKE_PREFIX)
+            ])
+        five_point_summary_of_transformed_function_like_invocations_per_transformed_defintion = fivenum(
+            [
+                len(unique_transformations)
+                for mh, unique_transformations in
+                hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_unique_transformed_expansions_in_evaluation_program.items()
+                if mh.startswith(FUNCTION_LIKE_PREFIX)
             ])
 
         # Map the hash of each macro defined in the evaluation program that
@@ -473,7 +553,30 @@ def main():
             list(hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.values())
         )
 
-        stats = {
+        five_point_summary_of_not_transformed_object_like_invocations_per_transformed_defintion = fivenum(
+            [
+                num_not_transformed
+                for mh, num_not_transformed in
+                hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.items()
+                if mh.startswith(OBJECT_LIKE_PREFIX)
+            ])
+
+        five_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion = fivenum(
+            [
+                num_not_transformed
+                for mh, num_not_transformed in
+                hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.items()
+                if mh.startswith(FUNCTION_LIKE_PREFIX)
+            ])
+
+        # TODO: How can we use the prefix to only check one type of macro?
+        # We can't just ignore hashes of the other type, because an
+        # object-like macro may be expanded inside a function-like macro,
+        # and we'd need to record the name of that FLM to check its
+        # transformed definition when looking for newly emitted
+        # unique transformations in subsequent runs
+
+        all_stats = {
             'program name': evaluation_program.name,
             '# of runs': run_no,
             'total unique definitions': total_unique_macro_definitions,
@@ -487,20 +590,64 @@ def main():
             'distribution of unique function signatures per transformed definition': distribution_of_unique_function_signatures_per_transformed_definition
         }
 
-        output_fn = f'{evaluation_program.name}-run-{run_no}.csv'
-        with open(os.path.join(STATS_DIR, output_fn), 'w') as ofp:
-            items = stats.items()
-            print(','.join([item[0] for item in items]), file=ofp)
-            print(','.join([str(item[1]) for item in items]), file=ofp)
+        olm_stats = {
+            'program name': evaluation_program.name,
+            '# of runs': run_no,
+            'total unique definitions': total_unique_object_like_macro_definitions,
+            'unique transformed definitions': num_run_1_object_like_macro_definitions_transformed_at_least_once,
+            'total unique invocations': total_unique_original_object_like_expansions,
+            'unique transformed invocations': num_unique_object_like_transformed_expansions,
+            'unique not transformed invocations': total_unique_original_object_like_expansions - num_unique_object_like_transformed_expansions,
+            'distribution of unique invocations per definition': five_point_summary_of_unique_object_like_invocations_per_definition,
+            'distribution of not transformed invocations per transformed definition': five_point_summary_of_not_transformed_object_like_invocations_per_transformed_defintion,
+            'distribution of transformed invocations per transformed definition': five_point_summary_of_transformed_object_like_invocations_per_transformed_defintion,
+            'distribution of unique function signatures per transformed definition': distribution_of_unique_function_signatures_per_transformed_object_like_definition
+        }
+
+        flm_stats = {
+            'program name': evaluation_program.name,
+            '# of runs': run_no,
+            'total unique definitions': total_unique_function_like_macro_definitions,
+            'unique transformed definitions': num_run_1_function_like_macro_definitions_transformed_at_least_once,
+            'total unique invocations': total_unique_original_function_like_expansions,
+            'unique transformed invocations': num_unique_function_like_transformed_expansions,
+            'unique not transformed invocations': total_unique_original_function_like_expansions - num_unique_function_like_transformed_expansions,
+            'distribution of unique invocations per definition': five_point_summary_of_unique_function_like_invocations_per_definition,
+            'distribution of not transformed invocations per transformed definition': five_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion,
+            'distribution of transformed invocations per transformed definition': five_point_summary_of_transformed_function_like_invocations_per_transformed_defintion,
+            'distribution of unique function signatures per transformed definition': distribution_of_unique_function_signatures_per_transformed_function_like_definition
+        }
+
+        all_stats_file = os.path.join(STATS_DIR, 'stats.csv')
 
         if not os.path.exists(all_stats_file):
             with open(all_stats_file, 'w') as ofp:
-                print(','.join(stats.keys()), file=ofp)
+                print(','.join(all_stats.keys()), file=ofp)
 
         with open(all_stats_file, 'a') as ofp:
             # NOTE: this is safe to do since iterating a dict
             # in Python is consistent
-            print(','.join([str(v) for v in stats.values()]), file=ofp)
+            print(','.join([str(v) for v in all_stats.values()]), file=ofp)
+
+        olm_stats_file = os.path.join(STATS_DIR, 'olm-stats.csv')
+
+        if not os.path.exists(olm_stats_file):
+            with open(olm_stats_file, 'w') as ofp:
+                print(','.join(olm_stats.keys()), file=ofp)
+
+        with open(olm_stats_file, 'a') as ofp:
+            print(','.join([str(v)
+                  for v in olm_stats.values()]), file=ofp)
+
+        flm_stats_file = os.path.join(STATS_DIR, 'flm-stats.csv')
+
+        if not os.path.exists(flm_stats_file):
+            with open(flm_stats_file, 'w') as ofp:
+                print(','.join(flm_stats.keys()), file=ofp)
+
+        with open(flm_stats_file, 'a') as ofp:
+            print(','.join([str(v)
+                  for v in flm_stats.values()]), file=ofp)
 
     # TODO: Add flag to run these programs' tests
     # W have hand-confirmed that they all work after the current
