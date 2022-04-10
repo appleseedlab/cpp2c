@@ -833,7 +833,39 @@ public:
                            << TopLevelExpansion->Name
                            << " @ "
                            << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it was emitted definition would not "
+                           << " because its emitted definition would not "
+                           << "be in the main file\n";
+                }
+                continue;
+            }
+
+            if (
+                !RW.isRewritable(TopLevelExpansion->SpellingRange.getBegin()) ||
+                !RW.isRewritable(TopLevelExpansion->SpellingRange.getEnd()))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because its emitted transformation would not "
+                           << "be in a rewritable location \n";
+                }
+                continue;
+            }
+
+            if (
+                !SM.isInMainFile(TopLevelExpansion->SpellingRange.getBegin()) ||
+                !SM.isInMainFile(TopLevelExpansion->SpellingRange.getEnd()))
+            {
+                if (Cpp2CSettings.Verbose)
+                {
+                    errs() << "Not transforming "
+                           << TopLevelExpansion->Name
+                           << " @ "
+                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
+                           << " because its emitted transformation would not "
                            << "be in the main file\n";
                 }
                 continue;
@@ -1013,7 +1045,8 @@ public:
                 CallOrRef += ")";
             }
             SourceRange InvocationRange = TopLevelExpansion->SpellingRange;
-            RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
+            bool rewriteFailed = RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
+            assert(!rewriteFailed);
 
             // TODO: Only emit transformed expansion if verbose
             {
@@ -1061,9 +1094,10 @@ public:
             // RW.InsertTextAfter(
             //     SM.getLocForEndOfFile(SM.getMainFileID()),
             //     StringRef(it + "\n\n"));
-            RW.InsertTextBefore(
+            bool rewriteFailed = RW.InsertTextBefore(
                 RewriteLoc,
                 StringRef(it.first + "\n\n"));
+            assert(!rewriteFailed);
             if (Cpp2CSettings.Verbose)
             {
                 errs() << "Emitted a definition: "
