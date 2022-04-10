@@ -275,7 +275,7 @@ public:
 
         // TODO: Only emit macro expansions if verbose
         {
-            auto SpellingLoc = SM.getSpellingLoc(Range.getBegin());
+            auto SpellingLoc = SpellingRange.getBegin();
             errs() << "CPP2C:"
                    << "Macro Expansion,"
                    << "\"" << hashMacro(MD.getMacroInfo(), SM, Ctx.getLangOpts()) << "\","
