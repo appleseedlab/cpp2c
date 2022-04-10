@@ -100,36 +100,36 @@ def fivenum(data):
 def main():
 
     evaluation_programs = [
-        # EvaluationProgram(
-        #     r'bc-1.07',
-        #     r'https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz',
-        #     r'bc',
-        #     r'bash configure'
-        # ),
-        # EvaluationProgram(
-        #     r'gzip-1.10',
-        #     r'https://gnu.mirror.constant.com/gzip/gzip-1.10.tar.gz',
-        #     r'.',
-        #     r'bash configure'
-        # ),
-        # EvaluationProgram(
-        #     r'remind-03.04.02',
-        #     r'https://dianne.skoll.ca/projects/remind/download/OLD/remind-03.04.02.tar.gz',
-        #     r'src',
-        #     r'bash configure'
-        # ),
-        # EvaluationProgram(
-        #     r'lua-5.4.4',
-        #     r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
-        #     r'src',
-        #     r''
-        # ),
         EvaluationProgram(
-            r'test',
-            r'test.zip',
+            r'bc-1.07',
+            r'https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz',
+            r'bc',
+            r'bash configure'
+        ),
+        EvaluationProgram(
+            r'gzip-1.10',
+            r'https://gnu.mirror.constant.com/gzip/gzip-1.10.tar.gz',
             r'.',
+            r'bash configure'
+        ),
+        EvaluationProgram(
+            r'remind-03.04.02',
+            r'https://dianne.skoll.ca/projects/remind/download/OLD/remind-03.04.02.tar.gz',
+            r'src',
+            r'bash configure'
+        ),
+        EvaluationProgram(
+            r'lua-5.4.4',
+            r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
+            r'src',
             r''
-        )
+        ),
+        # EvaluationProgram(
+        #     r'test',
+        #     r'test.zip',
+        #     r'.',
+        #     r''
+        # )
     ]
 
     shutil.rmtree(STATS_DIR, ignore_errors=True)
