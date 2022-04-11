@@ -39,10 +39,10 @@ struct TransformedDefinition
 };
 
 struct TransformedDefinition NewTransformedDefinition(
-    ASTContext &Ctx, MacroForest::Node *Expansion, bool IsVar)
+    ASTContext &Ctx,
+    MacroForest::Node *Expansion,
+    bool IsVar)
 {
-    auto &SM = Ctx.getSourceManager();
-    auto &LO = Ctx.getLangOpts();
     struct TransformedDefinition TD;
     TD.Expansion = Expansion;
     TD.OriginalMacroName = Expansion->Name;
@@ -58,17 +58,7 @@ struct TransformedDefinition NewTransformedDefinition(
     }
 
     // Generate the transformed body
-    SourceLocation MacroBodyBegin =
-        Expansion->MI->tokens().front().getLocation();
-    SourceLocation MacroBodyEnd =
-        Lexer::getLocForEndOfToken(
-            Expansion->DefinitionRange.getEnd(), 0, SM, LO);
-
-    SourceRange MacroBodyRange = SourceRange(MacroBodyBegin, MacroBodyEnd);
-    CharSourceRange MacroBodyCharRange =
-        CharSourceRange::getCharRange(MacroBodyRange);
-    string TransformedBody =
-        Lexer::getSourceText(MacroBodyCharRange, SM, LO).str();
+    string TransformedBody = Expansion->DefinitionText;
 
     string InitializerOrDefinition =
         (IsVar
