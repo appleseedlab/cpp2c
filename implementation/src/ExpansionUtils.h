@@ -584,7 +584,10 @@ bool isExpansionHygienic(ASTContext *Ctx,
             errs() << "Skipping expansion of "
                    << TopLevelExpansion->Name
                    << " because it did not "
-                      "have a single AST node\n";
+                   << "have a single AST node "
+                   << "(had "
+                   << to_string(TopLevelExpansion->Stmts.size())
+                   << ")\n";
         }
         Stats[TopLevelExpansionsWithMultipleASTNodes] += 1;
         return false;
@@ -681,24 +684,25 @@ bool isExpansionHygienic(ASTContext *Ctx,
 
         // Check that we found the expected number of expansions
         // for this argument
-        unsigned ExpectedExpansions =
-            TopLevelExpansion->ExpectedASTNodesForArg[Arg.Name];
-        unsigned ActualExpansions = Arg.Stmts.size();
-        if (ActualExpansions != ExpectedExpansions)
-        {
-            if (Verbose)
-            {
-                errs() << "Skipping expansion of "
-                       << TopLevelExpansion->Name
-                       << " because its argument "
-                       << Arg.Name << " was not expanded the "
-                       << "expected number of times: "
-                       << ExpectedExpansions << " vs " << ActualExpansions
-                       << "\n";
-            }
-            Stats[TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes] += 1;
-            return false;
-        }
+        // TODO: Verify that we actually need this check?
+        // unsigned ExpectedExpansions =
+        //     TopLevelExpansion->ExpectedASTNodesForArg[Arg.Name];
+        // unsigned ActualExpansions = Arg.Stmts.size();
+        // if (ActualExpansions != ExpectedExpansions)
+        // {
+        //     if (Verbose)
+        //     {
+        //         errs() << "Skipping expansion of "
+        //                << TopLevelExpansion->Name
+        //                << " because its argument "
+        //                << Arg.Name << " was not expanded the "
+        //                << "expected number of times: "
+        //                << ExpectedExpansions << " vs " << ActualExpansions
+        //                << "\n";
+        //     }
+        //     Stats[TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes] += 1;
+        //     return false;
+        // }
 
         auto ArgFirstExpansion = *Arg.Stmts.begin();
         for (auto ArgExpansion : Arg.Stmts)
