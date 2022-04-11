@@ -285,25 +285,25 @@ void collectStmtsThatChangeRValue(const Stmt *S,
     }
 }
 
-void collectStmtsThatReadLValue(const Stmt *S,
-                                set<const Stmt *> *StmtsThatReadLValue)
+void collectStmtsThatReturnLValue(const Stmt *S,
+                                set<const Stmt *> *StmtsThatReturnLValue)
 {
     if (!S)
     {
         return;
     }
 
-    else if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(S))
+    if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(S))
     {
         if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
         {
-            StmtsThatReadLValue->insert(S);
+            StmtsThatReturnLValue->insert(S);
         }
     }
 
     for (auto &&it : S->children())
     {
-        collectStmtsThatReadLValue(it, StmtsThatReadLValue);
+        collectStmtsThatReturnLValue(it, StmtsThatReturnLValue);
     }
 }
 
@@ -512,9 +512,10 @@ const FunctionDecl *getFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S
 
 string getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S)
 {
+    string none = "<none>";
     if (!S)
     {
-        return "";
+        return none;
     }
 
     Ctx.getParents(*S);
@@ -540,266 +541,7 @@ string getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(ASTContext &Ctx, const S
         P = (Ctx.getParents(*P).begin());
     }
 
-    // This _shouldn't_ happen
-    return "";
-}
-
-// Returns true if the given expansion is hygienic.
-// If it's not, records the reason why not in the given map
-// NOTE: We define hygienic macros as those which meet the following conditions:
-//       1) The entire expansions maps to a single argument
-//       2) Their arguments expand to a single expression
-//       3) They do not capture variables from their environment
-bool isExpansionHygienic(ASTContext *Ctx,
-                         Preprocessor &PP,
-                         MacroForest::Node *TopLevelExpansion,
-                         map<string, unsigned> &Stats,
-                         bool Verbose)
-{
-    // Check that the expansion maps to a single expansion
-    if (TopLevelExpansion->SubtreeNodes.size() < 1)
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because it did not "
-                      "have an expansion\n";
-        }
-        Stats[TopLevelExpansionsWithNoExpansionRoot] += 1;
-        return false;
-    }
-
-    // Check if macro contains nested expansions
-    if (TopLevelExpansion->SubtreeNodes.size() > 1)
-    {
-        Stats[TopLevelExpansionsWithNestedExpansions] += 1;
-    }
-
-    // Check that the expansion maps to a single AST expression
-    if (TopLevelExpansion->Stmts.size() != 1)
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because it did not "
-                   << "have a single AST node "
-                   << "(had "
-                   << to_string(TopLevelExpansion->Stmts.size())
-                   << ")\n";
-        }
-        Stats[TopLevelExpansionsWithMultipleASTNodes] += 1;
-        return false;
-    }
-
-    // Check that expansion has an unambiguous signature
-    if (!expansionHasUnambiguousSignature(*Ctx, TopLevelExpansion))
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because its function signature was "
-                      "ambiguous \n";
-        }
-        Stats[TopLevelExpansionsWithAmbiguousSignature] += 1;
-        return false;
-    }
-
-    auto ST = *TopLevelExpansion->Stmts.begin();
-    auto E = dyn_cast_or_null<Expr>(ST);
-
-    if (!E)
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because it did not "
-                      "expand to an expression\n";
-        }
-        Stats[TopLevelExpansionsThatDidNotExpandToAnExpression] += 1;
-        return false;
-    }
-
-    auto ExpansionBegin = TopLevelExpansion->SpellingRange.getBegin();
-    auto ExpansionEnd = TopLevelExpansion->SpellingRange.getEnd();
-
-    SourceManager &SM = Ctx->getSourceManager();
-
-    auto ExpressionRange = SM.getExpansionRange(E->getSourceRange());
-    auto ExpressionBegin = ExpressionRange.getBegin();
-    auto ExpressionEnd = ExpressionRange.getEnd();
-
-    // Check that expression is completely covered by expansion
-    if (!(ExpansionBegin == ExpressionBegin &&
-          ExpansionEnd == ExpressionEnd))
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because its expression did not align perfectly "
-                      "with its expansion\n";
-        }
-        Stats[TopLevelExpansionsWithUnalignedBody] += 1;
-        return false;
-    }
-
-    // It would be better to check that the number of tokens in the
-    // expression is >= to the number of tokens in the macro
-    // definition, but we don't have an easy way of accessing the number
-    // of tokens in an arbitrary expression
-    if (!PP.isAtEndOfMacroExpansion(E->getEndLoc()))
-    {
-        if (Verbose)
-        {
-            errs() << "Skipping expansion of "
-                   << TopLevelExpansion->Name
-                   << " because its expression's end did not extend to "
-                      "end of its expansion\n";
-        }
-        Stats[TopLevelExpansionsWithExpressionEndNotAtEndOfExpansion] += 1;
-        return false;
-    }
-
-    // Check that each argument is expanded the expected number of
-    // times, and that if it has multiple expansions, they all
-    // expand to the same tree
-    for (auto &&Arg : TopLevelExpansion->Arguments)
-    {
-        if (Arg.Stmts.size() == 0)
-        {
-            if (Verbose)
-            {
-                errs() << "Skipping expansion of "
-                       << TopLevelExpansion->Name
-                       << " because its argument "
-                       << Arg.Name << " was not expanded\n";
-            }
-            Stats[TopLevelExpansionsWithUnexpandedArgument] += 1;
-            return false;
-        }
-
-        // Check that we found the expected number of expansions
-        // for this argument
-        // TODO: Verify that we actually need this check?
-        // unsigned ExpectedExpansions =
-        //     TopLevelExpansion->ExpectedASTNodesForArg[Arg.Name];
-        // unsigned ActualExpansions = Arg.Stmts.size();
-        // if (ActualExpansions != ExpectedExpansions)
-        // {
-        //     if (Verbose)
-        //     {
-        //         errs() << "Skipping expansion of "
-        //                << TopLevelExpansion->Name
-        //                << " because its argument "
-        //                << Arg.Name << " was not expanded the "
-        //                << "expected number of times: "
-        //                << ExpectedExpansions << " vs " << ActualExpansions
-        //                << "\n";
-        //     }
-        //     Stats[TopLevelExpansionsWithMismatchingArgumentExpansionsAndASTNodes] += 1;
-        //     return false;
-        // }
-
-        auto ArgFirstExpansion = *Arg.Stmts.begin();
-        for (auto ArgExpansion : Arg.Stmts)
-        {
-            if (
-                !compareTrees(*Ctx, ArgFirstExpansion, ArgExpansion) &&
-                false)
-            {
-                if (Verbose)
-                {
-                    errs() << "Skipping expansion of "
-                           << TopLevelExpansion->Name
-                           << " because its argument "
-                           << Arg.Name << " was not expanded to "
-                           << "a consistent AST structure\n";
-                }
-                Stats[TopLevelExpansionsWithInconsistentArgumentExpansions] += 1;
-                return false;
-            }
-
-            // Check that spelling location of the AST node and
-            // all its subexpressions fall within the range
-            // argument's token ranges
-            // FIXME: This may render invocations
-            // which contain invocations as arguments as
-            // untransformable, but that doesn't make the
-            // transformation unsound
-            if (!StmtAndSubStmtsSpelledInRanges(*Ctx, ArgExpansion,
-                                                Arg.TokenRanges))
-            {
-                if (Verbose)
-                {
-                    errs() << "Skipping expansion of "
-                           << TopLevelExpansion->Name
-                           << " because its argument "
-                           << Arg.Name << " was matched with an AST node "
-                           << "with an expression or subexpression "
-                           << "with a spelling location outside of the "
-                           << "spelling locations of the arg's "
-                           << "token ranges\n";
-                }
-                Stats[TopLevelExpansionsWithArgumentsWhoseASTNodesHaveSpellingLocationsNotInArgumentTokenRanges] += 1;
-                return false;
-            }
-        }
-    }
-
-    // Check that any local vars that the expansion contains come from its
-    // arguments
-    if (containsLocalVars(*Ctx, E))
-    {
-        vector<const DeclRefExpr *> DREs;
-        collectLocalVarDeclRefExprs(E, &DREs);
-        for (auto &&DRE : DREs)
-        {
-            bool varComesFromArg = false;
-            // Check all the macros arguments for the variable
-            for (auto &&Arg : TopLevelExpansion->Arguments)
-            {
-                for (auto &&S : Arg.Stmts)
-                {
-                    if (containsDeclRefExpr(S, DRE))
-                    {
-                        varComesFromArg = true;
-                        break;
-                    }
-                }
-                if (varComesFromArg)
-                {
-                    break;
-                }
-            }
-
-            if (!varComesFromArg)
-            {
-                if (Verbose)
-                {
-                    errs() << "Skipping expansion of "
-                           << TopLevelExpansion->Name
-                           << " because its expression contained local vars "
-                           << "that did not come from its arguments\n";
-                }
-                Stats[TopLevelExpansionsWithLocalVarsInBody] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-                    Stats[OLMsWithLocalVarsInBody] += 1;
-                }
-                else
-                {
-                    Stats[FLMsWithLocalVarsInBody] += 1;
-                }
-                return false;
-            }
-        }
-    }
-
-    return true;
+    return none;
 }
 
 string getNameForExpansionTransformation(SourceManager &SM,
