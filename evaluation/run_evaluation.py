@@ -17,6 +17,7 @@ MACRO_DEFINITION = 'Macro Definition'
 MACRO_EXPANSION = 'Macro Expansion'
 TRANSFORMED_DEFINITION = 'Transformed Definition'
 TRANSFORMED_EXPANSION = 'Transformed Expansion'
+UNTRANSFORMED_EXPANSION = 'Untransformed Expansion'
 
 OBJECT_LIKE_PREFIX = 'ObjectLike'
 FUNCTION_LIKE_PREFIX = 'FunctionLike'
@@ -238,6 +239,9 @@ def main():
                             TransformedExpansion(*constructor_fields, run_no))
                         emitted_a_transformation_for_this_file = True
 
+                    elif msg.startswith(UNTRANSFORMED_EXPANSION):
+                        pass
+
                     else:
                         print(
                             'Found what appeared to be a CPP2C message, but was not', file=stderr)
@@ -368,58 +372,53 @@ def main():
                 if te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program
             ]
 
-        # Count all transformations of expansions we found in run 1,
-        # because we can be sure that these are all unique transformations
-        unique_transformed_expansions: List[TransformedExpansion] = []
+        # For a subsequent run, we only count transformations of expansions
+        # inside the program's original functions, and inside unique
+        # function definitions that we emitted in the previous run.
+        # By "unique", we mean that we only include a single transformed definition per
+        # transformed macro.
+        # We exclude both duplicate polymorphic definitions and definitions
+        # we emitted in prior runs
+        hashes_of_macros_to_no_longer_check_for_transformed_expansions_in = set()
+        names_of_functions_to_check_for_transformed_expansions_in = set()
+        # The starting set of functions so search for transformed expansions in
+        # is the set of functions originally defined in the program
         for te in all_expansions_of_macros_defined_in_evaluation_program:
             if te.run_no_emitted == 1:
-                unique_transformed_expansions.append(te)
-
-        # For a subsequent run, we only count transformations of expansions
-        # inside function definitions that we emitted in the previous run,
-        # excluding both duplicate polymorphic definitions and definitions
-        # we checked in prior runs
-        # This is complicated by the fact that we may have emitted multiple
-        # identical definitions for a macro that we transformed an expansion
-        # of in a prior run to make them polymorphic
-        hashes_of_macros_to_no_longer_check_for_transformed_expansions_in = set()
-        for i in range(2, run_no):
-            names_of_functions_emitted_in_previous_round = \
-                {
-                    td.emitted_name for td in all_transformed_definitions
-                    if td.run_no_emitted == i-1
-                }
-            names_of_new_functions_we_emitted_in_previous_round_for_a_single_type = set()
-            macro_hashes_mapped_to_whether_weve_seen_a_definition_for_them_yet = {}
-
-            def have_we_already_seen_a_transformed_definition_for_this_macro(mh: str) -> bool:
-                return (
-                    macro_hashes_mapped_to_whether_weve_seen_a_definition_for_them_yet.get(mh, False) or
-                    mh in hashes_of_macros_to_no_longer_check_for_transformed_expansions_in
-                )
-
-            def record_that_weve_seen_a_transformed_definition_for_this_macro(mh: str) -> None:
-                macro_hashes_mapped_to_whether_weve_seen_a_definition_for_them_yet[mh] = True
-
-            for td in all_transformed_definitions:
-                if td.emitted_name in names_of_functions_emitted_in_previous_round:
-                    if not have_we_already_seen_a_transformed_definition_for_this_macro(td.macro_hash):
-                        record_that_weve_seen_a_transformed_definition_for_this_macro(
-                            td.macro_hash)
-                        names_of_new_functions_we_emitted_in_previous_round_for_a_single_type.add(
-                            td.emitted_name)
-
+                names_of_functions_to_check_for_transformed_expansions_in.add(te.name_of_function_spelled_in)
+        
+        unique_transformed_expansions = []
+        for i in range(1, run_no):
+            # Add all expansions to our list of unique expansions which were found
+            # in one of the function definitions that we confirmed were good to check in
             unique_transformations_found_this_round = []
             for te in all_expansions_of_macros_defined_in_evaluation_program:
                 if te.run_no_emitted == i:
-                    if te.name_of_function_spelled_in in names_of_new_functions_we_emitted_in_previous_round_for_a_single_type:
+                    if te.name_of_function_spelled_in in names_of_functions_to_check_for_transformed_expansions_in:
                         unique_transformations_found_this_round.append(te)
+            
+            unique_transformed_expansions.extend(unique_transformations_found_this_round)
 
-            hashes_of_macros_to_no_longer_check_for_transformed_expansions_in.update(
-                macro_hashes_mapped_to_whether_weve_seen_a_definition_for_them_yet.keys())
+            # Get all functions we emitted this run
+            functions_emitted_this_run: List[TransformedDefinition] = \
+                [
+                    td for td in all_transformed_definitions
+                    if td.run_no_emitted == i
+                ]
 
-            unique_transformed_expansions.extend(
-                unique_transformations_found_this_round)
+            # Exclude new definitions of transformed definitions we've already seen
+            unique_functions_emitted_this_run: List[TransformedDefinition] = []
+            for f in functions_emitted_this_run:
+                if f.macro_hash not in hashes_of_macros_to_no_longer_check_for_transformed_expansions_in:
+                    unique_functions_emitted_this_run.append(f)
+                    hashes_of_macros_to_no_longer_check_for_transformed_expansions_in.add(f.macro_hash)
+
+            # Add the names of these new functions to the names of the
+            # functions to check for new transformed expansions in
+            names_of_new_functions_to_check_for_transformed_expansions_in = \
+                {f.emitted_name for f in unique_functions_emitted_this_run}
+            names_of_functions_to_check_for_transformed_expansions_in.update(names_of_new_functions_to_check_for_transformed_expansions_in)
+            
 
         num_unique_transformed_expansions = len(unique_transformed_expansions)
         num_unique_object_like_transformed_expansions = len(
