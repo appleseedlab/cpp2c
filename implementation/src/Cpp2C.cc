@@ -103,6 +103,28 @@ void printMapToJSON(llvm::raw_fd_ostream &os, map<string, set<string>> &m)
     os << "\n}\n";
 }
 
+string HYGIENE = "Hygiene",
+       ENVIRONMENT_CAPTURE = "Environment capture",
+       PARAMETER_SIDE_EFFECTS = "Parameter side-effects";
+void emitUntransformedMessage(
+    ASTContext &Ctx,
+    MacroForest::Node *Expansion,
+    string Category,
+    string Reason)
+{
+    SourceManager &SM = Ctx.getSourceManager();
+    const LangOptions &LO = Ctx.getLangOpts();
+    auto ST = Expansion->Stmts.size() > 0 ? *Expansion->Stmts.begin() : nullptr;
+    string s = getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(Ctx, ST);
+    errs() << "CPP2C:"
+           << "Untransformed Expansion,"
+           << "\"" << hashMacro(Expansion->MI, SM, LO) << "\","
+           << Expansion->SpellingRange.getBegin().printToString(SM) << ","
+           << s << ","
+           << Category << ","
+           << Reason << "\n";
+}
+
 // A Matcher callback, that collects all AST Nodes that were matched
 // and bound to BindName
 template <typename T>
@@ -399,7 +421,10 @@ public:
         set<pair<string, const FunctionDecl *>>
             TransformedDefinitionsAndFunctionDeclExpandedIn;
 
-        // Step 4: Transform hygienic and transformable macros.
+        // Step 4: Transform macros that satisfy these three requirements:
+        // 1) Hygiene
+        // 2) No environment capture
+        // 3) No side-effects in parameters
         if (Cpp2CSettings.Verbose)
         {
             errs() << "Step 4: Transform hygienic and transformable macros \n";
@@ -408,86 +433,160 @@ public:
         for (auto TopLevelExpansion : ExpansionRoots)
         {
 
-            // Check that expanded macro is not multiply defined or redefined
-            if (MultiplyDefinedMacros.find(TopLevelExpansion->Name) !=
-                MultiplyDefinedMacros.end())
+            //// Hygiene round 1
             {
-                if (Cpp2CSettings.Verbose)
+                // Don't transform expansions appearing where a const expr
+                // is required
+                if (mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin()))
                 {
-                    errs() << "Skipping expansion of "
-                           << TopLevelExpansion->Name
-                           << " because the macro is multiply-defined or "
-                           << "redefined \n";
-                }
-                Stats[TopLevelExpansionsOfMultiplyOrRedefinedDefinedMacros] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-                    Stats[MultiplyOrRedefinedOLMExpansions] += 1;
-                }
-                else
-                {
-                    Stats[MultiplyOrRedefinedFLMExpansions] += 1;
-                }
-                continue;
-            }
-
-            // Check if the expansion has side-effects
-            {
-                auto E = dyn_cast_or_null<Expr>(*TopLevelExpansion->Stmts.begin());
-                if (E && E->HasSideEffects(Ctx))
-                {
-                    Stats[TopLevelExpansionsWithSideEffects] += 1;
-                    if (TopLevelExpansion->MI->isObjectLike())
+                    if (Cpp2CSettings.Verbose)
                     {
-                        Stats[TopLevelOLMExpansionsWithSideEffects] += 1;
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Const expr required");
                     }
-                    else
+                    continue;
+                }
+
+                // Check that the expansion maps to a single expansion
+                if (TopLevelExpansion->SubtreeNodes.size() < 1)
+                {
+                    if (Cpp2CSettings.Verbose)
                     {
-                        Stats[TopLevelFLMExpansionsWithSideEffects] += 1;
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "No expansion found");
+                    }
+                    continue;
+                }
+
+                // Check that expansion maps to one statement
+                if (TopLevelExpansion->Stmts.size() != 1)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                                                 "AST Nodes != 1. Equal to " + to_string(TopLevelExpansion->Stmts.size()));
+                    }
+                    continue;
+                }
+
+                // Check that expansion has an unambiguous signature
+                if (!expansionHasUnambiguousSignature(Ctx, TopLevelExpansion))
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Ambiguous function signature");
+                    }
+                    continue;
+                }
+
+                auto ST = *TopLevelExpansion->Stmts.begin();
+                auto E = dyn_cast_or_null<Expr>(ST);
+
+                // Check that the expansion expands to an expression
+                if (!E)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Did not expand to an expression");
+                    }
+                    continue;
+                }
+
+                // Check that expression is completely covered by the expansion
+                {
+                    auto ExpansionBegin = TopLevelExpansion->SpellingRange.getBegin();
+                    auto ExpansionEnd = TopLevelExpansion->SpellingRange.getEnd();
+
+                    auto ExpressionRange = SM.getExpansionRange(E->getSourceRange());
+                    auto ExpressionBegin = ExpressionRange.getBegin();
+                    auto ExpressionEnd = ExpressionRange.getEnd();
+
+                    if (!(ExpansionBegin == ExpressionBegin &&
+                          ExpansionEnd == ExpressionEnd))
+                    {
+                        if (Cpp2CSettings.Verbose)
+                        {
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion range != Expression range");
+                        }
+                        continue;
+                    }
+
+                    // It would be better to check that the number of tokens in the
+                    // expression is >= to the number of tokens in the macro
+                    // definition, but we don't have an easy way of accessing the number
+                    // of tokens in an arbitrary expression
+                    if (!PP.isAtEndOfMacroExpansion(E->getEndLoc()))
+                    {
+                        if (Cpp2CSettings.Verbose)
+                        {
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expression end not at expansion end");
+                        }
+                        continue;
                     }
                 }
-            }
 
-            // Don't transform expansions appearing where a const expr
-            // is required
-            if (mustBeConstExpr(Ctx, *TopLevelExpansion->Stmts.begin()))
-            {
-                if (Cpp2CSettings.Verbose)
+                // Check that the arguments are hygienic
                 {
-                    errs() << "Not transforming expansion of "
-                           << TopLevelExpansion->Name + " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because needed to be a const expr\n";
-                }
-                Stats[ConstExprExpansionsFound] += 1;
-                continue;
-            }
+                    bool hasUnhygienicArg = false;
+                    for (auto &&Arg : TopLevelExpansion->Arguments)
+                    {
+                        if (Arg.Stmts.size() == 0)
+                        {
+                            if (Cpp2CSettings.Verbose)
+                            {
+                                emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                                                         "No statement for argument: " + Arg.Name);
+                            }
+                            hasUnhygienicArg = true;
+                            break;
+                        }
 
-            // Don't transform unhygienic expansions
-            if (!isExpansionHygienic(&Ctx, PP, TopLevelExpansion, Stats,
-                                     Cpp2CSettings.Verbose))
-            {
-                Stats[TopLevelUnhygienicExpansions] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-                    Stats[UnhygienicOLMs] += 1;
-                }
-                else
-                {
-                    Stats[UnhygienicFLMs] += 1;
-                }
-                continue;
-            }
-            else
-            {
-                Stats[HygienicExpansions] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-                    Stats[HygienicOLMExpansions] += 1;
-                }
-                else
-                {
-                    Stats[HygienicFLMExpansions] += 1;
+                        auto ArgFirstExpansion = *Arg.Stmts.begin();
+                        for (auto ArgExpansion : Arg.Stmts)
+                        {
+                            if (!compareTrees(Ctx, ArgFirstExpansion, ArgExpansion) &&
+                                false)
+                            {
+                                if (Cpp2CSettings.Verbose)
+                                {
+                                    emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                                                             "Argument " + Arg.Name + " not expanded to a consistent AST structure");
+                                }
+                                hasUnhygienicArg = true;
+                                break;
+                            }
+
+                            // Check that spelling location of the AST node and
+                            // all its subexpressions fall within the range of
+                            // the argument's token ranges
+                            // FIXME: This may render invocations
+                            // which contain invocations as arguments as
+                            // untransformable, but that doesn't make the
+                            // transformation unsound, and we can still get
+                            // those expansions on subsequent runs
+                            if (!StmtAndSubStmtsSpelledInRanges(Ctx, ArgExpansion,
+                                                                Arg.TokenRanges))
+                            {
+                                if (Cpp2CSettings.Verbose)
+                                {
+                                    emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                                                             "Argument " + Arg.Name + " matched with an AST node "
+                                                                                      "with an expression outside the spelling location "
+                                                                                      "of the arg's token ranges");
+                                }
+                                hasUnhygienicArg = true;
+                                break;
+                            }
+                        }
+
+                        if (hasUnhygienicArg)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (hasUnhygienicArg)
+                    {
+                        continue;
+                    }
                 }
             }
 
@@ -495,381 +594,367 @@ public:
             auto E = dyn_cast_or_null<Expr>(ST);
             assert(E != nullptr);
 
-            // Transform object-like macros which reference global vars
-            // into nullary functions, since global var initializations
-            // must be const expressions and thus cannot contains vars
-            // FIXME: Technically we should also check for function calls,
-            // but this doesn't matter right now since we don't transform
-            // expansions containing function calls anyway
+            //// Environment capture
+            {
+                if (containsLocalVars(Ctx, E))
+                {
+                    vector<const DeclRefExpr *> DREs;
+                    collectLocalVarDeclRefExprs(E, &DREs);
+                    bool hasEnvironmentCapture = false;
+                    for (auto &&DRE : DREs)
+                    {
+                        bool varComesFromArg = false;
+                        // Check all the macros arguments for the variable
+                        for (auto &&Arg : TopLevelExpansion->Arguments)
+                        {
+                            for (auto &&S : Arg.Stmts)
+                            {
+                                if (containsDeclRefExpr(S, DRE))
+                                {
+                                    varComesFromArg = true;
+                                    break;
+                                }
+                            }
+                            if (varComesFromArg)
+                            {
+                                break;
+                            }
+                        }
+
+                        if (!varComesFromArg)
+                        {
+                            if (Cpp2CSettings.Verbose)
+                            {
+                                emitUntransformedMessage(Ctx, TopLevelExpansion, ENVIRONMENT_CAPTURE, "Captures environment");
+                            }
+                            hasEnvironmentCapture = true;
+                        }
+                        if (hasEnvironmentCapture)
+                        {
+                            break;
+                        }
+                    }
+                    if (hasEnvironmentCapture)
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            //// Parameter side-effects
+            {
+                // Don't transform expansions which:
+                // 1)   Change the R-value associated with the L-value of a symbol
+                //      in one of their arguments
+                // 2)   Return the L-value of a symbol in one of their arguments
+                //      in the *body* of the definition; e.g., FOO(&x) is fine, but
+                //          #define FOO(x) &x
+                //          FOO(x)
+                //      is not
+                bool writesToRValueFromArg = false;
+                bool returnsLValueFromArg = false;
+                set<const Stmt *> LValuesFromArgs;
+                set<const Stmt *> StmtsThatChangeRValue;
+                set<const Stmt *> StmtsThatReturnLValue;
+                for (auto &&it : TopLevelExpansion->Arguments)
+                {
+                    collectLValuesSpelledInRange(Ctx, ST, it.TokenRanges, &LValuesFromArgs);
+                }
+
+                collectStmtsThatChangeRValue(ST, &StmtsThatChangeRValue);
+                for (auto &&StmtThatChangesRValue : StmtsThatChangeRValue)
+                {
+                    for (auto &&LVal : LValuesFromArgs)
+                    {
+                        if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(StmtThatChangesRValue))
+                        {
+
+                            if (containsStmt(UO, LVal))
+                            {
+                                writesToRValueFromArg = true;
+                                break;
+                            }
+                        }
+                        else if (auto BO = dyn_cast_or_null<BinaryOperator>(StmtThatChangesRValue))
+                        {
+                            if (containsStmt(BO->getLHS(), LVal))
+                            {
+                                writesToRValueFromArg = true;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            // NOTE: This shouldn't happen? What do we do here?
+                            assert(false);
+                        }
+                    }
+                    if (writesToRValueFromArg)
+                    {
+                        break;
+                    }
+                }
+                if (writesToRValueFromArg)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Writes to R-value of symbol from arguments");
+                    }
+                    Stats[TopLevelExpansionsThatWriteToRValueFromSymbolInArgument] += 1;
+                    continue;
+                }
+
+                collectStmtsThatReturnLValue(ST, &StmtsThatReturnLValue);
+                for (auto &&StmtThatReturnsLValue : StmtsThatReturnLValue)
+                {
+                    bool isOk = false;
+                    // We can allow this statement if the entire expression
+                    // came from a single argument
+                    for (auto &&it : TopLevelExpansion->Arguments)
+                    {
+                        if (StmtAndSubStmtsSpelledInRanges(Ctx, StmtThatReturnsLValue, it.TokenRanges))
+                        {
+                            isOk = true;
+                            break;
+                        }
+                    }
+                    // If this expansion is ok, don't proceed with the check
+                    if (isOk){
+                        break;
+                    }
+
+                    for (auto &&LVal : LValuesFromArgs)
+                    {
+                        if (containsStmt(StmtThatReturnsLValue, LVal))
+                        {
+                            returnsLValueFromArg = true;
+                            break;
+                        }
+                    }
+                    if (returnsLValueFromArg)
+                    {
+                        break;
+                    }
+                }
+                if (returnsLValueFromArg)
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Returns L-value of symbol from arguments");
+                    }
+                    continue;
+                }
+            }
+
+            // Transform object-like macros which reference global vars,
+            // call functions, or expand to void-type expressions
+            // into nullary functions, since global vars cannot do
+            // any of those
             bool TransformToVar =
                 TopLevelExpansion->MI->isObjectLike() &&
-                !containsGlobalVars(E);
+                !containsGlobalVars(E) &&
+                !containsFunctionCalls(E) &&
+                getDesugaredCanonicalType(Ctx, ST).getAsString() != "void";
 
-            // Create the transformed definition.
-            // Note that this generates the transformed definition as well.
+            // Create the transformed definition
             struct TransformedDefinition TD =
                 NewTransformedDefinition(Ctx,
                                          TopLevelExpansion,
                                          TransformToVar);
 
-            // Don't transform expansions which:
-            // 1) Change the R-value associated with the L-value of a symbol
-            //    in one of their arguments
-            // 2) Retrieve the L-value of a symbol in one of their arguments
-            bool writesToRValueFromArg = false;
-            bool readsLValueFromArg = false;
-            set<const Stmt *> LValuesFromArgs;
-            set<const Stmt *> StmtsThatChangeRValue;
-            set<const Stmt *> StmtsThatReadLValue;
-            for (auto &&it : TopLevelExpansion->Arguments)
+            //// Hygiene round 2
             {
-                collectLValuesSpelledInRange(Ctx, ST, it.TokenRanges, &LValuesFromArgs);
-            }
-
-            collectStmtsThatChangeRValue(ST, &StmtsThatChangeRValue);
-            for (auto &&StmtThatChangesRValue : StmtsThatChangeRValue)
-            {
-                for (auto &&LVal : LValuesFromArgs)
+                // Don't transform definitions with signatures with array types
+                // TODO: We should be able to transform these so long as we
+                // properly transform array types to pointers
+                if (TD.hasArrayTypes())
                 {
-                    if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(StmtThatChangesRValue))
+                    if (Cpp2CSettings.Verbose)
                     {
-
-                        if (containsStmt(UO, LVal))
-                        {
-                            writesToRValueFromArg = true;
-                            break;
-                        }
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed signature includes array types");
                     }
-                    else if (auto BO = dyn_cast_or_null<BinaryOperator>(StmtThatChangesRValue))
-                    {
-                        if (containsStmt(BO->getLHS(), LVal))
-                        {
-                            writesToRValueFromArg = true;
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        // NOTE: This shouldn't happen? What do we do here?
-                        assert(false);
-                    }
-                }
-                if (writesToRValueFromArg)
-                {
-                    break;
-                }
-            }
-            if (writesToRValueFromArg)
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it writes to an R-value from "
-                           << "from its arguments\n";
-                }
-                Stats[TopLevelExpansionsThatWriteToRValueFromSymbolInArgument] += 1;
-                continue;
-            }
-
-            collectStmtsThatReadLValue(ST, &StmtsThatReadLValue);
-            for (auto &&StmtThatReadsLValue : StmtsThatReadLValue)
-            {
-                for (auto &&LVal : LValuesFromArgs)
-                {
-
-                    if (containsStmt(StmtThatReadsLValue, LVal))
-                    {
-                        readsLValueFromArg = true;
-                        break;
-                    }
-                }
-                if (readsLValueFromArg)
-                {
-                    break;
-                }
-            }
-            if (readsLValueFromArg)
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it reads an L-value from "
-                           << "from its arguments\n";
-                }
-                Stats[TopLevelExpansionsThatReadFromLValueFromSymbolInArgument] += 1;
-                continue;
-            }
-
-            // Don't transform expansions which would be transformed to vars,
-            // but contain function calls in their initializers
-            if (TD.IsVar && containsFunctionCalls(E))
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it would have been transformed to "
-                           << "a var with a call in its initializer\n";
-                }
-                Stats[TopLevelExpansionsTransformedToVarWithCallInInitializer] += 1;
-                continue;
-            }
-
-            // Don't transform definitions which contain array types
-            if (TD.hasArrayTypes())
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it involved array types\n";
-                }
-                Stats[TopLevelExpansionsWithArrayTypesInSignature] += 1;
-                continue;
-            }
-
-            // Don't transform definitions which would become void vars
-            if (TD.IsVar &&
-                (TD.VarOrReturnType.isNull() ||
-                 TD.VarOrReturnType.getAsString() == "void"))
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it was a var with type void\n";
-                }
-                Stats[TopLevelExpansionsTransformedToVarWithNullOrVoidType] += 1;
-                continue;
-            }
-
-            // Perform function-specific checks
-            if (!TD.IsVar)
-            {
-                auto Parents = Ctx.getParents(*E);
-                if (Parents.size() > 1)
-                {
                     continue;
                 }
 
-                // Check that function call is not on LHS of assignment
-                bool isLHSOfAssignment = false;
-                while (Parents.size() > 0)
+                // Perform function-specific checks
+                if (!TD.IsVar)
                 {
-                    auto P = Parents[0];
-                    if (auto BO = P.get<BinaryOperator>())
+                    auto Parents = Ctx.getParents(*E);
+                    if (Parents.size() > 1)
                     {
-                        if (BO->isAssignmentOp())
+                        continue;
+                    }
+
+                    // Check that function call is not on LHS of assignment
+                    bool isLHSOfAssignment = false;
+                    while (Parents.size() > 0)
+                    {
+                        auto P = Parents[0];
+                        if (auto BO = P.get<BinaryOperator>())
                         {
-                            if (SM.getExpansionRange(BO->getLHS()->getSourceRange()).getAsRange().fullyContains(SM.getExpansionRange(E->getSourceRange()).getAsRange()))
+                            if (BO->isAssignmentOp())
                             {
-                                isLHSOfAssignment = true;
+                                if (SM.getExpansionRange(BO->getLHS()->getSourceRange()).getAsRange().fullyContains(SM.getExpansionRange(E->getSourceRange()).getAsRange()))
+                                {
+                                    isLHSOfAssignment = true;
+                                    break;
+                                }
+                            }
+                        }
+                        Parents = Ctx.getParents(P);
+                    }
+                    if (isLHSOfAssignment)
+                    {
+                        if (Cpp2CSettings.Verbose)
+                        {
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion on LHS of assignment");
+                        }
+                        continue;
+                    }
+
+                    // Check that function call is not the operand of an inc or dec
+                    Parents = Ctx.getParents(*E);
+                    bool isOperandOfDecOrInc = false;
+                    while (Parents.size() > 0)
+                    {
+                        auto P = Parents[0];
+                        if (auto UO = P.get<clang::UnaryOperator>())
+                        {
+                            if (UO->isIncrementDecrementOp())
+                            {
+                                isOperandOfDecOrInc = true;
                                 break;
                             }
                         }
+                        Parents = Ctx.getParents(P);
                     }
-                    Parents = Ctx.getParents(P);
-                }
-                if (isLHSOfAssignment)
-                {
-                    if (Cpp2CSettings.Verbose)
+                    if (isOperandOfDecOrInc)
                     {
-                        errs() << "Not transforming "
-                               << TopLevelExpansion->Name
-                               << " @ "
-                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                               << " because it was a function call used as "
-                               << "an L-value\n";
-                    }
-                    Stats[TopLevelExpansionsTransformedToFunctionCallUsedAsLHSOfAssign] += 1;
-                    continue;
-                }
-
-                // Check that function call is not the operand of an inc or dec
-                Parents = Ctx.getParents(*E);
-                bool isOperandOfDecOrInc = false;
-                while (Parents.size() > 0)
-                {
-                    auto P = Parents[0];
-                    if (auto UO = P.get<clang::UnaryOperator>())
-                    {
-                        if (UO->isIncrementDecrementOp())
+                        if (Cpp2CSettings.Verbose)
                         {
-                            isOperandOfDecOrInc = true;
-                            break;
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion operand of -- or ++");
                         }
+                        continue;
                     }
-                    Parents = Ctx.getParents(P);
-                }
-                if (isOperandOfDecOrInc)
-                {
-                    if (Cpp2CSettings.Verbose)
-                    {
-                        errs() << "Not transforming "
-                               << TopLevelExpansion->Name
-                               << " @ "
-                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                               << " because it was a function call used as "
-                               << "an L-value\n";
-                    }
-                    Stats[TopLevelExpansionsTransformedToFunctionCallAsOperandOfDecOrInc] += 1;
-                    continue;
-                }
 
-                // Check that function call is not the operand of address of
-                // (&)
-                Parents = Ctx.getParents(*E);
-                bool isOperandOfAddressOf = false;
-                while (Parents.size() > 0)
-                {
-                    auto P = Parents[0];
-                    if (auto UO = P.get<clang::UnaryOperator>())
+                    // Check that function call is not the operand of address of
+                    // (&)
+                    Parents = Ctx.getParents(*E);
+                    bool isOperandOfAddressOf = false;
+                    while (Parents.size() > 0)
                     {
-                        if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
+                        auto P = Parents[0];
+                        if (auto UO = P.get<clang::UnaryOperator>())
                         {
-                            isOperandOfAddressOf = true;
-                            break;
+                            if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
+                            {
+                                isOperandOfAddressOf = true;
+                                break;
+                            }
                         }
+                        Parents = Ctx.getParents(P);
                     }
-                    Parents = Ctx.getParents(P);
+                    if (isOperandOfAddressOf)
+                    {
+                        if (Cpp2CSettings.Verbose)
+                        {
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion operand of &");
+                        }
+                        continue;
+                    }
                 }
-                if (isOperandOfAddressOf)
+
+                // Check that the transformed definition's signature
+                // does not include function types or function pointer
+                // types.
+                // Returning a function is unhygienic, but function parameters
+                // are fine.
+                // TODO: We could allow function parameters if we could
+                // emit the names of parameters correctly, and we could possibly
+                // allow function return types if we cast them to pointers
+                if (TD.hasFunctionTypes())
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        errs() << "Not transforming "
-                               << TopLevelExpansion->Name
-                               << " @ "
-                               << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                               << " because it was a function call used as "
-                               << "an L-value\n";
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed signature includes function or function pointer types");
                     }
-                    Stats[TopLevelExpansionsTransformedToFunctionCallAsOperandOfAddressOf] += 1;
                     continue;
                 }
-            }
 
-            // Check that the transformed definition does not have a
-            // is not a function pointer type
-            if (TD.hasFunctionTypes())
-            {
-                if (Cpp2CSettings.Verbose)
+                // Check that this expansion is not string literal, because it
+                // may have been used in a place where a string literal is
+                // required, e.g., as the format string to printf
+                // TODO:    I think we should be able to transform these if we could fix
+                //          transforming array types
+                if (isa_and_nonnull<clang::StringLiteral>(ST))
                 {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it had function/void pointer type \n";
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion is a string literal");
+                    }
+                    continue;
                 }
-                Stats[TopLevelExpansionsWithFunctionPointerType] += 1;
-                continue;
-            }
-
-            // Check that this expansion is not string literal
-            if (isa_and_nonnull<clang::StringLiteral>(*(TopLevelExpansion->Stmts.begin())))
-            {
-                if (Cpp2CSettings.Verbose)
-                {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it was a string literal \n";
-                }
-                Stats[TopLevelExpansionsToStringLiteral] += 1;
-                continue;
             }
 
             // Get the location to emit the transformed definition
             auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->Stmts.begin());
 
-            if (FD == nullptr)
+            //// Hygiene round 3
             {
-                if (Cpp2CSettings.Verbose)
+                if (FD == nullptr)
                 {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because it was not expanded inside a function "
-                           << "definition\n";
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion not inside a function definition");
+                    }
+                    continue;
                 }
-                Stats[TransformationLocationNotRewritable] += 1;
-                continue;
-            }
 
-            auto RewriteLoc = SM.getExpansionLoc(FD->getBeginLoc());
+                // TODO: Record this rewrite location somewhere so we can
+                // just reference it later when we go to emit the
+                // transformed definition
+                // TODO: There has to be a smarter way of generating the transformed definition's rewrite location
+                auto TransformedDefinitionLoc = SM.getExpansionLoc(FD->getBeginLoc());
 
-            if (!RW.isRewritable(RewriteLoc))
-            {
-                if (Cpp2CSettings.Verbose)
+                if (!RW.isRewritable(TransformedDefinitionLoc))
                 {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because its emitted definition would not be "
-                           << "to a rewritable location\n";
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed definition not in a rewritable location");
+                    }
+                    continue;
                 }
-                continue;
-            }
 
-            if (!SM.isInMainFile(RewriteLoc))
-            {
-                if (Cpp2CSettings.Verbose)
+                if (!SM.isInMainFile(TransformedDefinitionLoc))
                 {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because its emitted definition would not "
-                           << "be in the main file\n";
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed definition location not in main file");
+                    }
+                    continue;
                 }
-                continue;
-            }
 
-            if (
-                !RW.isRewritable(TopLevelExpansion->SpellingRange.getBegin()) ||
-                !RW.isRewritable(TopLevelExpansion->SpellingRange.getEnd()))
-            {
-                if (Cpp2CSettings.Verbose)
+                if (
+                    !RW.isRewritable(TopLevelExpansion->SpellingRange.getBegin()) ||
+                    !RW.isRewritable(TopLevelExpansion->SpellingRange.getEnd()))
                 {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because its emitted transformation would not "
-                           << "be in a rewritable location \n";
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion not in a rewritable location");
+                    }
+                    continue;
                 }
-                continue;
-            }
 
-            if (
-                !SM.isInMainFile(TopLevelExpansion->SpellingRange.getBegin()) ||
-                !SM.isInMainFile(TopLevelExpansion->SpellingRange.getEnd()))
-            {
-                if (Cpp2CSettings.Verbose)
+                if (
+                    !SM.isInMainFile(TopLevelExpansion->SpellingRange.getBegin()) ||
+                    !SM.isInMainFile(TopLevelExpansion->SpellingRange.getEnd()))
                 {
-                    errs() << "Not transforming "
-                           << TopLevelExpansion->Name
-                           << " @ "
-                           << (*(TopLevelExpansion->Stmts.begin()))->getBeginLoc().printToString(SM)
-                           << " because its emitted transformation would not "
-                           << "be in the main file\n";
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed expansion not in main file");
+                    }
+                    continue;
                 }
-                continue;
             }
 
             //// Transform the expansion
