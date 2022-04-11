@@ -2,7 +2,7 @@ import csv
 import os
 import shutil
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 from subprocess import CompletedProcess, run
 from sys import stderr
 import sys
@@ -23,6 +23,16 @@ OBJECT_LIKE_PREFIX = 'ObjectLike'
 FUNCTION_LIKE_PREFIX = 'FunctionLike'
 EXTRACTED_EVALUATION_PROGRAMS_DIR = r'extracted_evaluation_programs/'
 STATS_DIR = r'stats/'
+
+# TODO: To make this more accurate, we should perform both a dry run and an
+# actual transformation per complete run of each program.
+# This would remove the issue of intermediate spelling locations changing
+# between transformations of compilation units
+
+# Also we should not just be hashing macros by using their source text.
+# We should also be incorporating the source file name and definition number.
+# This would ensure that we consider two macros that have the same name
+# and definition in spearate, or even the same, files to be unique.
 
 
 @dataclass
@@ -53,6 +63,16 @@ class TransformedExpansion:
     spelling_location: str
     name_of_function_spelled_in: str
     run_no_emitted: int
+
+
+@dataclass
+class UntransformedExpansion:
+    macro_hash: str
+    spelling_location: str
+    name_of_function_spelled_in: str
+    category: str
+    reason: str
+    run_no_reported: int
 
 
 @dataclass
@@ -181,6 +201,7 @@ def main():
         all_macro_expansions: List[MacroExpansion] = []
         all_transformed_definitions: List[TransformedDefinition] = []
         all_transformed_expansions: List[TransformedExpansion] = []
+        all_untransformed_expansions: List[UntransformedExpansion] = []
 
         # Transform program files until no more transformations are made
         while True:
@@ -191,6 +212,8 @@ def main():
             transformed_definitions_found_this_run: List[TransformedDefinition] = \
                 []
             transformed_expansions_found_this_run: List[TransformedExpansion] = \
+                []
+            untransformed_expansions_found_this_run: List[UntransformedExpansion] = \
                 []
 
             emitted_a_transformation = False
@@ -205,9 +228,16 @@ def main():
                     []
                 transformed_expansions_found_in_this_translation_unit: List[TransformedExpansion] = \
                     []
+                untransformed_expansions_found_in_this_translation_unit: List[UntransformedExpansion] = \
+                    []
 
                 cp: CompletedProcess = run(
-                    f'../implementation/build/bin/cpp2c {c_file} -fsyntax-only -Wno-all -Xclang -plugin-arg-cpp2c -Xclang -ow',
+                    (
+                        f'../implementation/build/bin/cpp2c {c_file} '
+                        '-fsyntax-only -Wno-all '
+                        '-Xclang -plugin-arg-cpp2c -Xclang -ow '
+                        '-Xclang -plugin-arg-cpp2c -Xclang -v'
+                    ),
                     shell=True, capture_output=True, text=True)
 
                 emitted_a_transformation_for_this_file = False
@@ -240,7 +270,8 @@ def main():
                         emitted_a_transformation_for_this_file = True
 
                     elif msg.startswith(UNTRANSFORMED_EXPANSION):
-                        pass
+                        untransformed_expansions_found_in_this_translation_unit.append(
+                            UntransformedExpansion(*constructor_fields, run_no))
 
                     else:
                         print(
@@ -258,6 +289,8 @@ def main():
                     transformed_definitions_found_in_this_translation_unit)
                 transformed_expansions_found_this_run.extend(
                     transformed_expansions_found_in_this_translation_unit)
+                untransformed_expansions_found_this_run.extend(
+                    untransformed_expansions_found_in_this_translation_unit)
 
                 emitted_a_transformation = emitted_a_transformation or emitted_a_transformation_for_this_file
 
@@ -273,6 +306,8 @@ def main():
                 transformed_definitions_found_this_run)
             all_transformed_expansions.extend(
                 transformed_expansions_found_this_run)
+            all_untransformed_expansions.extend(
+                untransformed_expansions_found_this_run)
 
             if not emitted_a_transformation:
                 break
@@ -385,8 +420,9 @@ def main():
         # is the set of functions originally defined in the program
         for te in all_expansions_of_macros_defined_in_evaluation_program:
             if te.run_no_emitted == 1:
-                names_of_functions_to_check_for_transformed_expansions_in.add(te.name_of_function_spelled_in)
-        
+                names_of_functions_to_check_for_transformed_expansions_in.add(
+                    te.name_of_function_spelled_in)
+
         unique_transformed_expansions = []
         for i in range(1, run_no):
             # Add all expansions to our list of unique expansions which were found
@@ -396,29 +432,31 @@ def main():
                 if te.run_no_emitted == i:
                     if te.name_of_function_spelled_in in names_of_functions_to_check_for_transformed_expansions_in:
                         unique_transformations_found_this_round.append(te)
-            
-            unique_transformed_expansions.extend(unique_transformations_found_this_round)
+
+            unique_transformed_expansions.extend(
+                unique_transformations_found_this_round)
 
             # Get all functions we emitted this run
             functions_emitted_this_run: List[TransformedDefinition] = \
                 [
                     td for td in all_transformed_definitions
                     if td.run_no_emitted == i
-                ]
+            ]
 
             # Exclude new definitions of transformed definitions we've already seen
             unique_functions_emitted_this_run: List[TransformedDefinition] = []
             for f in functions_emitted_this_run:
                 if f.macro_hash not in hashes_of_macros_to_no_longer_check_for_transformed_expansions_in:
                     unique_functions_emitted_this_run.append(f)
-                    hashes_of_macros_to_no_longer_check_for_transformed_expansions_in.add(f.macro_hash)
+                    hashes_of_macros_to_no_longer_check_for_transformed_expansions_in.add(
+                        f.macro_hash)
 
             # Add the names of these new functions to the names of the
             # functions to check for new transformed expansions in
             names_of_new_functions_to_check_for_transformed_expansions_in = \
                 {f.emitted_name for f in unique_functions_emitted_this_run}
-            names_of_functions_to_check_for_transformed_expansions_in.update(names_of_new_functions_to_check_for_transformed_expansions_in)
-            
+            names_of_functions_to_check_for_transformed_expansions_in.update(
+                names_of_new_functions_to_check_for_transformed_expansions_in)
 
         num_unique_transformed_expansions = len(unique_transformed_expansions)
         num_unique_object_like_transformed_expansions = len(
@@ -648,10 +686,10 @@ def main():
             print(','.join([str(v)
                   for v in flm_stats.values()]), file=ofp)
 
-    # TODO: Add flag to run these programs' tests
-    # W have hand-confirmed that they all work after the current
-    # implementation transforms them, but it would greatly facilitate future
-    # testing
+        with open(STATS_DIR + f'run-1-untransformed-{evaluation_program.name}.txt', 'w') as fp:
+            for ute in all_untransformed_expansions:
+                if ute.run_no_reported == 1:
+                    print(*astuple(ute), sep=',', file=fp)
 
 
 if __name__ == '__main__':
