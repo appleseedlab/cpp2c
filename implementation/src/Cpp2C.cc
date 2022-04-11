@@ -390,7 +390,7 @@ public:
         }
 
         // Mapping of macro names to all emitted transformed definitions for
-        // that macro.This enables to quickly check for duplicate
+        // that macro. This enables to quickly check for duplicate
         // identical transformations
         map<SourceLocation, vector<struct TransformedDefinition>>
             MacroDefinitionLocationToTransformedDefinition;
@@ -508,7 +508,8 @@ public:
             // Create the transformed definition.
             // Note that this generates the transformed definition as well.
             struct TransformedDefinition TD =
-                NewTransformedDefinition(Ctx, TopLevelExpansion,
+                NewTransformedDefinition(Ctx,
+                                         TopLevelExpansion,
                                          TransformToVar);
 
             // Don't transform expansions which:
@@ -1031,14 +1032,7 @@ public:
                         CallOrRef += ", ";
                     }
 
-                    // Reconstruct the actual arguments from their tokens
-                    for (auto &&TR : Arg.TokenRanges)
-                    {
-                        auto CTR = CharSourceRange::getCharRange(TR);
-                        string ArgSourceText =
-                            Lexer::getSourceText(CTR, SM, LO).str();
-                        CallOrRef += ArgSourceText + " ";
-                    }
+                    CallOrRef += Arg.RawText;
 
                     i += 1;
                 }
