@@ -115,6 +115,9 @@ public:
 
         // Where the argument is spelled in the source code according to Clang.
         SourceLocation SpellingLoc;
+
+        // The raw text behind this macro argument
+        string RawText;
     };
 
     // A forest of Expansions
@@ -160,6 +163,9 @@ public:
 
         // Vector of the macro's arguments
         vector<Argument> Arguments;
+
+        // Raw text of the macro's definition
+        string DefinitionText;
 
         // Dump information about the node and its argument
         void dump(SourceManager &SM)
@@ -273,12 +279,30 @@ public:
         // Get the source manager
         SourceManager &SM = Ctx.getSourceManager();
 
+        // Get the language options
+        const LangOptions &LO = Ctx.getLangOpts();
+
+        // Record the raw text of the macro definition
+        {
+            Expansion->DefinitionText = "";
+            int i = 0;
+            for (auto &&Tok : MI->tokens())
+            {
+                if (i != 0)
+                {
+                    Expansion->DefinitionText += " ";
+                }
+                Expansion->DefinitionText += Lexer::getSpelling(Tok, SM, LO);
+                i += 1;
+            }
+        }
+
         // TODO: Only emit macro expansions if verbose
         {
             auto SpellingLoc = SpellingRange.getBegin();
             errs() << "CPP2C:"
                    << "Macro Expansion,"
-                   << "\"" << hashMacro(MD.getMacroInfo(), SM, Ctx.getLangOpts()) << "\","
+                   << "\"" << hashMacro(MD.getMacroInfo(), SM, LO) << "\","
                    << SpellingLoc.printToString(SM) << "\n";
         }
 
@@ -410,6 +434,20 @@ public:
             auto &Tokens = const_cast<MacroArgs *>(Args)
                                ->getPreExpArgument(i, CI.getPreprocessor());
             inMacroArgExpansion.pop_back();
+
+            // Record the raw text behind this argument
+            Argument.RawText = "";
+            auto Tok = Args->getUnexpArgument(i);
+            int numTokens = Args->getArgLength(Tok);
+            for (int j = 0; j < numTokens; j++)
+            {
+                if (j != 0)
+                {
+                    Argument.RawText += " ";
+                }
+                Argument.RawText += Lexer::getSpelling(*Tok, SM, LO);
+                Tok++;
+            }
 
             // Store the spelling location for this argument
             if (Tokens.size() > 0)
