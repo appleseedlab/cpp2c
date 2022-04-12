@@ -421,10 +421,11 @@ public:
         set<pair<string, const FunctionDecl *>>
             TransformedDefinitionsAndFunctionDeclExpandedIn;
 
-        // Step 4: Transform macros that satisfy these three requirements:
+        // Step 4: Transform macros that satisfy these four requirements:
         // 1) Hygiene
         // 2) No environment capture
-        // 3) No side-effects in parameters
+        // 3) No side-effects in parameters (R-value equivalence)
+        // 4) Not unsupported
         if (Cpp2CSettings.Verbose)
         {
             errs() << "Step 4: Transform hygienic and transformable macros \n";
@@ -594,6 +595,22 @@ public:
             auto E = dyn_cast_or_null<Expr>(ST);
             assert(E != nullptr);
 
+            // Transform object-like macros which reference global vars,
+            // call functions, or expand to void-type expressions
+            // into nullary functions, since global vars cannot do
+            // any of those
+            bool TransformToVar =
+                TopLevelExpansion->MI->isObjectLike() &&
+                !containsGlobalVars(E) &&
+                !containsFunctionCalls(E) &&
+                getDesugaredCanonicalType(Ctx, ST).getAsString() != "void";
+
+            // Create the transformed definition
+            struct TransformedDefinition TD =
+                NewTransformedDefinition(Ctx,
+                                         TopLevelExpansion,
+                                         TransformToVar);
+
             //// Environment capture
             {
                 if (containsLocalVars(Ctx, E))
@@ -641,7 +658,7 @@ public:
                 }
             }
 
-            //// Parameter side-effects
+            //// L-Value Independence and R-Value Equivalence
             {
                 // Don't transform expansions which:
                 // 1)   Change the R-value associated with the L-value of a symbol
@@ -719,7 +736,8 @@ public:
                         }
                     }
                     // If this expansion is ok, don't proceed with the check
-                    if (isOk){
+                    if (isOk)
+                    {
                         break;
                     }
 
@@ -741,37 +759,6 @@ public:
                     if (Cpp2CSettings.Verbose)
                     {
                         emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Returns L-value of symbol from arguments");
-                    }
-                    continue;
-                }
-            }
-
-            // Transform object-like macros which reference global vars,
-            // call functions, or expand to void-type expressions
-            // into nullary functions, since global vars cannot do
-            // any of those
-            bool TransformToVar =
-                TopLevelExpansion->MI->isObjectLike() &&
-                !containsGlobalVars(E) &&
-                !containsFunctionCalls(E) &&
-                getDesugaredCanonicalType(Ctx, ST).getAsString() != "void";
-
-            // Create the transformed definition
-            struct TransformedDefinition TD =
-                NewTransformedDefinition(Ctx,
-                                         TopLevelExpansion,
-                                         TransformToVar);
-
-            //// Hygiene round 2
-            {
-                // Don't transform definitions with signatures with array types
-                // TODO: We should be able to transform these so long as we
-                // properly transform array types to pointers
-                if (TD.hasArrayTypes())
-                {
-                    if (Cpp2CSettings.Verbose)
-                    {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed signature includes array types");
                     }
                     continue;
                 }
@@ -807,7 +794,7 @@ public:
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion on LHS of assignment");
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Expansion on LHS of assignment");
                         }
                         continue;
                     }
@@ -832,7 +819,7 @@ public:
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion operand of -- or ++");
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Expansion operand of -- or ++");
                         }
                         continue;
                     }
@@ -858,10 +845,25 @@ public:
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion operand of &");
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Expansion operand of &");
                         }
                         continue;
                     }
+                }
+            }
+
+            //// Hygiene round 2
+            {
+                // Don't transform definitions with signatures with array types
+                // TODO: We should be able to transform these so long as we
+                // properly transform array types to pointers
+                if (TD.hasArrayTypes())
+                {
+                    if (Cpp2CSettings.Verbose)
+                    {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed signature includes array types");
+                    }
+                    continue;
                 }
 
                 // Check that the transformed definition's signature
