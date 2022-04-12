@@ -1,11 +1,11 @@
 import csv
 import os
 import shutil
+import sys
 from collections import deque
-from dataclasses import astuple, dataclass
+from dataclasses import astuple, dataclass, fields
 from subprocess import CompletedProcess, run
 from sys import stderr
-import sys
 from typing import Deque, Dict, List
 from urllib.request import urlretrieve
 
@@ -116,11 +116,30 @@ def is_location_in_extracted_program_c_or_h_file(location: str) -> bool:
 # Taken from Wikipedia
 def three_num(data):
     """90, 95, and 99th percentiles."""
-    try:
-        return np.percentile(data, [90, 95, 99], method='midpoint')
-    # Happens if we pass an empty array
-    except IndexError:
-        return [0, 0, 0, 0, 0]
+    # To avoid errors when passing an empty array
+    if not data:
+        data = [0]
+    return np.percentile(data, [90, 95, 99], method='midpoint')
+
+
+def twenty_num(data):
+    """5xth percentiles."""
+    # To avoid errors when passing an empty array
+    if not data:
+        data = [0]
+    return np.percentile(data, [i for i in range(0, 101, 10)], method='midpoint')
+
+
+def twenty_num(data):
+    """5xth percentiles."""
+    # To avoid errors when passing an empty array
+    if not data:
+        data = [0]
+    return np.percentile(data, [i for i in range(0, 101, 5)], method='midpoint')
+
+
+# Disable numpy text wrapping
+np.set_printoptions(linewidth=np.inf)
 
 
 def main():
@@ -294,7 +313,6 @@ def main():
                 macro_expansions_found_this_run.extend(
                     macro_expansions_found_in_this_translation_unit)
 
-
                 if run_no == 1:
 
                     hashes_of_run_1_macro_definitions_in_evaluation_program.update({
@@ -371,9 +389,8 @@ def main():
 
                 if emitted_a_transformation_for_this_file:
                     print(f'Emitted at least one transformation in {c_file}')
-                
-                emitted_a_transformation = emitted_a_transformation or emitted_a_transformation_for_this_file
 
+                emitted_a_transformation = emitted_a_transformation or emitted_a_transformation_for_this_file
 
                 transformed_definitions_found_this_run.extend(
                     transformed_definitions_found_in_this_translation_unit)
@@ -574,6 +591,34 @@ def main():
                 )
             ]
         )
+        fivexth_summary_of_unique_function_signatures_per_transformed_definition = twenty_num(
+            [
+                len(sigs) for sigs in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.values()
+                if len(sigs) > 0
+            ]
+        )
+        fivexth_summary_of_unique_function_signatures_per_transformed_object_like_definition = twenty_num(
+            [
+                len(sigs)
+                for mh, sigs
+                in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.items()
+                if (
+                    len(sigs) > 0 and
+                    mh.startswith(OBJECT_LIKE_PREFIX)
+                )
+            ]
+        )
+        fivexth_summary_of_unique_function_signatures_per_transformed_function_like_definition = twenty_num(
+            [
+                len(sigs)
+                for mh, sigs
+                in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.items()
+                if (
+                    len(sigs) > 0 and
+                    mh.startswith(FUNCTION_LIKE_PREFIX)
+                )
+            ]
+        )
 
         # Map the hash of each macro defined in the evaluation program that
         # we transformed at least once to its run 1 expansion spelling locations
@@ -651,6 +696,26 @@ def main():
             ])
 
         three_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion = three_num(
+            [
+                num_not_transformed
+                for mh, num_not_transformed in
+                hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.items()
+                if mh.startswith(FUNCTION_LIKE_PREFIX)
+            ])
+
+        fivexth_summary_of_not_transformed_invocations_per_transformed_defintion = twenty_num(
+            list(hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.values())
+        )
+
+        fivexth_summary_of_not_transformed_object_like_invocations_per_transformed_defintion = twenty_num(
+            [
+                num_not_transformed
+                for mh, num_not_transformed in
+                hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.items()
+                if mh.startswith(OBJECT_LIKE_PREFIX)
+            ])
+
+        fivexth_summary_of_not_transformed_function_like_invocations_per_transformed_defintion = twenty_num(
             [
                 num_not_transformed
                 for mh, num_not_transformed in
@@ -845,8 +910,10 @@ def main():
             'unique not transformed invocations': total_unique_original_expansions - num_unique_transformed_expansions,
             '90-95-99 percentiles of unique invocations per definition': three_point_summary_of_unique_invocations_per_definition,
             '90-95-99 percentiles of not transformed invocations per transformed definition': three_point_summary_of_not_transformed_invocations_per_transformed_defintion,
+            '5xth percentiles of not transformed invocations per transformed definition': fivexth_summary_of_not_transformed_invocations_per_transformed_defintion,
             '90-95-99 percentiles of transformed invocations per transformed definition': three_point_summary_of_transformed_invocations_per_transformed_defintion,
-            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_definition
+            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_definition,
+            '5xth percentiles of unique function signatures per transformed definition': fivexth_summary_of_unique_function_signatures_per_transformed_definition
         }
 
         olm_stats = {
@@ -859,8 +926,10 @@ def main():
             'unique not transformed invocations': total_unique_original_object_like_expansions - num_unique_object_like_transformed_expansions,
             '90-95-99 percentiles of unique invocations per definition': three_point_summary_of_unique_object_like_invocations_per_definition,
             '90-95-99 percentiles of not transformed invocations per transformed definition': three_point_summary_of_not_transformed_object_like_invocations_per_transformed_defintion,
+            '5xth percentiles of not transformed invocations per transformed definition': fivexth_summary_of_not_transformed_object_like_invocations_per_transformed_defintion,
             '90-95-99 percentiles of transformed invocations per transformed definition': three_point_summary_of_transformed_object_like_invocations_per_transformed_defintion,
-            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_object_like_definition
+            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_object_like_definition,
+            '5xth percentiles of unique function signatures per transformed definition': fivexth_summary_of_unique_function_signatures_per_transformed_object_like_definition
         }
 
         flm_stats = {
@@ -873,8 +942,10 @@ def main():
             'unique not transformed invocations': total_unique_original_function_like_expansions - num_unique_function_like_transformed_expansions,
             '90-95-99 percentiles of unique invocations per definition': three_point_summary_of_unique_function_like_invocations_per_definition,
             '90-95-99 percentiles of not transformed invocations per transformed definition': three_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion,
+            '5xth percentiles of not transformed invocations per transformed definition': fivexth_summary_of_not_transformed_function_like_invocations_per_transformed_defintion,
             '90-95-99 percentiles of transformed invocations per transformed definition': three_point_summary_of_transformed_function_like_invocations_per_transformed_defintion,
-            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_function_like_definition
+            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_function_like_definition,
+            '5xth percentiles of unique function signatures per transformed definition': fivexth_summary_of_unique_function_signatures_per_transformed_function_like_definition
         }
 
         # Dump transformable expansion stats
@@ -910,10 +981,14 @@ def main():
             print(','.join([str(v)
                   for v in flm_stats.values()]), file=ofp)
 
-        with open(STATS_DIR + f'run-1-untransformed-{evaluation_program.name}.csv', 'w') as fp:
-            for ute in all_untransformed_top_level_expansions:
-                if ute.run_no_reported == 1:
-                    print(*astuple(ute), sep=',', file=fp)
+        # Print hashes of transformed macros with number of signatures emitted
+        signature_stats_file = os.path.join(
+            STATS_DIR, f'signature-stats-{evaluation_program.name}.csv')
+        with open(signature_stats_file, 'w') as ofp:
+            print('macro hash, number of unique transformed signatures', file=ofp)
+            for mh, sigs in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.items():
+                if len(sigs) > 0:
+                    print(mh + ',' + str(len(sigs)), file=ofp)
 
         # Dump untransformable expansion stats
 
@@ -981,6 +1056,8 @@ def main():
                   for v in run_1_untransformed_top_level_flm_stats.values()]), file=ofp)
 
         with open(STATS_DIR + f'run-1-untransformed-top-level-{evaluation_program.name}.csv', 'w') as fp:
+            print(
+                *[field.name for field in fields(UntransformedExpansion)], sep=',', file=fp)
             for ute in all_untransformed_top_level_expansions:
                 if ute.run_no_reported == 1:
                     print(*astuple(ute), sep=',', file=fp)
