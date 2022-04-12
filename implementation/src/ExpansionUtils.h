@@ -4,7 +4,6 @@
 
 #include "clang/AST/ASTContext.h"
 
-#include "Constants.h"
 #include "MacroForest.h"
 #include "Matchers.h"
 
@@ -286,7 +285,7 @@ void collectStmtsThatChangeRValue(const Stmt *S,
 }
 
 void collectStmtsThatReturnLValue(const Stmt *S,
-                                set<const Stmt *> *StmtsThatReturnLValue)
+                                  set<const Stmt *> *StmtsThatReturnLValue)
 {
     if (!S)
     {
