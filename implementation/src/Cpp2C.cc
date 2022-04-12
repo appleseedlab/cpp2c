@@ -39,8 +39,6 @@ struct PluginSettings
     bool Verbose = false;
     bool UnifyMacrosWithSameSignature = false;
     bool OnlyCollectNotDefinedInStdHeaders = true;
-    raw_fd_ostream *StatsFile = nullptr;
-    raw_fd_ostream *MacroDefinitionStatsFile = nullptr;
 };
 
 template <typename K, typename V>
@@ -105,7 +103,8 @@ void printMapToJSON(llvm::raw_fd_ostream &os, map<string, set<string>> &m)
 
 string HYGIENE = "Hygiene",
        ENVIRONMENT_CAPTURE = "Environment capture",
-       PARAMETER_SIDE_EFFECTS = "Parameter side-effects";
+       PARAMETER_SIDE_EFFECTS = "Parameter side-effects",
+       UNSUPPORTED_CONSTRUCT = "Unsupported construct";
 void emitUntransformedMessage(
     ASTContext &Ctx,
     MacroForest::Node *Expansion,
@@ -232,7 +231,7 @@ public:
 
     virtual void HandleTranslationUnit(ASTContext &Ctx)
     {
-        auto begin_time = std::chrono::high_resolution_clock::now();
+        // auto begin_time = std::chrono::high_resolution_clock::now();
 
         Rewriter RW;
         SourceManager &SM = Ctx.getSourceManager();
@@ -240,8 +239,6 @@ public:
         RW.setSourceMgr(SM, LO);
 
         TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
-
-        map<string, unsigned> Stats = NewTransformationStats();
 
         // Collect the names of all the variables and functions
         // defined in the program
@@ -276,20 +273,6 @@ public:
                                  SM.isWrittenInScratchSpace(Loc);
                       }),
             ExpansionRoots.end());
-
-        Stats[TopLevelExpansionsInMainFile] = ExpansionRoots.size();
-
-        for (auto &&TLE : ExpansionRoots)
-        {
-            if (TLE->MI->isObjectLike())
-            {
-                Stats[TopLevelObjectLikeMacroExpansionsInMainFile] += 1;
-            }
-            else
-            {
-                Stats[TopLevelFunctionLikeMacroExpansionsInMainFile] += 1;
-            }
-        }
 
         // Step 1: Find Top-Level Macro Expansions
         if (Cpp2CSettings.Verbose)
@@ -424,8 +407,8 @@ public:
         // Step 4: Transform macros that satisfy these four requirements:
         // 1) Hygiene
         // 2) No environment capture
-        // 3) No side-effects in parameters (R-value equivalence)
-        // 4) Not unsupported
+        // 3) No side-effects in parameters
+        // 4) Not unsupported (e.g., not L-value independent, Clang doesn't support rewriting, etc.)
         if (Cpp2CSettings.Verbose)
         {
             errs() << "Step 4: Transform hygienic and transformable macros \n";
@@ -434,7 +417,7 @@ public:
         for (auto TopLevelExpansion : ExpansionRoots)
         {
 
-            //// Hygiene round 1
+            //// Hygiene
             {
                 // Don't transform expansions appearing where a const expr
                 // is required
@@ -658,7 +641,7 @@ public:
                 }
             }
 
-            //// L-Value Independence and R-Value Equivalence
+            //// Parameter side-effects and L-Value Independence
             {
                 // Don't transform expansions which:
                 // 1)   Change the R-value associated with the L-value of a symbol
@@ -668,6 +651,11 @@ public:
                 //          #define FOO(x) &x
                 //          FOO(x)
                 //      is not
+                // We don't expansions like this because they require that
+                // the L-value of the operand symbol be the same for the
+                // inlined symbol and the symbol for the local variable we
+                // create for the expression containing it it in the
+                // transformed code, and they will not be.
                 bool writesToRValueFromArg = false;
                 bool returnsLValueFromArg = false;
                 set<const Stmt *> LValuesFromArgs;
@@ -717,7 +705,6 @@ public:
                     {
                         emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Writes to R-value of symbol from arguments");
                     }
-                    Stats[TopLevelExpansionsThatWriteToRValueFromSymbolInArgument] += 1;
                     continue;
                 }
 
@@ -758,7 +745,7 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Returns L-value of symbol from arguments");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Contains an expression that returns L-value of symbol from arguments");
                     }
                     continue;
                 }
@@ -769,6 +756,7 @@ public:
                     auto Parents = Ctx.getParents(*E);
                     if (Parents.size() > 1)
                     {
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on C++ code?");
                         continue;
                     }
 
@@ -794,7 +782,7 @@ public:
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Expansion on LHS of assignment");
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on LHS of assignment");
                         }
                         continue;
                     }
@@ -819,7 +807,7 @@ public:
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Expansion operand of -- or ++");
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of -- or ++");
                         }
                         continue;
                     }
@@ -845,14 +833,17 @@ public:
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Expansion operand of &");
+                            emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of &");
                         }
                         continue;
                     }
                 }
             }
 
-            //// Hygiene round 2
+            // Get the location to emit the transformed definition
+            auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->Stmts.begin());
+
+            //// Unsupported constructs
             {
                 // Don't transform definitions with signatures with array types
                 // TODO: We should be able to transform these so long as we
@@ -861,7 +852,7 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed signature includes array types");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes array types");
                     }
                     continue;
                 }
@@ -878,7 +869,7 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed signature includes function or function pointer types");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes function or function pointer types");
                     }
                     continue;
                 }
@@ -892,22 +883,19 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion is a string literal");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion is a string literal");
                     }
                     continue;
                 }
-            }
 
-            // Get the location to emit the transformed definition
-            auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->Stmts.begin());
-
-            //// Hygiene round 3
-            {
+                // Check that expansion is inside a function, because if it
+                // isn't none of the constructs we transform to
+                // (var and function call) would be valid at the global scope
                 if (FD == nullptr)
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion not inside a function definition");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not inside a function definition");
                     }
                     continue;
                 }
@@ -922,7 +910,7 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed definition not in a rewritable location");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition not in a rewritable location");
                     }
                     continue;
                 }
@@ -931,7 +919,7 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed definition location not in main file");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition location not in main file");
                     }
                     continue;
                 }
@@ -942,7 +930,7 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion not in a rewritable location");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not in a rewritable location");
                     }
                     continue;
                 }
@@ -953,7 +941,7 @@ public:
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Transformed expansion not in main file");
+                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed expansion not in main file");
                     }
                     continue;
                 }
@@ -1026,15 +1014,6 @@ public:
                                   " because an identical "
                                   "definition already exists\n";
                 }
-                Stats[DedupedDefinitions] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-                    Stats[DedupedOLMDefinitions] += 1;
-                }
-                else
-                {
-                    Stats[DedupedFLMDefinitions] += 1;
-                }
             }
             // Otherwise, we need to generate a unique name for this
             // transformation and emit its definition
@@ -1094,16 +1073,6 @@ public:
 
                 MacroDefinitionLocationToTransformedDefinition[TD.Expansion->MI->getDefinitionLoc()]
                     .push_back(TD);
-
-                Stats[EmittedDefinitions] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-                    Stats[EmittedOLMDefinitions] += 1;
-                }
-                else
-                {
-                    Stats[EmittedFLMDefinitions] += 1;
-                }
             }
 
             // Rewrite the invocation into a function call or var ref
@@ -1138,30 +1107,6 @@ public:
                        << TopLevelExpansion->SpellingRange.getBegin().printToString(SM) << ","
                        << s << "\n";
             }
-
-            Stats[TransformedTopLevelExpansions] += 1;
-            if (TopLevelExpansion->MI->isObjectLike())
-            {
-                Stats[TransformedTopLevelObjectLikeMacroExpansions] += 1;
-            }
-            else
-            {
-                Stats[TransformedTopLevelFunctionLikeMacroExpansions] += 1;
-            }
-
-            // Check if we transformed an expansion with side-effects
-            if (E->HasSideEffects(Ctx))
-            {
-                Stats[TransformedTopLevelExpansionsWithSideEffects] += 1;
-                if (TopLevelExpansion->MI->isObjectLike())
-                {
-                    Stats[TransformedOLMExpansionsWithSideEffects] += 1;
-                }
-                else
-                {
-                    Stats[TransformedFLMExpansionsWithSideEffects] += 1;
-                }
-            }
         }
 
         // Emit transformed definitions after functions in which they appear
@@ -1186,9 +1131,6 @@ public:
             }
         }
 
-        // Get size of the file in bytes
-        Stats[FileSize] = SM.getFileEntryForID(SM.getMainFileID())->getSize();
-
         if (Cpp2CSettings.OverwriteFiles)
         {
             RW.overwriteChangedFiles();
@@ -1207,26 +1149,10 @@ public:
             }
         }
 
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                            end_time - begin_time)
-                            .count();
-        Stats[TransformationTime] = duration;
-
-        // Dump the transformation stats to CSV
-        if (Cpp2CSettings.StatsFile != nullptr)
-        {
-            printMapToCSV(*(Cpp2CSettings.StatsFile), Stats);
-            Cpp2CSettings.StatsFile->flush();
-        }
-
-        // Dump the macro definition stats to JSON
-        if (Cpp2CSettings.MacroDefinitionStatsFile != nullptr)
-        {
-            printMapToJSON(*(Cpp2CSettings.MacroDefinitionStatsFile),
-                           MacroDefinitionToTransformedDefinitionPrototypes);
-            Cpp2CSettings.MacroDefinitionStatsFile->flush();
-        }
+        // auto end_time = std::chrono::high_resolution_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+        //                     end_time - begin_time)
+        //                     .count();
     }
 };
 
@@ -1265,7 +1191,7 @@ protected:
         for (auto it = args.begin(); it != args.end(); ++it)
         {
             std::string arg = *it;
-            if (arg == "-ow" || arg == "-overwrite-files")
+            if (arg == "-ow" || arg == "--overwrite-files")
             {
                 Cpp2CSettings.OverwriteFiles = true;
             }
@@ -1280,30 +1206,6 @@ protected:
             else if (arg == "-shm" || arg == "--standard-header-macros")
             {
                 Cpp2CSettings.OnlyCollectNotDefinedInStdHeaders = false;
-            }
-            else if (arg == "-ds" || arg == "-dump-stats")
-            {
-                error_code str_err;
-                ++it;
-                assert(it != args.end());
-                Cpp2CSettings.StatsFile = new raw_fd_ostream(*it, str_err);
-                if (str_err.value() != 0)
-                {
-                    errs() << str_err.message() << '\n';
-                    exit(-1);
-                }
-            }
-            else if (arg == "-dmds" || arg == "-dump-macro-definition-stats")
-            {
-                error_code str_err;
-                ++it;
-                assert(it != args.end());
-                Cpp2CSettings.MacroDefinitionStatsFile = new raw_fd_ostream(*it, str_err);
-                if (str_err.value() != 0)
-                {
-                    errs() << str_err.message() << '\n';
-                    exit(-1);
-                }
             }
             else
             {
