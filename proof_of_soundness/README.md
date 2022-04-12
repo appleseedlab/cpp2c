@@ -3,7 +3,7 @@
 ## Getting Started
 
 ### Requirements
-- Coq version version 8.13.2
+- Coq version version 8.14.1
 - A Coq editor (either the IDE, Proof General, or VS Coq)
 
 ## Executing the Program
