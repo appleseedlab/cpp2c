@@ -24,6 +24,11 @@ FUNCTION_LIKE_PREFIX = 'FunctionLike'
 EXTRACTED_EVALUATION_PROGRAMS_DIR = r'extracted_evaluation_programs/'
 STATS_DIR = r'stats/'
 
+HYGIENE = 'Hygiene'
+ENVIRONMENT_CAPTURE = 'Environment capture'
+PARAMETER_SIDE_EFFECTS = 'Parameter side-effects'
+UNSUPPORTED_CONSTRUCT = 'Unsupported construct'
+
 # TODO: To make this more accurate, we should perform both a dry run and an
 # actual transformation per complete run of each program.
 # This would remove the issue of intermediate spelling locations changing
@@ -109,10 +114,10 @@ def is_location_in_extracted_program_c_or_h_file(location: str) -> bool:
 
 
 # Taken from Wikipedia
-def fivenum(data):
-    """Five-number summary."""
+def three_num(data):
+    """90, 95, and 99th percentiles."""
     try:
-        return np.percentile(data, [0, 25, 50, 75, 100], method='midpoint')
+        return np.percentile(data, [90, 95, 99], method='midpoint')
     # Happens if we pass an empty array
     except IndexError:
         return [0, 0, 0, 0, 0]
@@ -201,7 +206,8 @@ def main():
         all_macro_expansions: List[MacroExpansion] = []
         all_transformed_definitions: List[TransformedDefinition] = []
         all_transformed_expansions: List[TransformedExpansion] = []
-        all_untransformed_expansions: List[UntransformedExpansion] = []
+        all_untransformed_top_level_expansions: List[UntransformedExpansion] = [
+        ]
 
         # Transform program files until no more transformations are made
         while True:
@@ -213,7 +219,7 @@ def main():
                 []
             transformed_expansions_found_this_run: List[TransformedExpansion] = \
                 []
-            untransformed_expansions_found_this_run: List[UntransformedExpansion] = \
+            untransformed_top_level_expansions_found_this_run: List[UntransformedExpansion] = \
                 []
 
             emitted_a_transformation = False
@@ -228,7 +234,7 @@ def main():
                     []
                 transformed_expansions_found_in_this_translation_unit: List[TransformedExpansion] = \
                     []
-                untransformed_expansions_found_in_this_translation_unit: List[UntransformedExpansion] = \
+                untransformed_top_level_expansions_found_in_this_translation_unit: List[UntransformedExpansion] = \
                     []
 
                 cp: CompletedProcess = run(
@@ -270,7 +276,7 @@ def main():
                         emitted_a_transformation_for_this_file = True
 
                     elif msg.startswith(UNTRANSFORMED_EXPANSION):
-                        untransformed_expansions_found_in_this_translation_unit.append(
+                        untransformed_top_level_expansions_found_in_this_translation_unit.append(
                             UntransformedExpansion(*constructor_fields, run_no))
 
                     else:
@@ -289,8 +295,8 @@ def main():
                     transformed_definitions_found_in_this_translation_unit)
                 transformed_expansions_found_this_run.extend(
                     transformed_expansions_found_in_this_translation_unit)
-                untransformed_expansions_found_this_run.extend(
-                    untransformed_expansions_found_in_this_translation_unit)
+                untransformed_top_level_expansions_found_this_run.extend(
+                    untransformed_top_level_expansions_found_in_this_translation_unit)
 
                 emitted_a_transformation = emitted_a_transformation or emitted_a_transformation_for_this_file
 
@@ -306,8 +312,8 @@ def main():
                 transformed_definitions_found_this_run)
             all_transformed_expansions.extend(
                 transformed_expansions_found_this_run)
-            all_untransformed_expansions.extend(
-                untransformed_expansions_found_this_run)
+            all_untransformed_top_level_expansions.extend(
+                untransformed_top_level_expansions_found_this_run)
 
             if not emitted_a_transformation:
                 break
@@ -382,18 +388,18 @@ def main():
         for me in run_1_expansions_of_macros_defined_in_evaluation_program:
             hashes_of_run_1_macro_definitions_in_evaluation_program_to_unique_invocations[me.macro_hash].add(
                 me.spelling_location)
-        five_point_summary_of_unique_invocations_per_definition = fivenum(
+        three_point_summary_of_unique_invocations_per_definition = three_num(
             [len(unique_invocations)
              for unique_invocations in hashes_of_run_1_macro_definitions_in_evaluation_program_to_unique_invocations.values()]
         )
-        five_point_summary_of_unique_object_like_invocations_per_definition = fivenum(
+        three_point_summary_of_unique_object_like_invocations_per_definition = three_num(
             [
                 len(unique_invocations)
                 for mh, unique_invocations in hashes_of_run_1_macro_definitions_in_evaluation_program_to_unique_invocations.items()
                 if mh.startswith(OBJECT_LIKE_PREFIX)
             ]
         )
-        five_point_summary_of_unique_function_like_invocations_per_definition = fivenum(
+        three_point_summary_of_unique_function_like_invocations_per_definition = three_num(
             [
                 len(unique_invocations)
                 for mh, unique_invocations in hashes_of_run_1_macro_definitions_in_evaluation_program_to_unique_invocations.items()
@@ -494,13 +500,13 @@ def main():
             len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once if mh.startswith(
                 FUNCTION_LIKE_PREFIX)})
 
-        distribution_of_unique_function_signatures_per_transformed_definition = fivenum(
+        three_point_summary_of_unique_function_signatures_per_transformed_definition = three_num(
             [
                 len(sigs) for sigs in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.values()
                 if len(sigs) > 0
             ]
         )
-        distribution_of_unique_function_signatures_per_transformed_object_like_definition = fivenum(
+        three_point_summary_of_unique_function_signatures_per_transformed_object_like_definition = three_num(
             [
                 len(sigs)
                 for mh, sigs
@@ -511,7 +517,7 @@ def main():
                 )
             ]
         )
-        distribution_of_unique_function_signatures_per_transformed_function_like_definition = fivenum(
+        three_point_summary_of_unique_function_signatures_per_transformed_function_like_definition = three_num(
             [
                 len(sigs)
                 for mh, sigs
@@ -543,19 +549,19 @@ def main():
             hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_unique_transformed_expansions_in_evaluation_program[
                 te.macro_hash].append(te)
 
-        five_point_summary_of_transformed_invocations_per_transformed_defintion = fivenum(
+        three_point_summary_of_transformed_invocations_per_transformed_defintion = three_num(
             [
                 len(unique_transformations) for unique_transformations in
                 hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_unique_transformed_expansions_in_evaluation_program.values()
             ])
-        five_point_summary_of_transformed_object_like_invocations_per_transformed_defintion = fivenum(
+        three_point_summary_of_transformed_object_like_invocations_per_transformed_defintion = three_num(
             [
                 len(unique_transformations)
                 for mh, unique_transformations in
                 hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_unique_transformed_expansions_in_evaluation_program.items()
                 if mh.startswith(OBJECT_LIKE_PREFIX)
             ])
-        five_point_summary_of_transformed_function_like_invocations_per_transformed_defintion = fivenum(
+        three_point_summary_of_transformed_function_like_invocations_per_transformed_defintion = three_num(
             [
                 len(unique_transformations)
                 for mh, unique_transformations in
@@ -586,11 +592,11 @@ def main():
             hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed[
                 mh] = num_not_transformed
 
-        five_point_summary_of_not_transformed_invocations_per_transformed_defintion = fivenum(
+        three_point_summary_of_not_transformed_invocations_per_transformed_defintion = three_num(
             list(hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.values())
         )
 
-        five_point_summary_of_not_transformed_object_like_invocations_per_transformed_defintion = fivenum(
+        three_point_summary_of_not_transformed_object_like_invocations_per_transformed_defintion = three_num(
             [
                 num_not_transformed
                 for mh, num_not_transformed in
@@ -598,7 +604,7 @@ def main():
                 if mh.startswith(OBJECT_LIKE_PREFIX)
             ])
 
-        five_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion = fivenum(
+        three_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion = three_num(
             [
                 num_not_transformed
                 for mh, num_not_transformed in
@@ -606,12 +612,182 @@ def main():
                 if mh.startswith(FUNCTION_LIKE_PREFIX)
             ])
 
-        # TODO: How can we use the prefix to only check one type of macro?
-        # We can't just ignore hashes of the other type, because an
-        # object-like macro may be expanded inside a function-like macro,
-        # and we'd need to record the name of that FLM to check its
-        # transformed definition when looking for newly emitted
-        # unique transformations in subsequent runs
+        # Count the number of transformed expansions found in run 1
+        top_level_transformed_expansions_run_1 = [
+            te for te in all_transformed_expansions
+            if (
+                te.run_no_emitted == 1 and
+                te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program
+            )
+        ]
+        top_level_object_like_transformed_expansions_run_1 = [
+            te for te in all_transformed_expansions
+            if (
+                te.run_no_emitted == 1 and
+                te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                te.macro_hash.startswith(OBJECT_LIKE_PREFIX)
+            )
+        ]
+        top_level_function_like_transformed_expansions_run_1 = [
+            te for te in all_transformed_expansions
+            if (
+                te.run_no_emitted == 1 and
+                te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                te.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
+            )
+        ]
+
+        # Count untransformed expansions in run 1
+        top_level_untransformed_expansions_run_1 = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program
+                )
+            ]
+        top_level_untransformed_object_like_expansions_run_1 = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.macro_hash.startswith(OBJECT_LIKE_PREFIX)
+                )
+            ]
+        top_level_untransformed_function_like_expansions_run_1 = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
+                )
+            ]
+
+        # Count untransformed expansions in run 1 due to hygiene
+        top_level_untransformed_expansions_run_1_unhygienic = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == HYGIENE
+                )
+            ]
+        top_level_untransformed_object_like_expansions_run_1_unhygienic = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == HYGIENE and
+                    ute.macro_hash.startswith(OBJECT_LIKE_PREFIX)
+                )
+            ]
+        top_level_untransformed_function_like_expansions_run_1_unhygienic = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == HYGIENE and
+                    ute.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
+                )
+            ]
+
+        # Count untransformed expansions in run 1 due to environment capture
+        top_level_untransformed_expansions_run_1_environment_capturing = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == ENVIRONMENT_CAPTURE
+                )
+            ]
+        top_level_untransformed_object_like_expansions_run_1_environment_capturing = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == ENVIRONMENT_CAPTURE and
+                    ute.macro_hash.startswith(OBJECT_LIKE_PREFIX)
+                )
+            ]
+        top_level_untransformed_function_like_expansions_run_1_environment_capturing = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == ENVIRONMENT_CAPTURE and
+                    ute.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
+                )
+            ]
+
+        # Count untransformed expansions in run 1 due to parameter side-effects
+        top_level_untransformed_expansions_run_1_parameter_side_effects = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == PARAMETER_SIDE_EFFECTS
+                )
+            ]
+        top_level_untransformed_object_like_expansions_run_1_parameter_side_effects = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == PARAMETER_SIDE_EFFECTS and
+                    ute.macro_hash.startswith(OBJECT_LIKE_PREFIX)
+                )
+            ]
+        top_level_untransformed_function_like_expansions_run_1_parameter_side_effects = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == PARAMETER_SIDE_EFFECTS and
+                    ute.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
+                )
+            ]
+
+        # Count untransformed expansions in run 1 due to unsupported constructs
+        top_level_untransformed_expansions_run_1_unsupported_construct = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == UNSUPPORTED_CONSTRUCT
+                )
+            ]
+        top_level_untransformed_object_like_expansions_run_1_unsupported_construct = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == UNSUPPORTED_CONSTRUCT and
+                    ute.macro_hash.startswith(OBJECT_LIKE_PREFIX)
+                )
+            ]
+        top_level_untransformed_function_like_expansions_run_1_unsupported_construct = \
+            [
+                ute for ute in all_untransformed_top_level_expansions
+                if (
+                    ute.run_no_reported == 1 and
+                    te.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program and
+                    ute.category == UNSUPPORTED_CONSTRUCT and
+                    ute.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
+                )
+            ]
 
         all_stats = {
             'program name': evaluation_program.name,
@@ -621,10 +797,10 @@ def main():
             'total unique invocations': total_unique_original_expansions,
             'unique transformed invocations': num_unique_transformed_expansions,
             'unique not transformed invocations': total_unique_original_expansions - num_unique_transformed_expansions,
-            'distribution of unique invocations per definition': five_point_summary_of_unique_invocations_per_definition,
-            'distribution of not transformed invocations per transformed definition': five_point_summary_of_not_transformed_invocations_per_transformed_defintion,
-            'distribution of transformed invocations per transformed definition': five_point_summary_of_transformed_invocations_per_transformed_defintion,
-            'distribution of unique function signatures per transformed definition': distribution_of_unique_function_signatures_per_transformed_definition
+            '90-95-99 percentiles of unique invocations per definition': three_point_summary_of_unique_invocations_per_definition,
+            '90-95-99 percentiles of not transformed invocations per transformed definition': three_point_summary_of_not_transformed_invocations_per_transformed_defintion,
+            '90-95-99 percentiles of transformed invocations per transformed definition': three_point_summary_of_transformed_invocations_per_transformed_defintion,
+            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_definition
         }
 
         olm_stats = {
@@ -635,10 +811,10 @@ def main():
             'total unique invocations': total_unique_original_object_like_expansions,
             'unique transformed invocations': num_unique_object_like_transformed_expansions,
             'unique not transformed invocations': total_unique_original_object_like_expansions - num_unique_object_like_transformed_expansions,
-            'distribution of unique invocations per definition': five_point_summary_of_unique_object_like_invocations_per_definition,
-            'distribution of not transformed invocations per transformed definition': five_point_summary_of_not_transformed_object_like_invocations_per_transformed_defintion,
-            'distribution of transformed invocations per transformed definition': five_point_summary_of_transformed_object_like_invocations_per_transformed_defintion,
-            'distribution of unique function signatures per transformed definition': distribution_of_unique_function_signatures_per_transformed_object_like_definition
+            '90-95-99 percentiles of unique invocations per definition': three_point_summary_of_unique_object_like_invocations_per_definition,
+            '90-95-99 percentiles of not transformed invocations per transformed definition': three_point_summary_of_not_transformed_object_like_invocations_per_transformed_defintion,
+            '90-95-99 percentiles of transformed invocations per transformed definition': three_point_summary_of_transformed_object_like_invocations_per_transformed_defintion,
+            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_object_like_definition
         }
 
         flm_stats = {
@@ -649,11 +825,13 @@ def main():
             'total unique invocations': total_unique_original_function_like_expansions,
             'unique transformed invocations': num_unique_function_like_transformed_expansions,
             'unique not transformed invocations': total_unique_original_function_like_expansions - num_unique_function_like_transformed_expansions,
-            'distribution of unique invocations per definition': five_point_summary_of_unique_function_like_invocations_per_definition,
-            'distribution of not transformed invocations per transformed definition': five_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion,
-            'distribution of transformed invocations per transformed definition': five_point_summary_of_transformed_function_like_invocations_per_transformed_defintion,
-            'distribution of unique function signatures per transformed definition': distribution_of_unique_function_signatures_per_transformed_function_like_definition
+            '90-95-99 percentiles of unique invocations per definition': three_point_summary_of_unique_function_like_invocations_per_definition,
+            '90-95-99 percentiles of not transformed invocations per transformed definition': three_point_summary_of_not_transformed_function_like_invocations_per_transformed_defintion,
+            '90-95-99 percentiles of transformed invocations per transformed definition': three_point_summary_of_transformed_function_like_invocations_per_transformed_defintion,
+            '90-95-99 percentiles of unique function signatures per transformed definition': three_point_summary_of_unique_function_signatures_per_transformed_function_like_definition
         }
+
+        # Dump transformable expansion stats
 
         all_stats_file = os.path.join(STATS_DIR, 'stats.csv')
 
@@ -686,8 +864,78 @@ def main():
             print(','.join([str(v)
                   for v in flm_stats.values()]), file=ofp)
 
-        with open(STATS_DIR + f'run-1-untransformed-{evaluation_program.name}.txt', 'w') as fp:
-            for ute in all_untransformed_expansions:
+        with open(STATS_DIR + f'run-1-untransformed-{evaluation_program.name}.csv', 'w') as fp:
+            for ute in all_untransformed_top_level_expansions:
+                if ute.run_no_reported == 1:
+                    print(*astuple(ute), sep=',', file=fp)
+
+        # Dump untransformable expansion stats
+
+        run_1_untransformed_top_level_stats = {
+            'program name': evaluation_program.name,
+            'unhygienic': len(top_level_untransformed_expansions_run_1_unhygienic),
+            'environment capturing': len(top_level_untransformed_expansions_run_1_environment_capturing),
+            'parameter side-effects': len(top_level_untransformed_expansions_run_1_parameter_side_effects),
+            'unsupported constructs': len(top_level_untransformed_expansions_run_1_unsupported_construct),
+            'total untransformed': len(top_level_untransformed_expansions_run_1),
+            'total transformed': len(top_level_transformed_expansions_run_1)
+        }
+
+        run_1_untransformed_top_level_olm_stats = {
+            'program name': evaluation_program.name,
+            'unhygienic': len(top_level_untransformed_object_like_expansions_run_1_unhygienic),
+            'environment capturing': len(top_level_untransformed_object_like_expansions_run_1_environment_capturing),
+            'parameter side-effects': len(top_level_untransformed_object_like_expansions_run_1_parameter_side_effects),
+            'unsupported constructs': len(top_level_untransformed_object_like_expansions_run_1_unsupported_construct),
+            'total': len(top_level_untransformed_object_like_expansions_run_1),
+            'total transformed': len(top_level_object_like_transformed_expansions_run_1)
+        }
+
+        run_1_untransformed_top_level_flm_stats = {
+            'program name': evaluation_program.name,
+            'unhygienic': len(top_level_untransformed_function_like_expansions_run_1_unhygienic),
+            'environment capturing': len(top_level_untransformed_function_like_expansions_run_1_environment_capturing),
+            'parameter side-effects': len(top_level_untransformed_function_like_expansions_run_1_parameter_side_effects),
+            'unsupported constructs': len(top_level_untransformed_function_like_expansions_run_1_unsupported_construct),
+            'total': len(top_level_untransformed_function_like_expansions_run_1),
+            'total transformed': len(top_level_function_like_transformed_expansions_run_1)
+        }
+
+        run_1_untransformed_top_level_stats_file = os.path.join(
+            STATS_DIR, 'run-1-untransformed-top-level-stats.csv')
+
+        if not os.path.exists(run_1_untransformed_top_level_stats_file):
+            with open(run_1_untransformed_top_level_stats_file, 'w') as ofp:
+                print(','.join(run_1_untransformed_top_level_stats.keys()), file=ofp)
+
+        with open(run_1_untransformed_top_level_stats_file, 'a') as ofp:
+            print(','.join([str(v)
+                  for v in run_1_untransformed_top_level_stats.values()]), file=ofp)
+
+        run_1_untransformed_top_level_olm_stats_file = os.path.join(
+            STATS_DIR, 'run-1-untransformed-top-level-olm-stats.csv')
+
+        if not os.path.exists(run_1_untransformed_top_level_olm_stats_file):
+            with open(run_1_untransformed_top_level_olm_stats_file, 'w') as ofp:
+                print(','.join(run_1_untransformed_top_level_olm_stats.keys()), file=ofp)
+
+        with open(run_1_untransformed_top_level_olm_stats_file, 'a') as ofp:
+            print(','.join([str(v)
+                  for v in run_1_untransformed_top_level_olm_stats.values()]), file=ofp)
+
+        run_1_untransformed_top_level_flm_stats_file = os.path.join(
+            STATS_DIR, 'run-1-untransformed-top-level-flm-stats.csv')
+
+        if not os.path.exists(run_1_untransformed_top_level_flm_stats_file):
+            with open(run_1_untransformed_top_level_flm_stats_file, 'w') as ofp:
+                print(','.join(run_1_untransformed_top_level_flm_stats.keys()), file=ofp)
+
+        with open(run_1_untransformed_top_level_flm_stats_file, 'a') as ofp:
+            print(','.join([str(v)
+                  for v in run_1_untransformed_top_level_flm_stats.values()]), file=ofp)
+
+        with open(STATS_DIR + f'run-1-untransformed-top-level-{evaluation_program.name}.csv', 'w') as fp:
+            for ute in all_untransformed_top_level_expansions:
                 if ute.run_no_reported == 1:
                     print(*astuple(ute), sep=',', file=fp)
 
