@@ -9,6 +9,8 @@ all: Makefile.coq
 clean: Makefile.coq
 	+make -f Makefile.coq clean
 	rm -f Makefile.coq
+	rm -f .[!.]*.aux # Added by Brent to clear aux files
+	rm -f CoqMakefile.conf
 
 Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject | sed 's/$$(COQCHK) $$(COQCHKFLAGS) $$(COQLIBS)/$$(COQCHK) $$(COQCHKFLAGS) $$(subst -Q,-R,$$(COQLIBS))/' > Makefile.coq

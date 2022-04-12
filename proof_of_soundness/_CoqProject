@@ -1,12 +1,6 @@
 -Q . Cpp2C
 ConfigVars.v
-Constant.v
-EvalRules.v
+Semantics.v
 MapLemmas.v
-NoCallsFromFunctionTable.v
-NoMacroInvocations.v
-NoVarsInEnvironment.v
-SideEffects.v
 Syntax.v
-Theorems.v
-Transformations.v
+Transformation.v
