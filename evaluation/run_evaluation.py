@@ -209,27 +209,112 @@ def main():
         all_untransformed_top_level_expansions: List[UntransformedExpansion] = [
         ]
 
+        # Collect the textually unique macro definitions in the source program
+        hashes_of_run_1_macro_definitions_in_evaluation_program: Set[str] = set(
+        )
+
+        # Collect the set of expansions of macros defined in the source program
+        run_1_expansions_of_macros_defined_in_evaluation_program = \
+            [
+                me for me in all_macro_expansions
+                if (
+                    me.run_no_found == 1 and
+                    me.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program
+                )
+            ]
+
+        # Count the number of unique original macro expansions
+        # This includes, but does not duplicate, spelling locations
+        # of nested macro expansions
+        total_unique_original_expansions: int = 0
+        total_unique_original_object_like_expansions: int = 0
+        total_unique_original_function_like_expansions: int = 0
+
         # Transform program files until no more transformations are made
         while True:
             run_no += 1
             print(f'Run {run_no} of {evaluation_program.name}')
-            macro_definitions_found_this_run: List[MacroDefinition] = []
-            macro_expansions_found_this_run: List[MacroExpansion] = []
-            transformed_definitions_found_this_run: List[TransformedDefinition] = \
-                []
-            transformed_expansions_found_this_run: List[TransformedExpansion] = \
-                []
-            untransformed_top_level_expansions_found_this_run: List[UntransformedExpansion] = \
-                []
 
             emitted_a_transformation = False
 
+            macro_expansions_found_this_run: List[MacroExpansion] = []
+            macro_definitions_found_this_run: List[MacroDefinition] = []
             for c_file in program_c_files:
 
                 macro_definitions_found_in_this_translation_unit: List[MacroDefinition] = \
                     []
                 macro_expansions_found_in_this_translation_unit: List[MacroExpansion] = \
                     []
+
+                # Perform a dry run first so as to not interfere with spelling locations
+                cp: CompletedProcess = run(
+                    (
+                        f'../implementation/build/bin/cpp2c {c_file} '
+                        '-fsyntax-only -Wno-all '
+                        '-Xclang -plugin-arg-cpp2c -Xclang -v'
+                    ),
+                    shell=True, capture_output=True, text=True)
+
+                for line in cp.stderr.splitlines():
+                    if not line.startswith(CPP2C_PREFIX):
+                        continue
+
+                    # Skip the Cpp2C message prefix
+                    msg = line[len(CPP2C_PREFIX):]
+
+                    # Ignore first field since its indicates the type of message
+                    constructor_fields = parse_cpp2c_message(msg)[1:]
+
+                    if msg.startswith(MACRO_DEFINITION):
+                        macro_definitions_found_in_this_translation_unit.append(
+                            MacroDefinition(*constructor_fields, run_no))
+
+                    elif msg.startswith(MACRO_EXPANSION):
+                        macro_expansions_found_in_this_translation_unit.append(
+                            MacroExpansion(*constructor_fields, run_no))
+                    elif msg.startswith(TRANSFORMED_DEFINITION):
+                        pass
+
+                    elif msg.startswith(TRANSFORMED_EXPANSION):
+                        pass
+
+                    elif msg.startswith(UNTRANSFORMED_EXPANSION):
+                        pass
+
+                    else:
+                        print(
+                            'Found what appeared to be a CPP2C message, but was not', file=stderr)
+                        print(line)
+                        exit(1)
+
+                # Add what we found in this translation unit to what
+                # we found this run
+                macro_definitions_found_this_run.extend(
+                    macro_definitions_found_in_this_translation_unit)
+                macro_expansions_found_this_run.extend(
+                    macro_expansions_found_in_this_translation_unit)
+
+
+                if run_no == 1:
+
+                    hashes_of_run_1_macro_definitions_in_evaluation_program.update({
+                        md.macro_hash for md in macro_definitions_found_in_this_translation_unit
+                        if is_location_in_extracted_program_c_or_h_file(md.definition_location)
+                    })
+
+                    run_1_expansions_of_macros_defined_in_evaluation_program.extend([
+                        me for me in macro_expansions_found_in_this_translation_unit
+                        if me.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program
+                    ])
+
+            transformed_definitions_found_this_run: List[TransformedDefinition] = \
+                []
+            transformed_expansions_found_this_run: List[TransformedExpansion] = \
+                []
+            untransformed_top_level_expansions_found_this_run: List[UntransformedExpansion] = \
+                []
+            # Perform a wet run to actually change the files
+            for c_file in program_c_files:
                 transformed_definitions_found_in_this_translation_unit: List[TransformedDefinition] = \
                     []
                 transformed_expansions_found_in_this_translation_unit: List[TransformedExpansion] = \
@@ -252,7 +337,7 @@ def main():
                     if not line.startswith(CPP2C_PREFIX):
                         continue
 
-                    # Skip the Cpp2C message prefix
+                     # Skip the Cpp2C message prefix
                     msg = line[len(CPP2C_PREFIX):]
 
                     # Ignore first field since its indicates the type of message
@@ -265,7 +350,6 @@ def main():
                     elif msg.startswith(MACRO_EXPANSION):
                         macro_expansions_found_in_this_translation_unit.append(
                             MacroExpansion(*constructor_fields, run_no))
-
                     elif msg.startswith(TRANSFORMED_DEFINITION):
                         transformed_definitions_found_in_this_translation_unit.append(
                             TransformedDefinition(*constructor_fields, run_no))
@@ -285,23 +369,18 @@ def main():
                         print(line)
                         exit(1)
 
-                # Add what we found in this translation unit to what
-                # we found this run
-                macro_definitions_found_this_run.extend(
-                    macro_definitions_found_in_this_translation_unit)
-                macro_expansions_found_this_run.extend(
-                    macro_expansions_found_in_this_translation_unit)
+                if emitted_a_transformation_for_this_file:
+                    print(f'Emitted at least one transformation in {c_file}')
+                
+                emitted_a_transformation = emitted_a_transformation or emitted_a_transformation_for_this_file
+
+
                 transformed_definitions_found_this_run.extend(
                     transformed_definitions_found_in_this_translation_unit)
                 transformed_expansions_found_this_run.extend(
                     transformed_expansions_found_in_this_translation_unit)
                 untransformed_top_level_expansions_found_this_run.extend(
                     untransformed_top_level_expansions_found_in_this_translation_unit)
-
-                emitted_a_transformation = emitted_a_transformation or emitted_a_transformation_for_this_file
-
-                # if emitted_a_transformation_for_this_file:
-                #     print(f'Emitted at least one transformation in {c_file}')
 
             # Add what we found this run to the total
             all_macro_definitions.extend(
@@ -318,55 +397,10 @@ def main():
             if not emitted_a_transformation:
                 break
 
-        # Examine only the definitions that we found in the first run
-        # that were defined in the evaluation program
-        run_1_macro_definitions_in_evaluation_program = \
-            [
-                md for md in all_macro_definitions
-                if (
-                    md.run_no_found == 1 and
-                    is_location_in_extracted_program_c_or_h_file(
-                        md.definition_location)
-                )
-            ]
-
-        # Collect set of all unique macro definitions in the source program
-        hashes_of_run_1_macro_definitions_in_evaluation_program = \
-            {md.macro_hash for md in run_1_macro_definitions_in_evaluation_program}
-
-        # Number of unique macro definitions
-        total_unique_macro_definitions = \
-            len(hashes_of_run_1_macro_definitions_in_evaluation_program)
-
-        total_unique_object_like_macro_definitions = \
-            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program if mh.startswith(
-                OBJECT_LIKE_PREFIX)})
-
-        total_unique_function_like_macro_definitions =\
-            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program if mh.startswith(
-                FUNCTION_LIKE_PREFIX)})
-
-        # Collect the set of expansions of macros defined in the source program
-        run_1_expansions_of_macros_defined_in_evaluation_program = \
-            [
-                me for me in all_macro_expansions
-                if (
-                    me.run_no_found == 1 and
-                    me.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program
-                )
-            ]
-
-        # Collect all unique macro expansion locations
-        unique_original_expansion_spelling_locations = \
-            {
-                me.spelling_location
-                for me in run_1_expansions_of_macros_defined_in_evaluation_program
-            }
-        # Count the number of unique original macro expansions
-        # This includes, but does not duplicate, spelling locations
-        # of nested macro expansions
-        total_unique_original_expansions = \
-            len(unique_original_expansion_spelling_locations)
+        total_unique_original_expansions = len({
+            me.spelling_location
+            for me in run_1_expansions_of_macros_defined_in_evaluation_program
+        })
         total_unique_original_object_like_expansions = \
             len({
                 me.spelling_location
@@ -379,6 +413,18 @@ def main():
                 for me in run_1_expansions_of_macros_defined_in_evaluation_program
                 if me.macro_hash.startswith(FUNCTION_LIKE_PREFIX)
             })
+
+        # Number of unique macro definitions
+        total_unique_macro_definitions = \
+            len(hashes_of_run_1_macro_definitions_in_evaluation_program)
+
+        total_unique_object_like_macro_definitions = \
+            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program if mh.startswith(
+                OBJECT_LIKE_PREFIX)})
+
+        total_unique_function_like_macro_definitions =\
+            len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program if mh.startswith(
+                FUNCTION_LIKE_PREFIX)})
 
         # Map each original macro definition in the evaluation program
         # to the set of unique spelling locations it was expanded at
