@@ -251,7 +251,7 @@ def main():
 
             macro_expansions_found_this_run: List[MacroExpansion] = []
             macro_definitions_found_this_run: List[MacroDefinition] = []
-            
+
             # Perform a dry run first so as to not interfere with spelling locations
             if run_no == 1:
                 for c_file in program_c_files:
@@ -308,7 +308,6 @@ def main():
                     macro_expansions_found_this_run.extend(
                         macro_expansions_found_in_this_translation_unit)
 
-
                     hashes_of_run_1_macro_definitions_in_evaluation_program.update({
                         md.macro_hash for md in macro_definitions_found_in_this_translation_unit
                         if is_location_in_extracted_program_c_or_h_file(md.definition_location)
@@ -360,7 +359,7 @@ def main():
 
                     elif msg.startswith(MACRO_EXPANSION):
                         pass
-                    
+
                     elif msg.startswith(TRANSFORMED_DEFINITION):
                         transformed_definitions_found_in_this_translation_unit.append(
                             TransformedDefinition(*constructor_fields, run_no))
@@ -893,11 +892,145 @@ def main():
                 )
             ]
 
+        # Count the number of macro definitions which were never transformed
+        hashes_of_never_transformed_macros_in_evaluation_program = \
+            hashes_of_run_1_macro_definitions_in_evaluation_program - \
+            {te.macro_hash for te in all_transformed_expansions}
+        hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation: Dict[str, Set[str]] = {
+            h: set()
+            for h in hashes_of_never_transformed_macros_in_evaluation_program
+        }
+        num_never_transformed_macro_definitions_in_evaluation_program = len(
+            hashes_of_never_transformed_macros_in_evaluation_program)
+        num_never_transformed_object_like_macro_definitions_in_evaluation_program = len(
+            {h for h in hashes_of_never_transformed_macros_in_evaluation_program if h.startswith(OBJECT_LIKE_PREFIX)})
+        num_never_transformed_function_like_macro_definitions_in_evaluation_program = len(
+            {h for h in hashes_of_never_transformed_macros_in_evaluation_program if h.startswith(FUNCTION_LIKE_PREFIX)})
+
+        # Count the number of macro definitions that were never expanded for various reasons
+        for ute in all_untransformed_top_level_expansions:
+            if ute.macro_hash in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation:
+                hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation[ute.macro_hash].add(
+                    ute.category)
+
+        # Count the number of macro definitions that were never transformed only due to hygiene
+        hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_hygiene = {
+            h for h, cats in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation.items()
+            if cats == {HYGIENE}
+        }
+        num_never_transformed_definitions_only_due_to_hygiene = len(
+            hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_hygiene)
+        num_never_transformed_object_like_definitions_only_due_to_hygiene = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_hygiene
+            if h.startswith(OBJECT_LIKE_PREFIX)
+        })
+        num_never_transformed_function_like_definitions_only_due_to_hygiene = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_hygiene
+            if h.startswith(FUNCTION_LIKE_PREFIX)
+        })
+        # Count the number of macro definitions that were never transformed only due to environment capture
+        hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_environment_capture = {
+            h for h, cats in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation.items()
+            if cats == {ENVIRONMENT_CAPTURE}
+        }
+        num_never_transformed_definitions_only_due_to_environment_capture = len(
+            hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_environment_capture)
+        num_never_transformed_object_like_definitions_only_due_to_environment_capture = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_environment_capture
+            if h.startswith(OBJECT_LIKE_PREFIX)
+        })
+        num_never_transformed_function_like_definitions_only_due_to_environment_capture = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_environment_capture
+            if h.startswith(FUNCTION_LIKE_PREFIX)
+        })
+        # Count the number of macro definitions that were never transformed only due to parameter side-effects
+        hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_parameter_side_effects = {
+            h for h, cats in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation.items()
+            if cats == {PARAMETER_SIDE_EFFECTS}
+        }
+        num_never_transformed_definitions_only_due_to_parameter_side_effects = len(
+            hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_parameter_side_effects)
+        num_never_transformed_object_like_definitions_only_due_to_parameter_side_effects = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_parameter_side_effects
+            if h.startswith(OBJECT_LIKE_PREFIX)
+        })
+        num_never_transformed_function_like_definitions_only_due_to_parameter_side_effects = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_parameter_side_effects
+            if h.startswith(FUNCTION_LIKE_PREFIX)
+        })
+        # Count the number of macro definitions that were never transformed only due to unsupported constructs
+        hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_unsupported_constructs = {
+            h for h, cats in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation.items()
+            if cats == {UNSUPPORTED_CONSTRUCT}
+        }
+        num_never_transformed_definitions_only_due_to_unsupported_constructs = len(
+            hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_unsupported_constructs)
+        num_never_transformed_object_like_definitions_only_due_to_unsupported_constructs = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_unsupported_constructs
+            if h.startswith(OBJECT_LIKE_PREFIX)
+        })
+        num_never_transformed_function_like_definitions_only_due_to_unsupported_constructs = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_unsupported_constructs
+            if h.startswith(FUNCTION_LIKE_PREFIX)
+        })
+        # Count the number of macro definitions that were never transformed due to multiple reasons
+        hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_multiple_reasons = {
+            h for h, cats in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation.items()
+            if len(cats) > 1
+        }
+        num_never_transformed_definitions_only_due_to_multiple_reasons = len(
+            hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_multiple_reasons)
+        num_never_transformed_object_like_definitions_only_due_to_multiple_reasons = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_multiple_reasons
+            if h.startswith(OBJECT_LIKE_PREFIX)
+        })
+        num_never_transformed_function_like_definitions_only_due_to_multiple_reasons = len({
+            h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_multiple_reasons
+            if h.startswith(FUNCTION_LIKE_PREFIX)
+        })
+        
+        
+        # Count the number of macro definitions that were never transformed due to multiple reasons
+        # NOTE: This counts macros that were never expanded in .c files;
+        #       to count macros that were never expanded in any file, use the commented code below
+        hashes_of_never_expanded_macro_definitions = {
+            h for h, cats in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation.items()
+            if len(cats) == 0
+        }
+        num_never_expanded_macros = len(
+            hashes_of_never_expanded_macro_definitions)
+        num_never_expanded_object_like_macros = len({
+            h for h in hashes_of_never_expanded_macro_definitions
+            if h.startswith(OBJECT_LIKE_PREFIX)
+        })
+        num_never_expanded_function_like_macros = len({
+            h for h in hashes_of_never_expanded_macro_definitions
+            if h.startswith(FUNCTION_LIKE_PREFIX)
+        })
+
+        # # Count the number of macro definitions that were never expanded
+        # hashes_of_never_expanded_macro_definitions = \
+        #     hashes_of_run_1_macro_definitions_in_evaluation_program - \
+        #     {me.macro_hash for me in run_1_expansions_of_macros_defined_in_evaluation_program}
+        # num_never_expanded_macros = len(
+        #     hashes_of_never_expanded_macro_definitions)
+        # num_never_expanded_object_like_macros = len(
+        #     {h for h in hashes_of_never_expanded_macro_definitions if h.startswith(OBJECT_LIKE_PREFIX)})
+        # num_never_expanded_function_like_macros = len(
+        #     {h for h in hashes_of_never_expanded_macro_definitions if h.startswith(FUNCTION_LIKE_PREFIX)})
+
         all_stats = {
             'program name': evaluation_program.name,
             '# of runs': run_no,
             'total unique definitions': total_unique_macro_definitions,
             'unique transformed definitions': num_run_1_macro_definitions_transformed_at_least_once,
+            '# of unique definitions untransformed': num_never_transformed_macro_definitions_in_evaluation_program,
+            '# of unique definitions untransformed only due to hygiene': num_never_transformed_definitions_only_due_to_hygiene,
+            '# of unique definitions untransformed only due to environment capture': num_never_transformed_definitions_only_due_to_environment_capture,
+            '# of unique definitions untransformed only due to parameter side-effects': num_never_transformed_definitions_only_due_to_parameter_side_effects,
+            '# of unique definitions untransformed only due to unsupported constructs': num_never_transformed_definitions_only_due_to_unsupported_constructs,
+            '# of unique definitions untransformed only due to multiple reasons': num_never_transformed_definitions_only_due_to_multiple_reasons,
+            '# of unique definitions that were never expanded in a transformed file': num_never_expanded_macros,
             'total unique invocations': total_unique_original_expansions,
             'unique transformed invocations': num_unique_transformed_expansions,
             'unique not transformed invocations': total_unique_original_expansions - num_unique_transformed_expansions,
@@ -914,6 +1047,13 @@ def main():
             '# of runs': run_no,
             'total unique definitions': total_unique_object_like_macro_definitions,
             'unique transformed definitions': num_run_1_object_like_macro_definitions_transformed_at_least_once,
+            '# of unique definitions untransformed': num_never_transformed_object_like_macro_definitions_in_evaluation_program,
+            '# of unique definitions untransformed only due to hygiene': num_never_transformed_object_like_definitions_only_due_to_hygiene,
+            '# of unique definitions untransformed only due to environment capture': num_never_transformed_object_like_definitions_only_due_to_environment_capture,
+            '# of unique definitions untransformed only due to parameter side-effects': num_never_transformed_object_like_definitions_only_due_to_parameter_side_effects,
+            '# of unique definitions untransformed only due to unsupported constructs': num_never_transformed_object_like_definitions_only_due_to_unsupported_constructs,
+            '# of unique definitions untransformed only due to multiple reasons': num_never_transformed_object_like_definitions_only_due_to_multiple_reasons,
+            '# of unique definitions that were never expanded in a transformed file': num_never_expanded_object_like_macros,
             'total unique invocations': total_unique_original_object_like_expansions,
             'unique transformed invocations': num_unique_object_like_transformed_expansions,
             'unique not transformed invocations': total_unique_original_object_like_expansions - num_unique_object_like_transformed_expansions,
@@ -930,6 +1070,13 @@ def main():
             '# of runs': run_no,
             'total unique definitions': total_unique_function_like_macro_definitions,
             'unique transformed definitions': num_run_1_function_like_macro_definitions_transformed_at_least_once,
+            '# of unique definitions untransformed': num_never_transformed_function_like_macro_definitions_in_evaluation_program,
+            '# of unique definitions untransformed only due to hygiene': num_never_transformed_function_like_definitions_only_due_to_hygiene,
+            '# of unique definitions untransformed only due to environment capture': num_never_transformed_function_like_definitions_only_due_to_environment_capture,
+            '# of unique definitions untransformed only due to parameter side-effects': num_never_transformed_function_like_definitions_only_due_to_parameter_side_effects,
+            '# of unique definitions untransformed only due to unsupported constructs': num_never_transformed_function_like_definitions_only_due_to_unsupported_constructs,
+            '# of unique definitions untransformed only due to multiple reasons': num_never_transformed_function_like_definitions_only_due_to_multiple_reasons,
+            '# of unique definitions that were never expanded in a transformed file': num_never_expanded_function_like_macros,
             'total unique invocations': total_unique_original_function_like_expansions,
             'unique transformed invocations': num_unique_function_like_transformed_expansions,
             'unique not transformed invocations': total_unique_original_function_like_expansions - num_unique_function_like_transformed_expansions,
@@ -983,70 +1130,70 @@ def main():
                 if len(sigs) > 0:
                     print(mh + ',' + str(len(sigs)), file=ofp)
 
-        # Dump untransformable expansion stats
+        # # Dump untransformable expansion stats
 
-        run_1_untransformed_top_level_stats = {
-            'program name': evaluation_program.name,
-            'unhygienic': len(top_level_untransformed_expansions_run_1_unhygienic),
-            'environment capturing': len(top_level_untransformed_expansions_run_1_environment_capturing),
-            'parameter side-effects': len(top_level_untransformed_expansions_run_1_parameter_side_effects),
-            'unsupported constructs': len(top_level_untransformed_expansions_run_1_unsupported_construct),
-            'total untransformed': len(top_level_untransformed_expansions_run_1),
-            'total transformed': len(top_level_transformed_expansions_run_1)
-        }
+        # run_1_untransformed_top_level_stats = {
+        #     'program name': evaluation_program.name,
+        #     'unhygienic': len(top_level_untransformed_expansions_run_1_unhygienic),
+        #     'environment capturing': len(top_level_untransformed_expansions_run_1_environment_capturing),
+        #     'parameter side-effects': len(top_level_untransformed_expansions_run_1_parameter_side_effects),
+        #     'unsupported constructs': len(top_level_untransformed_expansions_run_1_unsupported_construct),
+        #     'total untransformed': len(top_level_untransformed_expansions_run_1),
+        #     'total transformed': len(top_level_transformed_expansions_run_1)
+        # }
 
-        run_1_untransformed_top_level_olm_stats = {
-            'program name': evaluation_program.name,
-            'unhygienic': len(top_level_untransformed_object_like_expansions_run_1_unhygienic),
-            'environment capturing': len(top_level_untransformed_object_like_expansions_run_1_environment_capturing),
-            'parameter side-effects': len(top_level_untransformed_object_like_expansions_run_1_parameter_side_effects),
-            'unsupported constructs': len(top_level_untransformed_object_like_expansions_run_1_unsupported_construct),
-            'total': len(top_level_untransformed_object_like_expansions_run_1),
-            'total transformed': len(top_level_object_like_transformed_expansions_run_1)
-        }
+        # run_1_untransformed_top_level_olm_stats = {
+        #     'program name': evaluation_program.name,
+        #     'unhygienic': len(top_level_untransformed_object_like_expansions_run_1_unhygienic),
+        #     'environment capturing': len(top_level_untransformed_object_like_expansions_run_1_environment_capturing),
+        #     'parameter side-effects': len(top_level_untransformed_object_like_expansions_run_1_parameter_side_effects),
+        #     'unsupported constructs': len(top_level_untransformed_object_like_expansions_run_1_unsupported_construct),
+        #     'total': len(top_level_untransformed_object_like_expansions_run_1),
+        #     'total transformed': len(top_level_object_like_transformed_expansions_run_1)
+        # }
 
-        run_1_untransformed_top_level_flm_stats = {
-            'program name': evaluation_program.name,
-            'unhygienic': len(top_level_untransformed_function_like_expansions_run_1_unhygienic),
-            'environment capturing': len(top_level_untransformed_function_like_expansions_run_1_environment_capturing),
-            'parameter side-effects': len(top_level_untransformed_function_like_expansions_run_1_parameter_side_effects),
-            'unsupported constructs': len(top_level_untransformed_function_like_expansions_run_1_unsupported_construct),
-            'total': len(top_level_untransformed_function_like_expansions_run_1),
-            'total transformed': len(top_level_function_like_transformed_expansions_run_1)
-        }
+        # run_1_untransformed_top_level_flm_stats = {
+        #     'program name': evaluation_program.name,
+        #     'unhygienic': len(top_level_untransformed_function_like_expansions_run_1_unhygienic),
+        #     'environment capturing': len(top_level_untransformed_function_like_expansions_run_1_environment_capturing),
+        #     'parameter side-effects': len(top_level_untransformed_function_like_expansions_run_1_parameter_side_effects),
+        #     'unsupported constructs': len(top_level_untransformed_function_like_expansions_run_1_unsupported_construct),
+        #     'total': len(top_level_untransformed_function_like_expansions_run_1),
+        #     'total transformed': len(top_level_function_like_transformed_expansions_run_1)
+        # }
 
-        run_1_untransformed_top_level_stats_file = os.path.join(
-            STATS_DIR, 'run-1-untransformed-top-level-stats.csv')
+        # run_1_untransformed_top_level_stats_file = os.path.join(
+        #     STATS_DIR, 'run-1-untransformed-top-level-stats.csv')
 
-        if not os.path.exists(run_1_untransformed_top_level_stats_file):
-            with open(run_1_untransformed_top_level_stats_file, 'w') as ofp:
-                print(','.join(run_1_untransformed_top_level_stats.keys()), file=ofp)
+        # if not os.path.exists(run_1_untransformed_top_level_stats_file):
+        #     with open(run_1_untransformed_top_level_stats_file, 'w') as ofp:
+        #         print(','.join(run_1_untransformed_top_level_stats.keys()), file=ofp)
 
-        with open(run_1_untransformed_top_level_stats_file, 'a') as ofp:
-            print(','.join([str(v)
-                  for v in run_1_untransformed_top_level_stats.values()]), file=ofp)
+        # with open(run_1_untransformed_top_level_stats_file, 'a') as ofp:
+        #     print(','.join([str(v)
+        #           for v in run_1_untransformed_top_level_stats.values()]), file=ofp)
 
-        run_1_untransformed_top_level_olm_stats_file = os.path.join(
-            STATS_DIR, 'run-1-untransformed-top-level-olm-stats.csv')
+        # run_1_untransformed_top_level_olm_stats_file = os.path.join(
+        #     STATS_DIR, 'run-1-untransformed-top-level-olm-stats.csv')
 
-        if not os.path.exists(run_1_untransformed_top_level_olm_stats_file):
-            with open(run_1_untransformed_top_level_olm_stats_file, 'w') as ofp:
-                print(','.join(run_1_untransformed_top_level_olm_stats.keys()), file=ofp)
+        # if not os.path.exists(run_1_untransformed_top_level_olm_stats_file):
+        #     with open(run_1_untransformed_top_level_olm_stats_file, 'w') as ofp:
+        #         print(','.join(run_1_untransformed_top_level_olm_stats.keys()), file=ofp)
 
-        with open(run_1_untransformed_top_level_olm_stats_file, 'a') as ofp:
-            print(','.join([str(v)
-                  for v in run_1_untransformed_top_level_olm_stats.values()]), file=ofp)
+        # with open(run_1_untransformed_top_level_olm_stats_file, 'a') as ofp:
+        #     print(','.join([str(v)
+        #           for v in run_1_untransformed_top_level_olm_stats.values()]), file=ofp)
 
-        run_1_untransformed_top_level_flm_stats_file = os.path.join(
-            STATS_DIR, 'run-1-untransformed-top-level-flm-stats.csv')
+        # run_1_untransformed_top_level_flm_stats_file = os.path.join(
+        #     STATS_DIR, 'run-1-untransformed-top-level-flm-stats.csv')
 
-        if not os.path.exists(run_1_untransformed_top_level_flm_stats_file):
-            with open(run_1_untransformed_top_level_flm_stats_file, 'w') as ofp:
-                print(','.join(run_1_untransformed_top_level_flm_stats.keys()), file=ofp)
+        # if not os.path.exists(run_1_untransformed_top_level_flm_stats_file):
+        #     with open(run_1_untransformed_top_level_flm_stats_file, 'w') as ofp:
+        #         print(','.join(run_1_untransformed_top_level_flm_stats.keys()), file=ofp)
 
-        with open(run_1_untransformed_top_level_flm_stats_file, 'a') as ofp:
-            print(','.join([str(v)
-                  for v in run_1_untransformed_top_level_flm_stats.values()]), file=ofp)
+        # with open(run_1_untransformed_top_level_flm_stats_file, 'a') as ofp:
+        #     print(','.join([str(v)
+        #           for v in run_1_untransformed_top_level_flm_stats.values()]), file=ofp)
 
         with open(STATS_DIR + f'run-1-untransformed-top-level-{evaluation_program.name}.csv', 'w') as fp:
             print(
