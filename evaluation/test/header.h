@@ -6,3 +6,6 @@
 
 #define L1(x, y) ((x) + (y))
 #define L2(x, y) ((L1(x, y)) + (L1(y, x)))
+
+#define NEVER_INVOKED_OLM
+#define NEVER_INVOKED_FLM()
