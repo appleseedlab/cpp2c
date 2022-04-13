@@ -363,12 +363,11 @@ def main():
                     constructor_fields = parse_cpp2c_message(msg)[1:]
 
                     if msg.startswith(MACRO_DEFINITION):
-                        macro_definitions_found_in_this_translation_unit.append(
-                            MacroDefinition(*constructor_fields, run_no))
+                        pass
 
                     elif msg.startswith(MACRO_EXPANSION):
-                        macro_expansions_found_in_this_translation_unit.append(
-                            MacroExpansion(*constructor_fields, run_no))
+                        pass
+                    
                     elif msg.startswith(TRANSFORMED_DEFINITION):
                         transformed_definitions_found_in_this_translation_unit.append(
                             TransformedDefinition(*constructor_fields, run_no))
