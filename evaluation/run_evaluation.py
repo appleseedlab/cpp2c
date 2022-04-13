@@ -258,62 +258,63 @@ def main():
 
             macro_expansions_found_this_run: List[MacroExpansion] = []
             macro_definitions_found_this_run: List[MacroDefinition] = []
-            for c_file in program_c_files:
+            
+            # Perform a dry run first so as to not interfere with spelling locations
+            if run_no == 1:
+                for c_file in program_c_files:
 
-                macro_definitions_found_in_this_translation_unit: List[MacroDefinition] = \
-                    []
-                macro_expansions_found_in_this_translation_unit: List[MacroExpansion] = \
-                    []
+                    macro_definitions_found_in_this_translation_unit: List[MacroDefinition] = \
+                        []
+                    macro_expansions_found_in_this_translation_unit: List[MacroExpansion] = \
+                        []
 
-                # Perform a dry run first so as to not interfere with spelling locations
-                cp: CompletedProcess = run(
-                    (
-                        f'../implementation/build/bin/cpp2c {c_file} '
-                        '-fsyntax-only -Wno-all '
-                        '-Xclang -plugin-arg-cpp2c -Xclang -v'
-                    ),
-                    shell=True, capture_output=True, text=True)
+                    cp: CompletedProcess = run(
+                        (
+                            f'../implementation/build/bin/cpp2c {c_file} '
+                            '-fsyntax-only -Wno-all '
+                            '-Xclang -plugin-arg-cpp2c -Xclang -v'
+                        ),
+                        shell=True, capture_output=True, text=True)
 
-                for line in cp.stderr.splitlines():
-                    if not line.startswith(CPP2C_PREFIX):
-                        continue
+                    for line in cp.stderr.splitlines():
+                        if not line.startswith(CPP2C_PREFIX):
+                            continue
 
-                    # Skip the Cpp2C message prefix
-                    msg = line[len(CPP2C_PREFIX):]
+                        # Skip the Cpp2C message prefix
+                        msg = line[len(CPP2C_PREFIX):]
 
-                    # Ignore first field since its indicates the type of message
-                    constructor_fields = parse_cpp2c_message(msg)[1:]
+                        # Ignore first field since its indicates the type of message
+                        constructor_fields = parse_cpp2c_message(msg)[1:]
 
-                    if msg.startswith(MACRO_DEFINITION):
-                        macro_definitions_found_in_this_translation_unit.append(
-                            MacroDefinition(*constructor_fields, run_no))
+                        if msg.startswith(MACRO_DEFINITION):
+                            macro_definitions_found_in_this_translation_unit.append(
+                                MacroDefinition(*constructor_fields, run_no))
 
-                    elif msg.startswith(MACRO_EXPANSION):
-                        macro_expansions_found_in_this_translation_unit.append(
-                            MacroExpansion(*constructor_fields, run_no))
-                    elif msg.startswith(TRANSFORMED_DEFINITION):
-                        pass
+                        elif msg.startswith(MACRO_EXPANSION):
+                            macro_expansions_found_in_this_translation_unit.append(
+                                MacroExpansion(*constructor_fields, run_no))
+                        elif msg.startswith(TRANSFORMED_DEFINITION):
+                            pass
 
-                    elif msg.startswith(TRANSFORMED_EXPANSION):
-                        pass
+                        elif msg.startswith(TRANSFORMED_EXPANSION):
+                            pass
 
-                    elif msg.startswith(UNTRANSFORMED_EXPANSION):
-                        pass
+                        elif msg.startswith(UNTRANSFORMED_EXPANSION):
+                            pass
 
-                    else:
-                        print(
-                            'Found what appeared to be a CPP2C message, but was not', file=stderr)
-                        print(line)
-                        exit(1)
+                        else:
+                            print(
+                                'Found what appeared to be a CPP2C message, but was not', file=stderr)
+                            print(line)
+                            exit(1)
 
-                # Add what we found in this translation unit to what
-                # we found this run
-                macro_definitions_found_this_run.extend(
-                    macro_definitions_found_in_this_translation_unit)
-                macro_expansions_found_this_run.extend(
-                    macro_expansions_found_in_this_translation_unit)
+                    # Add what we found in this translation unit to what
+                    # we found this run
+                    macro_definitions_found_this_run.extend(
+                        macro_definitions_found_in_this_translation_unit)
+                    macro_expansions_found_this_run.extend(
+                        macro_expansions_found_in_this_translation_unit)
 
-                if run_no == 1:
 
                     hashes_of_run_1_macro_definitions_in_evaluation_program.update({
                         md.macro_hash for md in macro_definitions_found_in_this_translation_unit
