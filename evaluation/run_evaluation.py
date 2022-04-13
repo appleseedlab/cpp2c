@@ -233,14 +233,7 @@ def main():
         )
 
         # Collect the set of expansions of macros defined in the source program
-        run_1_expansions_of_macros_defined_in_evaluation_program = \
-            [
-                me for me in all_macro_expansions
-                if (
-                    me.run_no_found == 1 and
-                    me.macro_hash in hashes_of_run_1_macro_definitions_in_evaluation_program
-                )
-            ]
+        run_1_expansions_of_macros_defined_in_evaluation_program = []
 
         # Count the number of unique original macro expansions
         # This includes, but does not duplicate, spelling locations
