@@ -54,7 +54,7 @@ Definition ExprListDoesNotCall (es : list expr) (x : string) :=
     an environment it is evaluated under *)
 Definition ExprDoesNotCaptureVars (e : expr) (E : environment) :=
   forall S G F M z S' E',
-  EvalExpr S (StringMapProperties.update E E') G F M e z S' ->
+  EvalExpr S (StringMapProperties.update E' E) G F M e z S' ->
   EvalExpr S E' G F M e z S'.
 
 
@@ -90,7 +90,7 @@ Theorem Transformation_Sound :
 
   (*  The original expression does not capture variables from its caller
       environment *)
-    ExprDoesNotCaptureVars mexpr E ->
+  ExprDoesNotCaptureVars mexpr E ->
 
   (*  Evaluation under the macro environment and store results in the same
       return value as under the function environment and store *)
@@ -160,7 +160,7 @@ Proof.
     move H8 after H0.
     move H18 after H8.
     apply mexprDoesNotCallx' in H18.
-    apply E_Equal_EvalExpr with (E2:=(StringMapProperties.update E Em)) in H8; auto.
+    apply E_Equal_EvalExpr with (E2:=(StringMapProperties.update Em E)) in H8; auto.
     apply E_Equal_EvalExpr with (E2:=Em) in H18. 2 : { symmetry; auto. }
     apply NoEnvironmentCapture in H8.
 

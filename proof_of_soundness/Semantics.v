@@ -166,7 +166,10 @@ Inductive EvalExpr:
     NatMap.Equal S' (NatMapProperties.update S Sm) ->
 
     (*  Evaluate the macro's body under the caller's environment *)
-    StringMap.Equal E' (StringMapProperties.update E Em) ->
+    (*  It is important that we update Em with the mappings of E, and not
+        the other way around. This ensures that variables in the caller
+        environment are captured correctly *)
+    StringMap.Equal E' (StringMapProperties.update Em E) ->
     EvalExpr S' E' G F M mexpr v S'' ->
 
     (*  Only keep in the store the L-value mappings that were there when
