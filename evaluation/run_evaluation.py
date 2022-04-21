@@ -1,11 +1,13 @@
 import csv
 import os
 import shutil
+from statistics import mean
 import sys
 from collections import deque
 from dataclasses import astuple, dataclass, fields
 from subprocess import CompletedProcess, run
 from sys import stderr
+import datetime
 from typing import Deque, Dict, List
 from urllib.request import urlretrieve
 
@@ -180,6 +182,7 @@ def main():
     shutil.rmtree(STATS_DIR, ignore_errors=True)
     os.makedirs(STATS_DIR, exist_ok=True)
 
+    times_to_transform_all_files = []
     for evaluation_program in evaluation_programs:
 
         # Download the program zip file if we do not already have it
@@ -212,7 +215,7 @@ def main():
                     program_c_files.append(filepath)
 
         # Configure program
-        print(f'Configuring {evaluation_program.name}')
+        # print(f'Configuring {evaluation_program.name}')
         temp = os.getcwd()
         os.chdir(evaluation_program.extracted_archive_path)
         run(evaluation_program.configure_script, shell=True, capture_output=True)
@@ -238,14 +241,14 @@ def main():
         # Count the number of unique original macro expansions
         # This includes, but does not duplicate, spelling locations
         # of nested macro expansions
-        total_unique_original_expansions: int = 0
         total_unique_original_object_like_expansions: int = 0
         total_unique_original_function_like_expansions: int = 0
 
+        start_time_for_program = datetime.datetime.now()
         # Transform program files until no more transformations are made
         while True:
             run_no += 1
-            print(f'Run {run_no} of {evaluation_program.name}')
+            # print(f'Run {run_no} of {evaluation_program.name}')
 
             emitted_a_transformation = False
 
@@ -333,6 +336,7 @@ def main():
                 untransformed_top_level_expansions_found_in_this_translation_unit: List[UntransformedExpansion] = \
                     []
 
+                start_time_to_transform_file = datetime.datetime.now()
                 cp: CompletedProcess = run(
                     (
                         f'../implementation/build/bin/cpp2c {c_file} '
@@ -341,6 +345,9 @@ def main():
                         '-Xclang -plugin-arg-cpp2c -Xclang -v'
                     ),
                     shell=True, capture_output=True, text=True)
+                end_time_to_transform_file = datetime.datetime.now()
+                times_to_transform_all_files.append(
+                    (end_time_to_transform_file - start_time_to_transform_file).seconds)
 
                 emitted_a_transformation_for_this_file = False
 
@@ -379,8 +386,8 @@ def main():
                         print(line)
                         exit(1)
 
-                if emitted_a_transformation_for_this_file:
-                    print(f'Emitted at least one transformation in {c_file}')
+                # if emitted_a_transformation_for_this_file:
+                #     print(f'Emitted at least one transformation in {c_file}')
 
                 emitted_a_transformation = emitted_a_transformation or emitted_a_transformation_for_this_file
 
@@ -405,6 +412,11 @@ def main():
 
             if not emitted_a_transformation:
                 break
+
+        end_time_for_program = datetime.datetime.now()
+        duration_for_program = end_time_for_program - start_time_for_program
+        print(
+            f'Time to transform {evaluation_program.name}: {duration_for_program.seconds}s {duration_for_program.microseconds}ms')
 
         total_unique_original_expansions = len({
             me.spelling_location
@@ -555,6 +567,12 @@ def main():
             len({mh for mh in hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once if mh.startswith(
                 FUNCTION_LIKE_PREFIX)})
 
+        num_transformed_definitions_with_no_polymorphism = len({
+            mh for mh, sigs in
+            hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.items()
+            if len(sigs) == 1
+        })
+
         three_point_summary_of_unique_function_signatures_per_transformed_definition = three_num(
             [
                 len(sigs) for sigs in hashes_of_run_1_macro_definitions_in_evaluation_program_to_signatures_of_transformed_definitions.values()
@@ -674,6 +692,12 @@ def main():
                 print(transformed_expansions)
             hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed[
                 mh] = num_not_transformed
+
+        num_transformed_definitions_with_untransformed_invocation = len({
+            mh for mh, num_not_transformed
+            in hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.items()
+            if num_not_transformed > 0
+        })
 
         three_point_summary_of_not_transformed_invocations_per_transformed_defintion = three_num(
             list(hashes_of_run_1_macro_definitions_in_evaluation_program_transformed_at_least_once_to_run_1_num_expansions_not_transformed.values())
@@ -988,8 +1012,7 @@ def main():
             h for h in hashes_of_never_transformed_macros_in_evaluation_program_only_due_to_multiple_reasons
             if h.startswith(FUNCTION_LIKE_PREFIX)
         })
-        
-        
+
         # Count the number of macro definitions that were never transformed due to multiple reasons
         # NOTE: This counts macros that were never expanded in .c files;
         #       to count macros that were never expanded in any file, use the commented code below
@@ -1019,11 +1042,24 @@ def main():
         # num_never_expanded_function_like_macros = len(
         #     {h for h in hashes_of_never_expanded_macro_definitions if h.startswith(FUNCTION_LIKE_PREFIX)})
 
+        hashes_of_unhygienic_or_unexpanded_macros = {
+            h for h, cats in hashes_of_never_transformed_macros_in_evaluation_program_to_categories_of_untransformation.items()
+            if (len(cats) == 0) or (cats == {HYGIENE})
+        }
+
+        num_original_expansions_of_hygienically_expanded_macros = len({
+            me.spelling_location for me
+            in run_1_expansions_of_macros_defined_in_evaluation_program
+            if me.macro_hash not in hashes_of_unhygienic_or_unexpanded_macros
+        })
+
         all_stats = {
             'program name': evaluation_program.name,
             '# of runs': run_no,
             'total unique definitions': total_unique_macro_definitions,
             'unique transformed definitions': num_run_1_macro_definitions_transformed_at_least_once,
+            'unique transformed definitions with at least one untransformed invocation': num_transformed_definitions_with_untransformed_invocation,
+            'unique transformed definitions with no polymorphism': num_transformed_definitions_with_no_polymorphism,
             '# of unique definitions untransformed': num_never_transformed_macro_definitions_in_evaluation_program,
             '# of unique definitions untransformed only due to hygiene': num_never_transformed_definitions_only_due_to_hygiene,
             '# of unique definitions untransformed only due to environment capture': num_never_transformed_definitions_only_due_to_environment_capture,
@@ -1032,6 +1068,7 @@ def main():
             '# of unique definitions untransformed only due to multiple reasons': num_never_transformed_definitions_only_due_to_multiple_reasons,
             '# of unique definitions that were never expanded in a transformed file': num_never_expanded_macros,
             'total unique invocations': total_unique_original_expansions,
+            'total unique hygienic invocations': num_original_expansions_of_hygienically_expanded_macros,
             'unique transformed invocations': num_unique_transformed_expansions,
             'unique not transformed invocations': total_unique_original_expansions - num_unique_transformed_expansions,
             '90-95-99 percentiles of unique invocations per definition': three_point_summary_of_unique_invocations_per_definition,
@@ -1201,6 +1238,12 @@ def main():
             for ute in all_untransformed_top_level_expansions:
                 if ute.run_no_reported == 1:
                     print(*astuple(ute), sep=',', file=fp)
+
+    print(
+        f'Average time to transform a file: {mean(times_to_transform_all_files)}s')
+
+    print(
+        f'Max time to transform a file: {max(times_to_transform_all_files)}s')
 
 
 if __name__ == '__main__':
