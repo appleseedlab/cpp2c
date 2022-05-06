@@ -4,64 +4,10 @@
 #include <set>
 #include <string>
 
+#include "ExpansionUtils.hh"
+
 using namespace clang;
 using namespace std;
-
-bool isInStdHeader(SourceLocation L, SourceManager &SM)
-{
-    auto FN = SM.getFilename(L);
-    return (FN.str() == "" ||
-            FN.startswith("/usr/include") ||
-            FN.startswith("/usr/lib"));
-}
-
-string hashMacro(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
-{
-    string key = MI->isObjectLike()
-                     ? "ObjectLike"
-                     : "FunctionLike";
-    key += "+";
-    string def =
-        Lexer::getSourceText(
-            Lexer::getAsCharRange(
-                SourceRange(
-                    MI->getDefinitionLoc(),
-                    MI->getDefinitionEndLoc()),
-                SM, LO),
-            SM, LO)
-            .str();
-    key += def;
-
-    // https://stackoverflow.com/a/26559133/6824430
-    string result;
-    size_t const len(key.length());
-    result.reserve(len + 100); // assume up to 100 double quotes...
-    // Use double quotes to escape special characters
-    for (size_t idx(0); idx < len; ++idx)
-    {
-        if (key[idx] == '"')
-        {
-            result += "\"\"";
-        }
-        else if (key[idx] == '\\')
-        {
-            result += "\\\\";
-        }
-        else if (key[idx] == '\n')
-        {
-            result += "";
-        }
-        else if (key[idx] == '\t')
-        {
-            result += "    ";
-        }
-        else
-        {
-            result += key[idx];
-        }
-    }
-    return result;
-}
 
 class MacroNameCollector : public PPCallbacks
 {

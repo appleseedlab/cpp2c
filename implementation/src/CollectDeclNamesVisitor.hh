@@ -1,3 +1,5 @@
+#pragma once
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Frontend/CompilerInstance.h"
 

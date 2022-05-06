@@ -12,6 +12,8 @@
 #include "clang/Lex/Lexer.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 
+#include "MacroExpansionNode.hh"
+
 namespace clang
 {
     namespace ast_matchers
@@ -99,7 +101,7 @@ namespace clang
 
         AST_POLYMORPHIC_MATCHER_P(inMacroForestExpansion,
                                   AST_POLYMORPHIC_SUPPORTED_TYPES(Decl, Stmt, TypeLoc),
-                                  MacroForest::Node *, Expansion)
+                                  MacroExpansionNode *, Expansion)
         {
             // assert(Expansion->Parent == nullptr &&
             //        "Matcher works only with the toplevel expansion");
@@ -113,7 +115,7 @@ namespace clang
             // in the SpellingRange of that MatchForest::Node
             // ATTENTION: This is for safety, we should only be called in this context.
             SourceLocation ExpansionLoc = Context.getFullLoc(Loc).getExpansionLoc();
-            if (!Expansion->Root->SpellingRange.fullyContains(ExpansionLoc))
+            if (!Expansion->getRoot()->getSpellingRange().fullyContains(ExpansionLoc))
                 return false;
 
             bool verbose = false;
@@ -150,7 +152,7 @@ namespace clang
             //         L = SM.getImmediateMacroCallerLoc(L);
             //     }
 
-            //     MacroForest::Node * N = Expansion;
+            //     MacroExpansionNode * N = Expansion;
             //     Expansion->Root->dump_tree();
             //     while (N) {
             //         llvm::errs() << "= " << N->Name << '\n';
@@ -166,7 +168,7 @@ namespace clang
 
             // Co-Walk the Macro Backtrace and MacroForest Backtrace
             SourceLocation L = Loc;
-            MacroForest::Node *N = Expansion;
+            MacroExpansionNode *N = Expansion;
 
             bool matched_expansion_stack = false;
             while (L.isMacroID())
@@ -182,7 +184,9 @@ namespace clang
 
                 SourceLocation SpellingLocation = Context.getFullLoc(L).getSpellingLoc();
                 bool found = false;
-                if (N->DefinitionRange.fullyContains(SpellingLocation) || N->SpellingRange.fullyContains(SpellingLocation) || N->ArgSpellingLocs.contains(SpellingLocation))
+                if (N->getDefinitionRange().fullyContains(SpellingLocation) ||
+                    N->getSpellingRange().fullyContains(SpellingLocation) ||
+                    N->getArgSpellingLocs().contains(SpellingLocation))
                 {
                     found = true;
                 }
@@ -202,13 +206,13 @@ namespace clang
                 if (!found)
                 {
                     if (verbose)
-                        llvm::errs() << "NOMATCH " << N->Name << "\n";
+                        llvm::errs() << "NOMATCH " << N->getName() << "\n";
                     return false;
                 }
 
                 matched_expansion_stack = true;
 
-                if (!N->Parent)
+                if (!N->getParent())
                     break;
 
                 // If we have a Parent, this Macro must be spelled in the parent
@@ -217,7 +221,7 @@ namespace clang
                     {
                         SourceRange spellingRange(Context.getFullLoc(ExpInfo.getExpansionLocStart()).getSpellingLoc(),
                                                   Context.getFullLoc(ExpInfo.getExpansionLocEnd()).getSpellingLoc());
-                        if (N->SpellingRange != spellingRange)
+                        if (N->getSpellingRange() != spellingRange)
                         {
                             return false;
                         }
@@ -226,7 +230,7 @@ namespace clang
 
                 // Co-Walk both Trees
                 if (!ExpInfo.isMacroArgExpansion())
-                    N = N->Parent;
+                    N = N->getParent();
                 L = SM.getImmediateMacroCallerLoc(L);
             }
             if (verbose)

@@ -16,6 +16,8 @@
 
 #include "CollectDeclNamesVisitor.hh"
 #include "ExpansionUtils.hh"
+#include "ForestCollector.hh"
+#include "MacroExpansionNode.hh"
 #include "MacroForest.hh"
 #include "MacroNameCollector.hh"
 #include "Matchers.hh"
@@ -48,86 +50,22 @@ string HYGIENE = "Hygiene",
        UNSUPPORTED_CONSTRUCT = "Unsupported construct";
 void emitUntransformedMessage(
     ASTContext &Ctx,
-    MacroForest::Node *Expansion,
+    MacroExpansionNode *Expansion,
     string Category,
     string Reason)
 {
     SourceManager &SM = Ctx.getSourceManager();
     const LangOptions &LO = Ctx.getLangOpts();
-    auto ST = Expansion->Stmts.size() > 0 ? *Expansion->Stmts.begin() : nullptr;
+    auto ST = Expansion->getStmts().size() > 0 ? *Expansion->getStmts().begin() : nullptr;
     string s = getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(Ctx, ST);
     errs() << "CPP2C:"
            << "Untransformed Expansion,"
-           << "\"" << hashMacro(Expansion->MI, SM, LO) << "\","
-           << Expansion->SpellingRange.getBegin().printToString(SM) << ","
+           << "\"" << hashMacro(Expansion->getMI(), SM, LO) << "\","
+           << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
            << s << ","
            << Category << ","
            << Reason << "\n";
 }
-
-
-
-class ForestCollector : public MatchFinder::MatchCallback
-{
-    ASTContext &Context;
-    std::set<const Stmt *> &Forest;
-
-public:
-    ForestCollector(ASTContext &Context, std::set<const Stmt *> &Forest)
-        : Context(Context), Forest(Forest){};
-
-    virtual void
-    run(const clang::ast_matchers::MatchFinder::MatchResult &Result) final
-    {
-        const auto *E = Result.Nodes.getNodeAs<Stmt>("stmt");
-        assert(E != nullptr);
-
-        // Have we already recorded a Parent statement? => Skip this one
-        const Stmt *ParentStmt = E;
-        while (ParentStmt)
-        {
-            const auto &Parents = Context.getParents(*ParentStmt);
-            // FIXME: This happens from time to time
-            if (Parents.size() > 1)
-            {
-                // E->getBeginLoc().dump(Context.getSourceManager());
-                // E->dump();
-                return;
-            }
-            assert(Parents.size() <= 1); // C++?
-
-            if (Parents.size() == 0)
-            {
-                // llvm::errs() << "Searched to the top\n";
-                break;
-            }
-
-            if (const Stmt *S = Parents[0].get<Stmt>())
-            {
-                if (Forest.find(S) != Forest.end())
-                {
-                    return;
-                }
-                ParentStmt = S;
-            }
-            else if (const TypeLoc *TL = Parents[0].get<TypeLoc>())
-            {
-                (void)TL;
-                return; // WE DO NOT COLLECT NODES BELOW TypeLoc
-            }
-            else
-            { // Parent is not a stmt -> break
-                // llvm::errs() << "UNKNOWN?\n";
-                // auto &Parent = Parents[0];
-                // Parent.dump(llvm::errs(), Context);
-                // abort();
-                break;
-            }
-        }
-
-        Forest.insert(E);
-    }
-};
 
 // AST consumer which calls the visitor class to perform the transformation
 class Cpp2CConsumer : public ASTConsumer
@@ -176,7 +114,7 @@ public:
         ExpansionRoots.erase(
             remove_if(ExpansionRoots.begin(),
                       ExpansionRoots.end(),
-                      [&SM, &OnlyCollectNotDefinedInStdHeaders](const MacroForest::Node *N)
+                      [&SM, &OnlyCollectNotDefinedInStdHeaders](const MacroExpansionNode *N)
                       {
                           // Only look at expansions source files
                           SourceLocation Loc = N->SpellingRange.getBegin();
@@ -220,7 +158,7 @@ public:
         for (const auto ST : MacroRoots)
         {
             SourceLocation ExpansionLoc = SM.getExpansionLoc(ST->getBeginLoc());
-            MacroForest::Node *ExpansionRoot = nullptr;
+            MacroExpansionNode *ExpansionRoot = nullptr;
             for (auto E : ExpansionRoots)
             {
                 // Check if the ExpansionRoot and the Node have the
@@ -317,7 +255,7 @@ public:
         // Mapping of macro names to all emitted transformed definitions for
         // that macro. This enables to quickly check for duplicate
         // identical transformations
-        map<SourceLocation, vector<struct TransformedDefinition>>
+        map<SourceLocation, vector<TransformedDefinition *>>
             MacroDefinitionLocationToTransformedDefinition;
 
         set<string> TransformedPrototypes;
@@ -509,10 +447,8 @@ public:
                 getDesugaredCanonicalType(Ctx, ST).getAsString() != "void";
 
             // Create the transformed definition
-            struct TransformedDefinition TD =
-                NewTransformedDefinition(Ctx,
-                                         TopLevelExpansion,
-                                         TransformToVar);
+            TransformedDefinition *TD =
+                new TransformedDefinition(Ctx, TopLevelExpansion, TransformToVar);
 
             //// Environment capture
             {
@@ -671,7 +607,7 @@ public:
                 }
 
                 // Perform function-specific checks
-                if (!TD.IsVar)
+                if (!TD->IsVar)
                 {
                     auto Parents = Ctx.getParents(*E);
                     if (Parents.size() > 1)
@@ -768,7 +704,7 @@ public:
                 // Don't transform definitions with signatures with array types
                 // TODO: We should be able to transform these so long as we
                 // properly transform array types to pointers
-                if (TD.hasArrayTypes())
+                if (TD->hasArrayTypes())
                 {
                     if (Cpp2CSettings.Verbose)
                     {
@@ -785,7 +721,7 @@ public:
                 // TODO: We could allow function parameters if we could
                 // emit the names of parameters correctly, and we could possibly
                 // allow function return types if we cast them to pointers
-                if (TD.hasFunctionTypes())
+                if (TD->hasFunctionTypes())
                 {
                     if (Cpp2CSettings.Verbose)
                     {
@@ -884,12 +820,12 @@ public:
                         // Find which, if any, of the prior transformation
                         // definitions of this macro are identical to the one
                         // we are considering adding to the program.
-                        if (ETD.IsVar == TD.IsVar &&
-                            ETD.VarOrReturnType == TD.VarOrReturnType &&
-                            ETD.ArgTypes == TD.ArgTypes &&
-                            ETD.InitializerOrDefinition == TD.InitializerOrDefinition)
+                        if (ETD->IsVar == TD->IsVar &&
+                            ETD->VarOrReturnType == TD->VarOrReturnType &&
+                            ETD->ArgTypes == TD->ArgTypes &&
+                            ETD->InitializerOrDefinition == TD->InitializerOrDefinition)
                         {
-                            EmittedName = ETD.EmittedName;
+                            EmittedName = ETD->EmittedName;
                             break;
                         }
                         // Found a match?
@@ -904,20 +840,20 @@ public:
             {
                 // Otherwise, we can use the macro definition location to
                 // quickly find any identical prior transformations
-                if (MacroDefinitionLocationToTransformedDefinition.find(TD.Expansion->MI->getDefinitionLoc()) !=
+                if (MacroDefinitionLocationToTransformedDefinition.find(TD->Expansion->MI->getDefinitionLoc()) !=
                     MacroDefinitionLocationToTransformedDefinition.end())
                 {
                     // Find which, if any, of the prior transformation
                     // definitions of this macro are identical to the one
                     // we are considering adding to the program.
-                    for (auto &&ETD : MacroDefinitionLocationToTransformedDefinition[TD.Expansion->MI->getDefinitionLoc()])
+                    for (auto &&ETD : MacroDefinitionLocationToTransformedDefinition[TD->Expansion->MI->getDefinitionLoc()])
                     {
-                        if (ETD.IsVar == TD.IsVar &&
-                            ETD.VarOrReturnType == TD.VarOrReturnType &&
-                            ETD.ArgTypes == TD.ArgTypes &&
-                            ETD.InitializerOrDefinition == TD.InitializerOrDefinition)
+                        if (ETD->IsVar == TD->IsVar &&
+                            ETD->VarOrReturnType == TD->VarOrReturnType &&
+                            ETD->ArgTypes == TD->ArgTypes &&
+                            ETD->InitializerOrDefinition == TD->InitializerOrDefinition)
                         {
-                            EmittedName = ETD.EmittedName;
+                            EmittedName = ETD->EmittedName;
                             break;
                         }
                     }
@@ -955,28 +891,28 @@ public:
                 VarNames.insert(EmittedName);
                 MacroNames.insert(EmittedName);
 
-                TD.EmittedName = EmittedName;
+                TD->EmittedName = EmittedName;
 
                 string TransformedSignature =
-                    TD.getExpansionSignatureOrDeclaration(Ctx, false);
+                    TD->getExpansionSignatureOrDeclaration(Ctx, false);
 
                 string FullTransformationDefinition =
-                    TransformedSignature + TD.InitializerOrDefinition;
+                    TransformedSignature + TD->InitializerOrDefinition;
 
                 TransformedPrototypes.insert(TransformedSignature + ";");
                 TransformedDefinitionsAndFunctionDeclExpandedIn.emplace(FullTransformationDefinition, FD);
                 // TODO: Only emit transformed definition if verbose
                 {
-                    TD.EmittedName = "";
+                    TD->EmittedName = "";
                     string TransformedSignatureNoName =
-                        TD.getExpansionSignatureOrDeclaration(Ctx, true);
+                        TD->getExpansionSignatureOrDeclaration(Ctx, true);
                     errs() << "CPP2C:"
                            << "Transformed Definition,"
                            << "\"" << hashMacro(TopLevelExpansion->MI, SM, LO) << "\","
                            << "\"" << TransformedSignatureNoName << "\""
                            << ","
                            << EmittedName << "\n";
-                    TD.EmittedName = EmittedName;
+                    TD->EmittedName = EmittedName;
                 }
                 // Record the number of unique definitions emitted for this
                 // macro definition
@@ -985,14 +921,13 @@ public:
                     // Set the emitted name to the empty string right before
                     // recording the signature so that we get an anonymous
                     // signature
-                    string temp = TD.EmittedName;
-                    TD.EmittedName = "";
-                    MacroDefinitionToTransformedDefinitionPrototypes[key].insert(TD.getExpansionSignatureOrDeclaration(Ctx, true));
-                    TD.EmittedName = temp;
+                    string temp = TD->EmittedName;
+                    TD->EmittedName = "";
+                    MacroDefinitionToTransformedDefinitionPrototypes[key].insert(TD->getExpansionSignatureOrDeclaration(Ctx, true));
+                    TD->EmittedName = temp;
                 }
 
-                MacroDefinitionLocationToTransformedDefinition[TD.Expansion->MI->getDefinitionLoc()]
-                    .push_back(TD);
+                (MacroDefinitionLocationToTransformedDefinition[TD->Expansion->MI->getDefinitionLoc()]).push_back(TD);
             }
 
             // Rewrite the invocation into a function call or var ref
