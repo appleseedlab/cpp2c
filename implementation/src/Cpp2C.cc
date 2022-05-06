@@ -41,66 +41,6 @@ struct PluginSettings
     bool OnlyCollectNotDefinedInStdHeaders = true;
 };
 
-template <typename K, typename V>
-void printMapToCSV(llvm::raw_fd_ostream &os, map<K, V> &csv)
-{
-    unsigned i = 0;
-    for (auto &&pair : csv)
-    {
-        if (i > 0)
-        {
-            os << ", ";
-        }
-        os << pair.first;
-        i++;
-    }
-    os << "\n";
-
-    i = 0;
-    for (auto &&pair : csv)
-    {
-        if (i > 0)
-        {
-            os << ", ";
-        }
-        os << pair.second;
-        i++;
-    }
-    os << "\n";
-}
-
-void printMapToJSON(llvm::raw_fd_ostream &os, map<string, set<string>> &m)
-{
-    os << "{\n";
-    unsigned i = 0;
-    for (auto &&pair : m)
-    {
-        if (i > 0)
-        {
-            os << ",\n";
-        }
-        os << "    \""
-           << pair.first
-           << "\": [";
-
-        unsigned j = 0;
-        for (auto &&it : pair.second)
-        {
-            if (j > 0)
-            {
-                os << ", ";
-            }
-            os << '"' << it << '"';
-
-            j++;
-        }
-        os << ']';
-
-        i++;
-    }
-    os << "\n}\n";
-}
-
 string HYGIENE = "Hygiene",
        ENVIRONMENT_CAPTURE = "Environment capture",
        PARAMETER_SIDE_EFFECTS = "Parameter side-effects",
