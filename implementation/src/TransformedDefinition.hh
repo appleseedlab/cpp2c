@@ -2,7 +2,7 @@
 
 #include "clang/Lex/Lexer.h"
 
-#include "MacroForest.h"
+#include "MacroForest.hh"
 
 using namespace std;
 using namespace clang;

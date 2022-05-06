@@ -14,12 +14,13 @@
 
 #include "llvm/Support/raw_ostream.h"
 
-#include "CollectDeclNamesVisitor.h"
-#include "ExpansionUtils.h"
-#include "MacroForest.h"
-#include "MacroNameCollector.h"
-#include "Matchers.h"
-#include "TransformedDefinition.h"
+#include "CollectDeclNamesVisitor.hh"
+#include "ExpansionUtils.hh"
+#include "MacroForest.hh"
+#include "MacroNameCollector.hh"
+#include "Matchers.hh"
+#include "NodeCollector.hh"
+#include "TransformedDefinition.hh"
 
 #include <iostream>
 #include <map>
@@ -64,28 +65,7 @@ void emitUntransformedMessage(
            << Reason << "\n";
 }
 
-// A Matcher callback, that collects all AST Nodes that were matched
-// and bound to BindName
-template <typename T>
-class NodeCollector : public MatchFinder::MatchCallback
-{
-    std::string BindName;
-    std::vector<const T *> &Nodes;
 
-public:
-    NodeCollector(std::string BindName, std::vector<const T *> &Nodes)
-        : BindName(BindName), Nodes(Nodes){};
-
-    void
-    run(const clang::ast_matchers::MatchFinder::MatchResult &Result) final
-    {
-        const auto *E = Result.Nodes.getNodeAs<T>(BindName);
-        if (E)
-        {
-            Nodes.push_back(E);
-        }
-    }
-};
 
 class ForestCollector : public MatchFinder::MatchCallback
 {

@@ -4,8 +4,8 @@
 
 #include "clang/AST/ASTContext.h"
 
-#include "MacroForest.h"
-#include "Matchers.h"
+#include "MacroForest.hh"
+#include "Matchers.hh"
 
 using namespace std;
 using namespace clang;

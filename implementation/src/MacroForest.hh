@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MacroNameCollector.h"
+#include "MacroNameCollector.hh"
 
 using namespace clang;
 using namespace llvm;
