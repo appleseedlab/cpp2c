@@ -1,0 +1,32 @@
+Macros that had no expansions in .h files
+
+FunctionLike+INIT(x)
+FunctionLike+INIT(x) = x
+ObjectLike+_GLOBAL_C
+ObjectLike+EXTERN
+ObjectLike+EXTERN extern
+ObjectLike+HistoryVar 291
+ObjectLike+UNARY_MINUS 290
+ObjectLike+YY_YY_BC_H_INCLUDED
+ObjectLike+YYBISON 1
+ObjectLike+YYBISON_VERSION "3.0.2"
+ObjectLike+YYPULL 1
+ObjectLike+YYPURE 0
+ObjectLike+YYPUSH 0
+ObjectLike+YYSKELETON_NAME "yacc.c"
+ObjectLike+YYTOKENTYPE
+
+
+Macros that had no expansions in .c or .h files
+
+ObjectLike+_GLOBAL_C
+ObjectLike+HistoryVar 291
+ObjectLike+UNARY_MINUS 290
+ObjectLike+YY_YY_BC_H_INCLUDED
+ObjectLike+YYBISON 1
+ObjectLike+YYBISON_VERSION "3.0.2"
+ObjectLike+YYPULL 1
+ObjectLike+YYPURE 0
+ObjectLike+YYPUSH 0
+ObjectLike+YYSKELETON_NAME "yacc.c"
+ObjectLike+YYTOKENTYPE
