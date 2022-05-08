@@ -44,6 +44,10 @@ add_library(Cpp2C SHARED
   TransformedDefinition.cc
   )
 
+include_directories(Cpp2C
+  "../include"
+)
+
 # Allow undefined symbols in shared objects on Darwin (this is the default
 # behaviour on Linux)
 target_link_libraries(Cpp2C
