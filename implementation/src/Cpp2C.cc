@@ -10,18 +10,49 @@
 
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
-#include "clang/Lex/Lexer.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
-#include <iostream>
-#include <map>
-
-using namespace clang;
-using namespace llvm;
-using namespace std;
-
-using namespace clang::ast_matchers;
+using clang::ASTConsumer;
+using clang::ASTContext;
+using clang::BinaryOperator;
+using clang::CompilerInstance;
+using clang::DeclRefExpr;
+using clang::dyn_cast_or_null;
+using clang::Expr;
+using clang::FrontendPluginRegistry;
+using clang::FunctionDecl;
+using clang::LangOptions;
+using clang::PluginASTAction;
+using clang::PPCallbacks;
+using clang::Preprocessor;
+using clang::RewriteBuffer;
+using clang::Rewriter;
+using clang::SourceLocation;
+using clang::SourceManager;
+using clang::SourceRange;
+using clang::Stmt;
+using clang::TranslationUnitDecl;
+using clang::ast_matchers::forEachDescendant;
+using clang::ast_matchers::implicitCastExpr;
+using clang::ast_matchers::inMacroForestExpansion;
+using clang::ast_matchers::inSourceRangeCollection;
+using clang::ast_matchers::isExpansionRoot;
+using clang::ast_matchers::MatchFinder;
+using clang::ast_matchers::stmt;
+using clang::ast_matchers::unless;
+using llvm::errs;
+using llvm::isa_and_nonnull;
+using llvm::outs;
+using llvm::StringRef;
+using std::make_unique;
+using std::map;
+using std::pair;
+using std::set;
+using std::string;
+using std::to_string;
+using std::unique_ptr;
+using std::vector;
 
 // This file is hardly a paragon of pulchritude, but the logic is correct
 // and so far Cpp2C works without issue
