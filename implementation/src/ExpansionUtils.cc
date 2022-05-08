@@ -187,7 +187,7 @@ bool containsFunctionCalls(const Expr *E)
         return false;
     }
 
-    if (auto DRE = dyn_cast_or_null<CallExpr>(E))
+    if (isa_and_nonnull<CallExpr>(E))
     {
         return true;
     }
