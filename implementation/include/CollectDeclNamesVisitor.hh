@@ -18,7 +18,8 @@ private:
 
 public:
     explicit CollectDeclNamesVisitor(
-        clang::CompilerInstance *CI, std::set<std::string> *FunctionNames,
+        clang::CompilerInstance *CI,
+        std::set<std::string> *FunctionNames,
         std::set<std::string> *VarNames);
 
     bool VisitFunctionDecl(clang::FunctionDecl *FDecl);
