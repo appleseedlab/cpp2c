@@ -1,5 +1,14 @@
 #include "MacroExpansionNode.hh"
 
+using clang::MacroInfo;
+using clang::SourceManager;
+using clang::SourceRange;
+using clang::Stmt;
+using llvm::errs;
+using std::set;
+using std::string;
+using std::vector;
+
 void MacroExpansionNode::dump(SourceManager &SM)
 {
     errs() << "Node " << Name << " argc: "

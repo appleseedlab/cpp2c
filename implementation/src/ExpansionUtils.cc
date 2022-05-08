@@ -1,9 +1,47 @@
 #include "ExpansionUtils.hh"
-#include "Matchers.hh"
 
-using namespace std;
-using namespace clang;
-using namespace llvm;
+#include "clang/AST/ASTTypeTraits.h"
+#include "clang/AST/ASTContext.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/AST/ParentMapContext.h"
+#include "clang/Lex/Lexer.h"
+
+#include <chrono>
+
+using clang::ASTContext;
+using clang::BinaryOperator;
+using clang::CallExpr;
+using clang::ConstantExpr;
+using clang::Decl;
+using clang::DeclRefExpr;
+using clang::dyn_cast_or_null;
+using clang::DynTypedNode;
+using clang::DynTypedNodeList;
+using clang::Expr;
+using clang::FunctionDecl;
+using clang::LangOptions;
+using clang::Lexer;
+using clang::MacroInfo;
+using clang::QualType;
+using clang::SourceLocation;
+using clang::SourceManager;
+using clang::SourceRange;
+using clang::Stmt;
+using clang::TranslationUnitDecl;
+using clang::VarDecl;
+using llvm::dyn_cast_or_null;
+using llvm::isa_and_nonnull;
+using std::set;
+using std::string;
+using std::vector;
+
+inline SourceLocation getStmtOrExprLocation(const Stmt &Node)
+{
+    if (const auto E = dyn_cast_or_null<Expr>(&Node))
+        return E->getExprLoc();
+    else
+        return Node.getBeginLoc();
+}
 
 string hashMacro(const MacroInfo *MI, SourceManager &SM, const LangOptions &LO)
 {
@@ -240,7 +278,7 @@ bool StmtAndSubStmtsSpelledInRanges(ASTContext &Ctx, const Stmt *S,
         return true;
     }
 
-    SourceLocation Loc = clang::ast_matchers::getSpecificLocation(*S);
+    SourceLocation Loc = getStmtOrExprLocation(*S);
     SourceLocation SpellingLoc = Ctx.getFullLoc(Loc).getSpellingLoc();
     if (!Ranges.contains(SpellingLoc))
     {
@@ -601,7 +639,7 @@ string getNameForExpansionTransformation(SourceManager &SM,
     // Generate a unique basename using a timetamp
     auto t = std::chrono::system_clock::now();
     string transformType = TransformToVar ? "var" : "function";
-    return Expansion->getName() + "_" + to_string(t.time_since_epoch().count()) + transformType;
+    return Expansion->getName() + "_" + std::to_string(t.time_since_epoch().count()) + transformType;
 
     /*
 

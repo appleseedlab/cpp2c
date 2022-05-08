@@ -1,44 +1,49 @@
 #include "MacroForest.hh"
-#include "MacroNameCollector.hh"
+#include "ExpansionUtils.hh"
 
-MacroForest::MacroForest(CompilerInstance &CI, Roots &roots)
+#include "clang/Lex/Lexer.h"
+
+MacroForest::MacroForest(clang::CompilerInstance &CI, Roots &roots)
     : CI(CI), MacroRoots(roots), Ctx(CI.getASTContext()){};
 
-SourceRange MacroForest::getSpellingRange(SourceLocation S, SourceLocation E)
+clang::SourceRange MacroForest::getSpellingRange(
+    clang::SourceLocation S,
+    clang::SourceLocation E)
 {
-    return SourceRange(Ctx.getFullLoc(S).getSpellingLoc(),
-                       Ctx.getFullLoc(E).getSpellingLoc());
+    return clang::SourceRange(Ctx.getFullLoc(S).getSpellingLoc(),
+                              Ctx.getFullLoc(E).getSpellingLoc());
 }
 
-void MacroForest::MacroExpands(const Token &MacroNameTok,
-                               const MacroDefinition &MD,
-                               SourceRange Range,
-                               const MacroArgs *Args)
+void MacroForest::MacroExpands(
+    const clang::Token &MacroNameTok,
+    const clang::MacroDefinition &MD,
+    clang::SourceRange Range,
+    const clang::MacroArgs *Args)
 {
     // Create the new node for the expansion
     MacroExpansionNode *Expansion = new MacroExpansionNode();
 
     // Get the macro's name
-    IdentifierInfo *II = MacroNameTok.getIdentifierInfo();
+    clang::IdentifierInfo *II = MacroNameTok.getIdentifierInfo();
     Expansion->Name = II->getName().str();
 
     // Get the macro's info
-    MacroInfo *MI = MD.getMacroInfo();
+    clang::MacroInfo *MI = MD.getMacroInfo();
     Expansion->MI = MI;
 
     // Get the macro's definition range and spelling range
-    SourceRange DefinitionRange(MI->getDefinitionLoc(),
-                                MI->getDefinitionEndLoc());
-    SourceRange SpellingRange = getSpellingRange(Range.getBegin(),
-                                                 Range.getEnd());
+    clang::SourceRange DefinitionRange(MI->getDefinitionLoc(),
+                                       MI->getDefinitionEndLoc());
+    clang::SourceRange SpellingRange = getSpellingRange(Range.getBegin(),
+                                                        Range.getEnd());
     Expansion->DefinitionRange = DefinitionRange;
     Expansion->SpellingRange = SpellingRange;
 
     // Get the source manager
-    SourceManager &SM = Ctx.getSourceManager();
+    clang::SourceManager &SM = Ctx.getSourceManager();
 
     // Get the language options
-    const LangOptions &LO = Ctx.getLangOpts();
+    const clang::LangOptions &LO = Ctx.getLangOpts();
 
     // Record the raw text of the macro definition
     {
@@ -50,7 +55,7 @@ void MacroForest::MacroExpands(const Token &MacroNameTok,
             {
                 Expansion->DefinitionText += " ";
             }
-            Expansion->DefinitionText += Lexer::getSpelling(Tok, SM, LO);
+            Expansion->DefinitionText += clang::Lexer::getSpelling(Tok, SM, LO);
             i += 1;
         }
     }
@@ -58,10 +63,10 @@ void MacroForest::MacroExpands(const Token &MacroNameTok,
     // TODO: Only emit macro expansions if verbose
     {
         auto SpellingLoc = SpellingRange.getBegin();
-        errs() << "CPP2C:"
-               << "Macro Expansion,"
-               << "\"" << hashMacro(MD.getMacroInfo(), SM, LO) << "\","
-               << SpellingLoc.printToString(SM) << "\n";
+        llvm::errs() << "CPP2C:"
+                     << "Macro Expansion,"
+                     << "\"" << hashMacro(MD.getMacroInfo(), SM, LO) << "\","
+                     << SpellingLoc.printToString(SM) << "\n";
     }
 
     // ATTENTION: If we are in a macro-argument expansion, we have to
@@ -160,7 +165,7 @@ void MacroForest::MacroExpands(const Token &MacroNameTok,
     // Iterate the macro arguments
     for (unsigned i = 0; i < argc; i++)
     {
-        string ArgName;
+        std::string ArgName;
         // If the current argument number is less than the number of
         // written macro arguments, then obtain the name of this argument
         if (i < MI->getNumParams())
@@ -188,7 +193,7 @@ void MacroForest::MacroExpands(const Token &MacroNameTok,
         inMacroArgExpansion.push_back(InvocationStack.size());
         // Get the argument's token stream pre-expansion.
         // For some reason have to use a const_cast for this to work.
-        auto &Tokens = const_cast<MacroArgs *>(Args)
+        auto &Tokens = const_cast<clang::MacroArgs *>(Args)
                            ->getPreExpArgument(i, CI.getPreprocessor());
         inMacroArgExpansion.pop_back();
 
@@ -202,7 +207,7 @@ void MacroForest::MacroExpands(const Token &MacroNameTok,
             {
                 Argument.RawText += " ";
             }
-            Argument.RawText += Lexer::getSpelling(*Tok, SM, LO);
+            Argument.RawText += clang::Lexer::getSpelling(*Tok, SM, LO);
             Tok++;
         }
 
@@ -214,12 +219,12 @@ void MacroForest::MacroExpands(const Token &MacroNameTok,
 
         // Iterate the argument's pre-expansion tokens
 
-        SourceRange CurrentRange;
+        clang::SourceRange CurrentRange;
         for (const auto &Token : Tokens)
         {
             // Get the spelling range of this token
-            SourceRange TokenRange = getSpellingRange(Token.getLocation(),
-                                                      Token.getEndLoc());
+            clang::SourceRange TokenRange = getSpellingRange(Token.getLocation(),
+                                                             Token.getEndLoc());
             // Merge Source Ranges, Perhaps
 
             // If the current source range is valid, then try to merge
@@ -240,8 +245,8 @@ void MacroForest::MacroExpands(const Token &MacroNameTok,
                 if (CurrentRange.getEnd() == TokenRange.getBegin())
                 {
                     // Extend CurrentRange Range
-                    CurrentRange = SourceRange(CurrentRange.getBegin(),
-                                               TokenRange.getEnd());
+                    CurrentRange = clang::SourceRange(CurrentRange.getBegin(),
+                                                      TokenRange.getEnd());
                     continue;
                 }
                 // If the current range does not overlap with the range

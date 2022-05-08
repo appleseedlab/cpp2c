@@ -2,15 +2,13 @@
 
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 
-using namespace clang;
-
 class ForestCollector : public clang::ast_matchers::MatchFinder::MatchCallback
 {
-    ASTContext &Context;
-    std::set<const Stmt *> &Forest;
+    clang::ASTContext &Context;
+    std::set<const clang::Stmt *> &Forest;
 
 public:
-    ForestCollector(ASTContext &Context, std::set<const Stmt *> &Forest);
+    ForestCollector(clang::ASTContext &Context, std::set<const clang::Stmt *> &Forest);
 
     virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) final;
 };

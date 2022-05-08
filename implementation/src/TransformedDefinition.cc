@@ -1,7 +1,9 @@
 #include "ExpansionUtils.hh"
 #include "TransformedDefinition.hh"
 
-using namespace clang;
+using clang::ASTContext;
+using clang::QualType;
+using std::string;
 
 TransformedDefinition::TransformedDefinition(
     ASTContext &Ctx,
@@ -32,7 +34,7 @@ TransformedDefinition::TransformedDefinition(
     this->InitializerOrDefinition = InitializerOrDefinition;
 }
 
-string TransformedDefinition::getExpansionSignatureOrDeclaration(
+std::string TransformedDefinition::getExpansionSignatureOrDeclaration(
     ASTContext &Ctx,
     bool CanBeAnonymous)
 {

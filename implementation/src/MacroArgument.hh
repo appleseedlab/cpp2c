@@ -1,13 +1,12 @@
 #pragma once
 
-#include <set>
-
-#include "clang/AST/Stmt.h"
-
 #include "SourceRangeCollection.hh"
 
-using namespace std;
-using namespace clang;
+#include "clang/AST/Expr.h"
+#include "clang/Basic/SourceLocation.h"
+
+#include <set>
+#include <string>
 
 // A macro argument
 class MacroArgument
@@ -18,7 +17,7 @@ class MacroArgument
     friend class TransformedDefinition;
 
     // The name of the argument
-    string Name;
+    std::string Name;
 
     // The spelling ranges of the argument's tokens where the calling
     // macro was invoked. For instance, for the invocation
@@ -29,15 +28,15 @@ class MacroArgument
     // Set of AST node(s) that this argument parses to once expanded.
     // There could be multiple AST nods if the argument is appears
     // multiple times in the body, or none if the argument is unused.
-    set<const Stmt *> Stmts;
+    std::set<const clang::Stmt *> Stmts;
 
     // Where the argument is spelled in the source code according to Clang.
-    SourceLocation SpellingLoc;
+    clang::SourceLocation SpellingLoc;
 
     // The raw text behind this macro argument
-    string RawText;
+    std::string RawText;
 
 public:
     MacroArgument(const std::string &Name);
-    set<const Stmt *> getStmts();
+    std::set<const clang::Stmt *> getStmts();
 };

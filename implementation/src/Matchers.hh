@@ -2,17 +2,10 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <set>
-
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/Lex/PPCallbacks.h"
-#include "clang/Lex/Lexer.h"
-#include "clang/ASTMatchers/ASTMatchers.h"
-
+#include "SourceRangeCollection.hh"
 #include "MacroExpansionNode.hh"
+
+#include "clang/AST/ASTTypeTraits.h"
 
 namespace clang
 {

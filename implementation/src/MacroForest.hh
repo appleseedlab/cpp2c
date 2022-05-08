@@ -1,18 +1,13 @@
 #pragma once
 
-#include "clang/AST/ASTContext.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Lex/Lexer.h"
-#include "clang/Lex/MacroArgs.h"
-#include "clang/Lex/PPCallbacks.h"
-
 #include "MacroArgument.hh"
 #include "MacroExpansionNode.hh"
 #include "SourceRangeCollection.hh"
 
-using namespace std;
-using namespace clang;
-using namespace llvm;
+#include "clang/AST/ASTContext.h"
+#include "clang/Frontend/CompilerInstance.h"
+#include "clang/Lex/MacroArgs.h"
+#include "clang/Lex/PPCallbacks.h"
 
 // Forest of all macro expansions in a program.
 // A "forest" of macro expansions is the tree obtained by expanding a single
@@ -23,44 +18,45 @@ using namespace llvm;
 // I (Brent Pappas), use the term "forest" to denote an arbitrary
 // macro expansion forest. I use the term "MacroForest" to denote the forest
 // of all macro expansions in a program.
-class MacroForest : public PPCallbacks
+class MacroForest : public clang::PPCallbacks
 {
 public:
     // A vector of all macro expansions that are root expansions
-    typedef vector<MacroExpansionNode *> Roots;
+    typedef std::vector<MacroExpansionNode *> Roots;
 
 private:
     // The Clang CompilerInstance
-    CompilerInstance &CI;
+    clang::CompilerInstance &CI;
 
     // The roots of all macro expansions in a program
     Roots &MacroRoots;
 
     // The Clang AST context
-    ASTContext &Ctx;
+    clang::ASTContext &Ctx;
 
     // Stack for keeping track of nested expansions
-    vector<MacroExpansionNode *> InvocationStack;
+    std::vector<MacroExpansionNode *> InvocationStack;
 
     // Stack for keeping track of which macro argument expansion we are in
     // If we are in one, the back of this stack is the current expansion
     // depth
-    vector<unsigned> inMacroArgExpansion;
+    std::vector<unsigned> inMacroArgExpansion;
 
     // Given a beginning and ending source location in a program,
     // returns the range spanned by their spelling locations in the
     // program's original source code
-    SourceRange getSpellingRange(SourceLocation S, SourceLocation E);
+    clang::SourceRange getSpellingRange(clang::SourceLocation S, clang::SourceLocation E);
 
 public:
     // Copy constructor
     // Gets the Ctx from CI
-    MacroForest(CompilerInstance &CI, Roots &roots);
+    MacroForest(clang::CompilerInstance &CI, Roots &roots);
 
     // Callback called when the preprocessor encounters a macro expansion.
     // Adds the expansion to the MacroForest
-    void MacroExpands(const Token &MacroNameTok,
-                      const MacroDefinition &MD,
-                      SourceRange Range,
-                      const MacroArgs *Args) override;
+    void MacroExpands(
+        const clang::Token &MacroNameTok,
+        const clang::MacroDefinition &MD,
+        clang::SourceRange Range,
+        const clang::MacroArgs *Args) override;
 };

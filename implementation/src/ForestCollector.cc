@@ -2,6 +2,10 @@
 
 #include "ForestCollector.hh"
 
+using clang::ASTContext;
+using clang::Stmt;
+using clang::TypeLoc;
+
 ForestCollector::ForestCollector(ASTContext &Context, std::set<const Stmt *> &Forest)
     : Context(Context), Forest(Forest){};
 

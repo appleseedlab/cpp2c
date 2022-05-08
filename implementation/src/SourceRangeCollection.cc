@@ -1,6 +1,8 @@
 #include "SourceRangeCollection.hh"
 
-bool SourceRangeCollection::contains(const SourceLocation &Loc) const
+#include "llvm/Support/raw_ostream.h"
+
+bool SourceRangeCollection::contains(const clang::SourceLocation &Loc) const
 {
     for (const auto &Range : *this)
     {
@@ -12,7 +14,7 @@ bool SourceRangeCollection::contains(const SourceLocation &Loc) const
     return false;
 }
 
-void SourceRangeCollection::dump(SourceManager &SM)
+void SourceRangeCollection::dump(clang::SourceManager &SM)
 {
     for (const auto &Range : *this)
     {

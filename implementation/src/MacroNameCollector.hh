@@ -1,72 +1,33 @@
 #pragma once
 
+#include "clang/Basic/LangOptions.h"
+#include "clang/Basic/SourceManager.h"
+#include "clang/Lex/MacroInfo.h"
+#include "clang/Lex/PPCallbacks.h"
+#include "clang/Lex/Token.h"
+
 #include <map>
 #include <set>
 #include <string>
 
-#include "ExpansionUtils.hh"
-
-using namespace clang;
-using namespace std;
-
-class MacroNameCollector : public PPCallbacks
+class MacroNameCollector : public clang::PPCallbacks
 {
 
 private:
-    set<string> &MacroNames;
-    set<string> &MultiplyDefinedMacros;
-    map<string, set<string>> &MacroDefinitionToTransformedDefinitionPrototypes;
-    SourceManager &SM;
-    const LangOptions &LO;
+    std::set<std::string> &MacroNames;
+    std::set<std::string> &MultiplyDefinedMacros;
+    std::map<std::string, std::set<std::string>> &MacroDefinitionToTransformedDefinitionPrototypes;
+    clang::SourceManager &SM;
+    const clang::LangOptions &LO;
     bool OnlyCollectNotDefinedInStdHeaders;
 
 public:
-    MacroNameCollector(set<string> &MacroNames,
-                       set<string> &MultiplyDefinedMacros,
-                       map<string, set<string>> &MacroDefinitionToTransformedDefinitionPrototypes,
-                       SourceManager &SM,
-                       const LangOptions &LO,
-                       bool OnlyCollectNotDefinedInStdHeaders)
-        : MacroNames(MacroNames),
-          MultiplyDefinedMacros(MultiplyDefinedMacros),
-          MacroDefinitionToTransformedDefinitionPrototypes(MacroDefinitionToTransformedDefinitionPrototypes),
-          SM(SM),
-          LO(LO),
-          OnlyCollectNotDefinedInStdHeaders(OnlyCollectNotDefinedInStdHeaders){};
+    MacroNameCollector(std::set<std::string> &MacroNames,
+                       std::set<std::string> &MultiplyDefinedMacros,
+                       std::map<std::string, std::set<std::string>> &MacroDefinitionToTransformedDefinitionPrototypes,
+                       clang::SourceManager &SM,
+                       const clang::LangOptions &LO,
+                       bool OnlyCollectNotDefinedInStdHeaders);
 
-    void MacroDefined(
-        const Token &MacroNameTok, const MacroDirective *MD) override
-    {
-        if (const IdentifierInfo *II = MacroNameTok.getIdentifierInfo())
-        {
-            string MacroName = II->getName().str();
-            MacroNames.insert(MacroName);
-            if (MD && MD->getPrevious())
-            {
-                MultiplyDefinedMacros.insert(MacroName);
-            }
-        }
-        // TODO: Only emit macro definition if verbose
-        llvm::errs() << "CPP2C:"
-                     << "Macro Definition,"
-                     << '"' << hashMacro(MD->getMacroInfo(), SM, LO) << '"' << ','
-                     << MD->getMacroInfo()->getDefinitionLoc().printToString(SM) << "\n";
-
-        if (OnlyCollectNotDefinedInStdHeaders)
-        {
-            if (auto MI = MD->getMacroInfo())
-            {
-                if (!isInStdHeader(MI->getDefinitionLoc(), SM))
-                {
-                    string key = hashMacro(MD->getMacroInfo(), SM, LO);
-                    MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
-                }
-            }
-        }
-        else
-        {
-            string key = hashMacro(MD->getMacroInfo(), SM, LO);
-            MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
-        }
-    }
+    void MacroDefined(const clang::Token &MacroNameTok, const clang::MacroDirective *MD) override;
 };

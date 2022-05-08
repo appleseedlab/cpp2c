@@ -1,19 +1,3 @@
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/ASTConsumer.h"
-#include "clang/AST/ParentMapContext.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/ASTMatchers/ASTMatchFinder.h"
-#include "clang/ASTMatchers/ASTMatchers.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendPluginRegistry.h"
-#include "clang/Lex/Lexer.h"
-#include "clang/Lex/MacroArgs.h"
-#include "clang/Lex/PPCallbacks.h"
-#include "clang/Rewrite/Core/Rewriter.h"
-#include "clang/Rewrite/Frontend/Rewriters.h"
-
-#include "llvm/Support/raw_ostream.h"
-
 #include "CollectDeclNamesVisitor.hh"
 #include "ExpansionUtils.hh"
 #include "ForestCollector.hh"
@@ -23,6 +7,12 @@
 #include "Matchers.hh"
 #include "NodeCollector.hh"
 #include "TransformedDefinition.hh"
+
+#include "clang/Frontend/FrontendAction.h"
+#include "clang/Frontend/FrontendPluginRegistry.h"
+#include "clang/Lex/Lexer.h"
+#include "clang/Lex/Preprocessor.h"
+#include "clang/Rewrite/Core/Rewriter.h"
 
 #include <iostream>
 #include <map>
