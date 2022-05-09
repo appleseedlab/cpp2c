@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "SourceRangeCollection.hh"
-#include "MacroExpansionNode.hh"
+#include "Utils/SourceRangeCollection.hh"
+#include "CppSig/MacroExpansionNode.hh"
 
 #include "clang/AST/ASTTypeTraits.h"
 
@@ -44,7 +44,7 @@ namespace clang
 
         AST_POLYMORPHIC_MATCHER_P(inSourceRangeCollection,
                                   AST_POLYMORPHIC_SUPPORTED_TYPES(Decl, Stmt, TypeLoc),
-                                  SourceRangeCollection *, Ranges)
+                                  Utils::SourceRangeCollection *, Ranges)
         {
             SourceLocation Loc = getSpecificLocation(Node);
 
@@ -94,7 +94,7 @@ namespace clang
 
         AST_POLYMORPHIC_MATCHER_P(inMacroForestExpansion,
                                   AST_POLYMORPHIC_SUPPORTED_TYPES(Decl, Stmt, TypeLoc),
-                                  MacroExpansionNode *, Expansion)
+                                  CppSig::MacroExpansionNode *, Expansion)
         {
             // assert(Expansion->Parent == nullptr &&
             //        "Matcher works only with the toplevel expansion");
@@ -161,7 +161,7 @@ namespace clang
 
             // Co-Walk the Macro Backtrace and MacroForest Backtrace
             SourceLocation L = Loc;
-            MacroExpansionNode *N = Expansion;
+            CppSig::MacroExpansionNode *N = Expansion;
 
             bool matched_expansion_stack = false;
             while (L.isMacroID())

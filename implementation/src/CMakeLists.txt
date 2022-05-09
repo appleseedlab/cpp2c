@@ -31,22 +31,23 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 #===============================================================================
 # 3. ADD THE TARGET
 #===============================================================================
+
 add_library(Cpp2C SHARED
   Cpp2C.cc
-  CollectDeclNamesVisitor.cc
-  ExpansionUtils.cc
-  ForestCollector.cc
-  MacroArgument.cc
-  MacroExpansionNode.cc
-  MacroForest.cc
-  MacroNameCollector.cc
-  SourceRangeCollection.cc
-  TransformedDefinition.cc
-  )
-
-include_directories(Cpp2C
-  "../include"
+  Visitors/CollectDeclNamesVisitor.cc
+  Utils/SourceRangeCollection.cc
+  Utils/ExpansionUtils.cc
+  Transformer/TransformerConsumer.cc
+  Transformer/TransformerAction.cc
+  Transformer/TransformedDefinition.cc
+  CppSig/MacroForest.cc
+  CppSig/MacroExpansionNode.cc
+  CppSig/MacroArgument.cc
+  Callbacks/MacroNameCollector.cc
+  Callbacks/ForestCollector.cc
 )
+
+target_include_directories(Cpp2C PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 # Allow undefined symbols in shared objects on Darwin (this is the default
 # behaviour on Linux)
