@@ -21,6 +21,9 @@ namespace CppSig
     {
         friend class MacroForest;
 
+        // Destructor
+        ~MacroExpansionNode();
+
         // How deeply this node is nested in terms of macro invocations
         // TODO: Confirm if this starts at 0
         unsigned NestingLevel;

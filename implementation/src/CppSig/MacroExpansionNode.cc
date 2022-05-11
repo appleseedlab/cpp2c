@@ -11,6 +11,14 @@ namespace CppSig
     using std::string;
     using std::vector;
 
+    MacroExpansionNode::~MacroExpansionNode()
+    {
+        for (auto &&it : SubtreeNodes)
+        {
+            delete it;
+        }
+    }
+
     void MacroExpansionNode::dump(SourceManager &SM)
     {
         errs() << "Node " << Name << " argc: "
