@@ -937,6 +937,15 @@ namespace Transformer
             }
         }
 
+        // Free allocated TransformedDefinition objects
+        for (auto &&it : MacroDefinitionLocationToTransformedDefinition)
+        {
+            for (auto &&TD : it.second)
+            {
+                delete TD;
+            }
+        }
+
         // Emit transformed definitions after functions in which they appear
         for (auto &&it : TransformedDefinitionsAndFunctionDeclExpandedIn)
         {
