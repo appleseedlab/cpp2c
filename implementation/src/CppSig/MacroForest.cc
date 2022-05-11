@@ -6,6 +6,14 @@
 namespace CppSig
 {
 
+    MacroForest::~MacroForest()
+    {
+        for (auto &&it : MacroRoots)
+        {
+            delete it;
+        }
+    }
+
     MacroForest::MacroForest(clang::CompilerInstance &CI, Roots &roots)
         : CI(CI), MacroRoots(roots), Ctx(CI.getASTContext()){};
 
@@ -24,6 +32,7 @@ namespace CppSig
         const clang::MacroArgs *Args)
     {
         // Create the new node for the expansion
+        // TODO: delete this later
         MacroExpansionNode *Expansion = new MacroExpansionNode();
 
         // Get the macro's name

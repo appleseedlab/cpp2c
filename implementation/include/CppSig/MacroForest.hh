@@ -29,6 +29,9 @@ namespace CppSig
         typedef std::vector<MacroExpansionNode *> Roots;
 
     private:
+        // Destructor
+        ~MacroForest();
+
         // The Clang CompilerInstance
         clang::CompilerInstance &CI;
 
