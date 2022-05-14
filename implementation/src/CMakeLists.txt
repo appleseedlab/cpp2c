@@ -35,8 +35,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 add_library(Cpp2C SHARED
   Cpp2C.cc
   Visitors/CollectDeclNamesVisitor.cc
-  Utils/SourceRangeCollection.cc
   Utils/ExpansionUtils.cc
+  Utils/Logging/TransformerMessages.cc
+  Utils/SourceRangeCollection.cc
   Transformer/TransformerConsumer.cc
   Transformer/TransformerAction.cc
   Transformer/TransformedDefinition.cc
