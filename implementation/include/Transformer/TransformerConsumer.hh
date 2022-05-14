@@ -14,12 +14,6 @@
 namespace Transformer
 {
 
-    void emitUntransformedMessage(
-        clang::ASTContext &Ctx,
-        CppSig::MacroExpansionNode *Expansion,
-        std::string Category,
-        std::string Reason);
-
     // AST consumer which calls the visitor class to perform the transformation
     class TransformerConsumer : public clang::ASTConsumer
     {
