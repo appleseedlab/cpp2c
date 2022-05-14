@@ -39,6 +39,9 @@ namespace Transformer
         this->InitializerOrDefinition = InitializerOrDefinition;
     }
 
+    string TransformedDefinition::getEmittedName() { return EmittedName; }
+    MacroExpansionNode *TransformedDefinition::getExpansion() { return Expansion; }
+
     std::string TransformedDefinition::getExpansionSignatureOrDeclaration(
         ASTContext &Ctx,
         bool CanBeAnonymous)

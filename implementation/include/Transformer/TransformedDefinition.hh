@@ -36,6 +36,9 @@ namespace Transformer
             CppSig::MacroExpansionNode *Expansion,
             bool isVar);
 
+        std::string getEmittedName();
+        CppSig::MacroExpansionNode *getExpansion();
+
         // Gets the signature for this transformed expansion if it's a function;
         // otherwise gets the declaration
         std::string getExpansionSignatureOrDeclaration(
