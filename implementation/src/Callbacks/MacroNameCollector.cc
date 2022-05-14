@@ -1,6 +1,7 @@
 
 #include "Callbacks/MacroNameCollector.hh"
 #include "Utils/ExpansionUtils.hh"
+#include "Utils/Logging/TransformerMessages.hh"
 
 namespace Callbacks
 {
@@ -8,6 +9,7 @@ namespace Callbacks
     using namespace std;
     using Utils::hashMacro;
     using Utils::isInStdHeader;
+    using Utils::Logging::emitMacroDefinitionMessage;
 
     MacroNameCollector::MacroNameCollector(
         set<string> &MacroNames,
@@ -35,10 +37,7 @@ namespace Callbacks
             }
         }
         // TODO: Only emit macro definition if verbose
-        llvm::errs() << "CPP2C:"
-                     << "Macro Definition,"
-                     << '"' << hashMacro(MD->getMacroInfo(), SM, LO) << '"' << ','
-                     << MD->getMacroInfo()->getDefinitionLoc().printToString(SM) << "\n";
+        emitMacroDefinitionMessage(llvm::errs(), MD, SM, LO);
 
         if (OnlyCollectNotDefinedInStdHeaders)
         {

@@ -1,3 +1,4 @@
+#include "Utils/Logging/TransformerMessages.hh"
 #include "Transformer/TransformedDefinition.hh"
 #include "Transformer/TransformerConsumer.hh"
 #include "Transformer/TransformerSettings.hh"
@@ -19,6 +20,7 @@ namespace Transformer
     using namespace std;
     using namespace llvm;
     using namespace Utils;
+    using namespace Utils::Logging;
     using namespace CppSig;
     using namespace Visitors;
     using namespace Callbacks;
@@ -35,25 +37,6 @@ namespace Transformer
                 ENVIRONMENT_CAPTURE = "Environment capture",
                 PARAMETER_SIDE_EFFECTS = "Parameter side-effects",
                 UNSUPPORTED_CONSTRUCT = "Unsupported construct";
-
-    void emitUntransformedMessage(
-        ASTContext &Ctx,
-        MacroExpansionNode *Expansion,
-        string Category,
-        string Reason)
-    {
-        SourceManager &SM = Ctx.getSourceManager();
-        const LangOptions &LO = Ctx.getLangOpts();
-        auto ST = Expansion->getStmtsRef().size() > 0 ? *Expansion->getStmtsRef().begin() : nullptr;
-        string s = getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(Ctx, ST);
-        errs() << "CPP2C:"
-               << "Untransformed Expansion,"
-               << "\"" << hashMacro(Expansion->getMI(), SM, LO) << "\","
-               << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
-               << s << ","
-               << Category << ","
-               << Reason << "\n";
-    }
 
     TransformerConsumer::TransformerConsumer(
         CompilerInstance *CI,
@@ -256,7 +239,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Const expr required");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Const expr required");
                     }
                     continue;
                 }
@@ -266,7 +249,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "No expansion found");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "No expansion found");
                     }
                     continue;
                 }
@@ -276,7 +259,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
                                                  "AST Nodes != 1. Equal to " + to_string(TopLevelExpansion->getStmtsRef().size()));
                     }
                     continue;
@@ -287,7 +270,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Ambiguous function signature");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Ambiguous function signature");
                     }
                     continue;
                 }
@@ -300,7 +283,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Did not expand to an expression");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Did not expand to an expression");
                     }
                     continue;
                 }
@@ -319,7 +302,7 @@ namespace Transformer
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expansion range != Expression range");
+                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Expansion range != Expression range");
                         }
                         continue;
                     }
@@ -332,7 +315,7 @@ namespace Transformer
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE, "Expression end not at expansion end");
+                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Expression end not at expansion end");
                         }
                         continue;
                     }
@@ -347,7 +330,7 @@ namespace Transformer
                         {
                             if (Cpp2CSettings.Verbose)
                             {
-                                emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                                emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
                                                          "No statement for argument: " + Arg.getName());
                             }
                             hasUnhygienicArg = true;
@@ -362,7 +345,7 @@ namespace Transformer
                             {
                                 if (Cpp2CSettings.Verbose)
                                 {
-                                    emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
                                                              "Argument " + Arg.getName() + " not expanded to a consistent AST structure");
                                 }
                                 hasUnhygienicArg = true;
@@ -382,7 +365,7 @@ namespace Transformer
                             {
                                 if (Cpp2CSettings.Verbose)
                                 {
-                                    emitUntransformedMessage(Ctx, TopLevelExpansion, HYGIENE,
+                                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
                                                              "Argument " + Arg.getName() + " matched with an AST node "
                                                                                            "with an expression outside the spelling location "
                                                                                            "of the arg's token ranges");
@@ -454,7 +437,7 @@ namespace Transformer
                         {
                             if (Cpp2CSettings.Verbose)
                             {
-                                emitUntransformedMessage(Ctx, TopLevelExpansion, ENVIRONMENT_CAPTURE, "Captures environment");
+                                emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, ENVIRONMENT_CAPTURE, "Captures environment");
                             }
                             hasEnvironmentCapture = true;
                         }
@@ -532,7 +515,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Writes to R-value of symbol from arguments");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Writes to R-value of symbol from arguments");
                     }
                     continue;
                 }
@@ -574,7 +557,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Contains an expression that returns L-value of symbol from arguments");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Contains an expression that returns L-value of symbol from arguments");
                     }
                     continue;
                 }
@@ -585,7 +568,7 @@ namespace Transformer
                     auto Parents = Ctx.getParents(*E);
                     if (Parents.size() > 1)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on C++ code?");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on C++ code?");
                         continue;
                     }
 
@@ -611,7 +594,7 @@ namespace Transformer
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on LHS of assignment");
+                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on LHS of assignment");
                         }
                         continue;
                     }
@@ -636,7 +619,7 @@ namespace Transformer
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of -- or ++");
+                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of -- or ++");
                         }
                         continue;
                     }
@@ -662,7 +645,7 @@ namespace Transformer
                     {
                         if (Cpp2CSettings.Verbose)
                         {
-                            emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of &");
+                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of &");
                         }
                         continue;
                     }
@@ -681,7 +664,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes array types");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes array types");
                     }
                     continue;
                 }
@@ -698,7 +681,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes function or function pointer types");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes function or function pointer types");
                     }
                     continue;
                 }
@@ -712,7 +695,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion is a string literal");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion is a string literal");
                     }
                     continue;
                 }
@@ -724,7 +707,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not inside a function definition");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not inside a function definition");
                     }
                     continue;
                 }
@@ -739,7 +722,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition not in a rewritable location");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition not in a rewritable location");
                     }
                     continue;
                 }
@@ -748,7 +731,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition location not in main file");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition location not in main file");
                     }
                     continue;
                 }
@@ -759,7 +742,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not in a rewritable location");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not in a rewritable location");
                     }
                     continue;
                 }
@@ -770,7 +753,7 @@ namespace Transformer
                 {
                     if (Cpp2CSettings.Verbose)
                     {
-                        emitUntransformedMessage(Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed expansion not in main file");
+                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed expansion not in main file");
                     }
                     continue;
                 }
@@ -875,18 +858,8 @@ namespace Transformer
                 TransformedPrototypes.insert(TransformedSignature + ";");
                 TransformedDefinitionsAndFunctionDeclExpandedIn.emplace(FullTransformationDefinition, FD);
                 // TODO: Only emit transformed definition if verbose
-                {
-                    TD->EmittedName = "";
-                    string TransformedSignatureNoName =
-                        TD->getExpansionSignatureOrDeclaration(Ctx, true);
-                    errs() << "CPP2C:"
-                           << "Transformed Definition,"
-                           << "\"" << hashMacro(TopLevelExpansion->getMI(), SM, LO) << "\","
-                           << "\"" << TransformedSignatureNoName << "\""
-                           << ","
-                           << EmittedName << "\n";
-                    TD->EmittedName = EmittedName;
-                }
+                emitTransformedDefinitionMessage(errs(), TD, Ctx, SM, LO);
+
                 // Record the number of unique definitions emitted for this
                 // macro definition
                 {
@@ -927,14 +900,7 @@ namespace Transformer
             assert(!rewriteFailed);
 
             // TODO: Only emit transformed expansion if verbose
-            {
-                auto s = getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(Ctx, ST);
-                errs() << "CPP2C:"
-                       << "Transformed Expansion,"
-                       << "\"" << hashMacro(TopLevelExpansion->getMI(), SM, LO) << "\","
-                       << TopLevelExpansion->getSpellingRange().getBegin().printToString(SM) << ","
-                       << s << "\n";
-            }
+            emitTransformedExpansionMessage(errs(), TopLevelExpansion, Ctx, SM, LO);
         }
 
         // Free allocated TransformedDefinition objects

@@ -1,5 +1,6 @@
 #include "CppSig/MacroForest.hh"
 #include "Utils/ExpansionUtils.hh"
+#include "Utils/Logging/TransformerMessages.hh"
 
 #include "clang/Lex/Lexer.h"
 
@@ -73,13 +74,7 @@ namespace CppSig
         }
 
         // TODO: Only emit macro expansions if verbose
-        {
-            auto SpellingLoc = SpellingRange.getBegin();
-            llvm::errs() << "CPP2C:"
-                         << "Macro Expansion,"
-                         << "\"" << Utils::hashMacro(MD.getMacroInfo(), SM, LO) << "\","
-                         << SpellingLoc.printToString(SM) << "\n";
-        }
+        Utils::Logging::emitMacroExpansionMessage(llvm::errs(), SpellingRange, MD, SM, LO);
 
         // ATTENTION: If we are in a macro-argument expansion, we have to
         // store our expansion stack beforehand as we would pop too much here.
