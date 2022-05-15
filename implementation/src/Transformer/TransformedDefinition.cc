@@ -27,7 +27,7 @@ namespace Transformer
         // into nullary functions, since global vars cannot do
         // any of those
         {
-            auto ST = dyn_cast_or_null<Stmt>(*this->Expansion->getStmtsRef().begin());
+            auto ST = *this->Expansion->getStmtsRef().begin();
             assert(ST != nullptr);
             auto E = dyn_cast_or_null<Expr>(*this->Expansion->getStmtsRef().begin());
             assert(E != nullptr);
