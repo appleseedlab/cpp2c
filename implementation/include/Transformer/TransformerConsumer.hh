@@ -19,7 +19,6 @@ namespace Transformer
     {
     private:
         clang::CompilerInstance *CI;
-        clang::Preprocessor &PP;
         CppSig::MacroForest::Roots ExpansionRoots;
         std::set<std::string> MacroNames;
         std::set<std::string> MultiplyDefinedMacros;
@@ -28,10 +27,10 @@ namespace Transformer
         // To give it access to members
         friend class TransformerAction;
 
-        TransformerSettings Cpp2CSettings;
+        TransformerSettings TSettings;
 
     public:
-        explicit TransformerConsumer(clang::CompilerInstance *CI, TransformerSettings Cpp2CSettings);
+        explicit TransformerConsumer(clang::CompilerInstance *CI, TransformerSettings TSettings);
 
         virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
     };
