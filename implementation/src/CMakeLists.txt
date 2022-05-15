@@ -42,6 +42,8 @@ add_library(Cpp2C SHARED
   Transformer/TransformerAction.cc
   Transformer/TransformedDefinition.cc
   CppSig/MacroForest.cc
+  # This should probably have a better name or be moved...
+  CppSig/CppSigUtils.cc
   CppSig/MacroExpansionNode.cc
   CppSig/MacroArgument.cc
   Callbacks/MacroNameCollector.cc
