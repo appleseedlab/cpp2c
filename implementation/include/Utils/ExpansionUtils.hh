@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CppSig/MacroExpansionNode.hh"
+#include "CppSig/MacroForest.hh"
 #include "SourceRangeCollection.hh"
 
 #include "clang/AST/ASTContext.h"
@@ -14,6 +15,14 @@
 namespace Utils
 {
     using CppSig::MacroExpansionNode;
+
+    // Removes all Expansions that are not expanded in the main file,
+    // and possibly those of macros that are defined in standard
+    // headers as well
+    void removeExpansionsNotInMainFile(
+        CppSig::MacroForest::Roots &Expansions,
+        clang::SourceManager &SM,
+        bool OnlyCollectNotDefinedInStdHeaders);
 
     // Hashes a macro based on its name, type, and definition text
     std::string hashMacro(
