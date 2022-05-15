@@ -33,8 +33,7 @@ namespace Transformer
     public:
         TransformedDefinition(
             clang::ASTContext &Ctx,
-            CppSig::MacroExpansionNode *Expansion,
-            bool isVar);
+            CppSig::MacroExpansionNode *Expansion);
 
         std::string getEmittedName();
         CppSig::MacroExpansionNode *getExpansion();

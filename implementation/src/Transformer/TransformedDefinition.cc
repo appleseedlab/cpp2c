@@ -4,21 +4,39 @@
 namespace Transformer
 {
     using clang::ASTContext;
+    using clang::dyn_cast_or_null;
+    using clang::Expr;
     using clang::QualType;
+    using clang::Stmt;
     using CppSig::MacroExpansionNode;
     using std::string;
+    using Utils::containsFunctionCalls;
+    using Utils::containsGlobalVars;
     using Utils::expansionHasUnambiguousSignature;
     using Utils::getDesugaredCanonicalType;
 
     TransformedDefinition::TransformedDefinition(
         ASTContext &Ctx,
-        MacroExpansionNode *Expansion,
-        bool IsVar)
+        MacroExpansionNode *Expansion)
     {
         this->Expansion = Expansion;
         this->OriginalMacroName = Expansion->getName();
-        this->IsVar = IsVar;
         assert(Expansion->getStmts().size() == 1);
+        // Transform object-like macros which reference global vars,
+        // call functions, or expand to void-type expressions
+        // into nullary functions, since global vars cannot do
+        // any of those
+        {
+            auto ST = dyn_cast_or_null<Stmt>(*this->Expansion->getStmtsRef().begin());
+            assert(ST != nullptr);
+            auto E = dyn_cast_or_null<Expr>(*this->Expansion->getStmtsRef().begin());
+            assert(E != nullptr);
+            this->IsVar =
+                this->Expansion->getMI()->isObjectLike() &&
+                !containsGlobalVars(E) &&
+                !containsFunctionCalls(E) &&
+                getDesugaredCanonicalType(Ctx, ST).getAsString() != "void";
+        }
         this->VarOrReturnType = getDesugaredCanonicalType(Ctx, *(Expansion->getStmts().begin()));
         for (auto &&Arg : Expansion->getArguments())
         {
@@ -32,7 +50,7 @@ namespace Transformer
         string TransformedBody = Expansion->getDefinitionText();
 
         string InitializerOrDefinition =
-            (IsVar
+            (this->IsVar
                  ? " = " + TransformedBody + ";"
                  : " { return " + TransformedBody + "; }");
 
