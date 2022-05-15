@@ -11,42 +11,9 @@
 namespace Utils
 {
     using CppSig::MacroExpansionNode;
-    using CppSig::MacroForest;
     using namespace clang;
     using namespace llvm;
     using namespace std;
-
-    void removeExpansionsNotInMainFile(
-        MacroForest::Roots &Expansions,
-        SourceManager &SM,
-        bool OnlyCollectNotDefinedInStdHeaders)
-    {
-        Expansions.erase(
-            remove_if(Expansions.begin(),
-                      Expansions.end(),
-                      [&SM, &OnlyCollectNotDefinedInStdHeaders](MacroExpansionNode *N)
-                      {
-                          // Only look at expansions source files
-                          SourceLocation Loc = N->getSpellingRange().getBegin();
-                          if (!SM.isInMainFile(Loc) || SM.isWrittenInScratchSpace(Loc))
-                          {
-                              return false;
-                          }
-
-                          // Only look at expansions of macros defined in
-                          // source files (non-builtin macros and non-
-                          // standard header macros)
-                          if (OnlyCollectNotDefinedInStdHeaders)
-                          {
-                              return (!isInStdHeader(N->getMI()->getDefinitionLoc(), SM));
-                          }
-                          else
-                          {
-                              return true;
-                          }
-                      }),
-            Expansions.end());
-    }
 
     inline SourceLocation getStmtOrExprLocation(const Stmt &Node)
     {
