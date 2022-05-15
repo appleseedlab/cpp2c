@@ -1,7 +1,5 @@
 #include "Transformer/TransformerAction.hh"
 #include "Transformer/TransformerConsumer.hh"
-#include "Callbacks/MacroNameCollector.hh"
-#include "CppSig/MacroForest.hh"
 
 namespace Transformer
 {
@@ -13,24 +11,10 @@ namespace Transformer
         CompilerInstance &CI,
         StringRef file)
     {
-        auto &PP = CI.getPreprocessor();
-        auto Cpp2C = make_unique<TransformerConsumer>(&CI, Cpp2CSettings);
-
-        // Note: There is a little bit of coupling here with getting
-        // the source manager and lang options from the CO
-        Callbacks::MacroNameCollector *MNC = new Callbacks::MacroNameCollector(
-            Cpp2C->MacroNames,
-            Cpp2C->MultiplyDefinedMacros,
-            Cpp2C->MacroDefinitionToTransformedDefinitionPrototypes,
-            CI.getSourceManager(),
-            CI.getLangOpts(),
-            Cpp2CSettings.OnlyCollectNotDefinedInStdHeaders);
-        CppSig::MacroForest *MF = new CppSig::MacroForest(CI, Cpp2C->ExpansionRoots);
-        PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
-        PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
+        unique_ptr<TransformerConsumer> Transformer = make_unique<TransformerConsumer>(&CI, TSettings);
 
         // Return the consumer to initiate the transformation
-        return Cpp2C;
+        return Transformer;
     }
 
     bool TransformerAction::ParseArgs(const CompilerInstance &CI,
@@ -41,19 +25,19 @@ namespace Transformer
             std::string arg = *it;
             if (arg == "-ow" || arg == "--overwrite-files")
             {
-                Cpp2CSettings.OverwriteFiles = true;
+                TSettings.OverwriteFiles = true;
             }
             else if (arg == "-v" || arg == "--verbose")
             {
-                Cpp2CSettings.Verbose = true;
+                TSettings.Verbose = true;
             }
             else if (arg == "-u" || arg == "--unify-macros-with-different-names")
             {
-                Cpp2CSettings.UnifyMacrosWithSameSignature = true;
+                TSettings.UnifyMacrosWithSameSignature = true;
             }
             else if (arg == "-shm" || arg == "--standard-header-macros")
             {
-                Cpp2CSettings.OnlyCollectNotDefinedInStdHeaders = false;
+                TSettings.OnlyCollectNotDefinedInStdHeaders = false;
             }
             else
             {

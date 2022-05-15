@@ -29,7 +29,7 @@ namespace Transformer
         clang::PluginASTAction::ActionType getActionType() override;
 
     private:
-        TransformerSettings Cpp2CSettings;
+        TransformerSettings TSettings;
     };
 
 } // namespace Transformer
