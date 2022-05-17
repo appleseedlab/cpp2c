@@ -1,3 +1,4 @@
+#include "Transformer/Properties.hh"
 #include "Callbacks/MacroNameCollector.hh"
 #include "Utils/Logging/TransformerMessages.hh"
 #include "Transformer/TransformedDefinition.hh"
@@ -24,10 +25,10 @@ namespace Transformer
     using namespace Visitors;
     using namespace Callbacks;
 
-    std::string HYGIENE = "Hygiene",
-                ENVIRONMENT_CAPTURE = "Environment capture",
-                PARAMETER_SIDE_EFFECTS = "Parameter side-effects",
-                UNSUPPORTED_CONSTRUCT = "Unsupported construct";
+    string SYNTAX = "Syntactic well-formedness",
+           ENVIRONMENT_CAPTURE = "Environment capture",
+           PARAMETER_SIDE_EFFECTS = "Parameter side-effects",
+           UNSUPPORTED_CONSTRUCT = "Unsupported construct";
 
     TransformerConsumer::TransformerConsumer(
         CompilerInstance *CI,
@@ -113,7 +114,7 @@ namespace Transformer
             TransformedDefinitionsAndFunctionDeclExpandedIn;
 
         // Step 4: Transform macros that satisfy these four requirements:
-        // 1) Hygiene
+        // 1) Syntactic well-formedness
         // 2) No environment capture
         // 3) No side-effects in parameters
         // 4) Not unsupported (e.g., not L-value independent, Clang doesn't support rewriting, etc.)
@@ -124,161 +125,15 @@ namespace Transformer
 
         for (auto TopLevelExpansion : ExpansionRoots)
         {
-            //// Hygiene
+            //// Syntactic well-formedness
+            auto errMsg = isWellFormed(TopLevelExpansion, Ctx, PP);
+            if (errMsg != "")
             {
-                // Don't transform expansions appearing where a const expr
-                // is required
-                if (mustBeConstExpr(Ctx, *TopLevelExpansion->getStmtsRef().begin()))
+                if (TSettings.Verbose)
                 {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Const expr required");
-                    }
-                    continue;
+                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, SYNTAX, errMsg);
                 }
-
-                // Check that the expansion maps to a single expansion
-                if (TopLevelExpansion->getSubtreeNodesRef().size() < 1)
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "No expansion found");
-                    }
-                    continue;
-                }
-
-                // Check that expansion maps to one statement
-                if (TopLevelExpansion->getStmtsRef().size() != 1)
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
-                                                 "AST Nodes != 1. Equal to " + to_string(TopLevelExpansion->getStmtsRef().size()));
-                    }
-                    continue;
-                }
-
-                // Check that expansion has an unambiguous signature
-                if (!expansionHasUnambiguousSignature(Ctx, TopLevelExpansion))
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Ambiguous function signature");
-                    }
-                    continue;
-                }
-
-                auto ST = *TopLevelExpansion->getStmtsRef().begin();
-                auto E = dyn_cast_or_null<Expr>(ST);
-
-                // Check that the expansion expands to an expression
-                if (!E)
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Did not expand to an expression");
-                    }
-                    continue;
-                }
-
-                // Check that expression is completely covered by the expansion
-                {
-                    auto ExpansionBegin = TopLevelExpansion->getSpellingRange().getBegin();
-                    auto ExpansionEnd = TopLevelExpansion->getSpellingRange().getEnd();
-
-                    auto ExpressionRange = SM.getExpansionRange(E->getSourceRange());
-                    auto ExpressionBegin = ExpressionRange.getBegin();
-                    auto ExpressionEnd = ExpressionRange.getEnd();
-
-                    if (!(ExpansionBegin == ExpressionBegin &&
-                          ExpansionEnd == ExpressionEnd))
-                    {
-                        if (TSettings.Verbose)
-                        {
-                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Expansion range != Expression range");
-                        }
-                        continue;
-                    }
-
-                    // It would be better to check that the number of tokens in the
-                    // expression is >= to the number of tokens in the macro
-                    // definition, but we don't have an easy way of accessing the number
-                    // of tokens in an arbitrary expression
-                    if (!PP.isAtEndOfMacroExpansion(E->getEndLoc()))
-                    {
-                        if (TSettings.Verbose)
-                        {
-                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE, "Expression end not at expansion end");
-                        }
-                        continue;
-                    }
-                }
-
-                // Check that the arguments are hygienic
-                {
-                    bool hasUnhygienicArg = false;
-                    for (auto &&Arg : TopLevelExpansion->getArgumentsRef())
-                    {
-                        if (Arg.getStmtsRef().size() == 0)
-                        {
-                            if (TSettings.Verbose)
-                            {
-                                emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
-                                                         "No statement for argument: " + Arg.getName());
-                            }
-                            hasUnhygienicArg = true;
-                            break;
-                        }
-
-                        auto ArgFirstExpansion = *Arg.getStmtsRef().begin();
-                        for (auto ArgExpansion : Arg.getStmtsRef())
-                        {
-                            if (!compareTrees(Ctx, ArgFirstExpansion, ArgExpansion) &&
-                                false)
-                            {
-                                if (TSettings.Verbose)
-                                {
-                                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
-                                                             "Argument " + Arg.getName() + " not expanded to a consistent AST structure");
-                                }
-                                hasUnhygienicArg = true;
-                                break;
-                            }
-
-                            // Check that spelling location of the AST node and
-                            // all its subexpressions fall within the range of
-                            // the argument's token ranges
-                            // FIXME: This may render invocations
-                            // which contain invocations as arguments as
-                            // untransformable, but that doesn't make the
-                            // transformation unsound, and we can still get
-                            // those expansions on subsequent runs
-                            if (!StmtAndSubStmtsSpelledInRanges(Ctx, ArgExpansion,
-                                                                Arg.getTokenRangesRef()))
-                            {
-                                if (TSettings.Verbose)
-                                {
-                                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, HYGIENE,
-                                                             "Argument " + Arg.getName() + " matched with an AST node "
-                                                                                           "with an expression outside the spelling location "
-                                                                                           "of the arg's token ranges");
-                                }
-                                hasUnhygienicArg = true;
-                                break;
-                            }
-                        }
-
-                        if (hasUnhygienicArg)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (hasUnhygienicArg)
-                    {
-                        continue;
-                    }
-                }
+                continue;
             }
 
             auto ST = *TopLevelExpansion->getStmtsRef().begin();

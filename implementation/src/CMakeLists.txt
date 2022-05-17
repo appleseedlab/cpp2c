@@ -41,6 +41,7 @@ add_library(Cpp2C SHARED
   Transformer/TransformerConsumer.cc
   Transformer/TransformerAction.cc
   Transformer/TransformedDefinition.cc
+  Transformer/Properties.cc
   CppSig/MacroForest.cc
   # This should probably have a better name or be moved...
   CppSig/CppSigUtils.cc
