@@ -125,7 +125,7 @@ namespace Transformer
 
         for (auto TopLevelExpansion : ExpansionRoots)
         {
-            //// Syntactic well-formedness
+            // Syntactic well-formedness
             string errMsg = isWellFormed(TopLevelExpansion, Ctx, PP);
             if (errMsg != "")
             {
@@ -136,7 +136,7 @@ namespace Transformer
                 continue;
             }
 
-            //// Environment capture
+            // Environment capture
             errMsg = isEnvironmentCapturing(TopLevelExpansion, Ctx);
             if (errMsg != "")
             {
@@ -147,7 +147,7 @@ namespace Transformer
                 continue;
             }
 
-            //// Parameter side-effects and L-Value Independence
+            // Parameter side-effects and L-Value Independence
             errMsg = isParamSEFreeAndLValueIndependent(TopLevelExpansion, Ctx);
             if (errMsg != "")
             {
@@ -158,121 +158,29 @@ namespace Transformer
                 continue;
             }
 
-            auto ST = *TopLevelExpansion->getStmtsRef().begin();
-            auto E = dyn_cast_or_null<Expr>(ST);
-            assert(E != nullptr);
-
             // Create the transformed definition
-            // TODO: Free this even if we break from this loop early
-            TransformedDefinition *TD =
-                new TransformedDefinition(Ctx, TopLevelExpansion);
+            TransformedDefinition *TD = new TransformedDefinition(Ctx, TopLevelExpansion);
+
+            // Unsupported constructs
+            errMsg = isUnsupportedConstruct(TD, Ctx, RW);
+            if (errMsg != "")
+            {
+                if (TSettings.Verbose)
+                {
+                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, errMsg);
+                }
+                // IMPORTANT.
+                // TODO: Change unsupported construct to accept a
+                // MacroExpansionNode instead of a TransformedDefinition
+                // so that we don't need this delete
+                delete TD;
+                continue;
+            }
 
             // Get the location to emit the transformed definition
+            // NOTE: There is some coupling here with isUnsupportedConstruct.
+            // That function guarantees that FD is not null.
             auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->getStmtsRef().begin());
-
-            //// Unsupported constructs
-            {
-                // Don't transform definitions with signatures with array types
-                // TODO: We should be able to transform these so long as we
-                // properly transform array types to pointers
-                if (TD->hasArrayTypes())
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes array types");
-                    }
-                    continue;
-                }
-
-                // Check that the transformed definition's signature
-                // does not include function types or function pointer
-                // types.
-                // Returning a function is unhygienic, but function parameters
-                // are fine.
-                // TODO: We could allow function parameters if we could
-                // emit the names of parameters correctly, and we could possibly
-                // allow function return types if we cast them to pointers
-                if (TD->hasFunctionTypes())
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed signature includes function or function pointer types");
-                    }
-                    continue;
-                }
-
-                // Check that this expansion is not string literal, because it
-                // may have been used in a place where a string literal is
-                // required, e.g., as the format string to printf
-                // TODO:    I think we should be able to transform these if we could fix
-                //          transforming array types
-                if (isa_and_nonnull<clang::StringLiteral>(ST))
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion is a string literal");
-                    }
-                    continue;
-                }
-
-                // Check that expansion is inside a function, because if it
-                // isn't none of the constructs we transform to
-                // (var and function call) would be valid at the global scope
-                if (FD == nullptr)
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not inside a function definition");
-                    }
-                    continue;
-                }
-
-                // TODO: Record this rewrite location somewhere so we can
-                // just reference it later when we go to emit the
-                // transformed definition
-                // TODO: There has to be a smarter way of generating the transformed definition's rewrite location
-                auto TransformedDefinitionLoc = SM.getExpansionLoc(FD->getBeginLoc());
-
-                if (!RW.isRewritable(TransformedDefinitionLoc))
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition not in a rewritable location");
-                    }
-                    continue;
-                }
-
-                if (!SM.isInMainFile(TransformedDefinitionLoc))
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed definition location not in main file");
-                    }
-                    continue;
-                }
-
-                if (
-                    !RW.isRewritable(TopLevelExpansion->getSpellingRange().getBegin()) ||
-                    !RW.isRewritable(TopLevelExpansion->getSpellingRange().getEnd()))
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion not in a rewritable location");
-                    }
-                    continue;
-                }
-
-                if (
-                    !SM.isInMainFile(TopLevelExpansion->getSpellingRange().getBegin()) ||
-                    !SM.isInMainFile(TopLevelExpansion->getSpellingRange().getEnd()))
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Transformed expansion not in main file");
-                    }
-                    continue;
-                }
-            }
 
             //// Transform the expansion
 

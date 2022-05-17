@@ -1,9 +1,11 @@
 #pragma once
 
 #include "CppSig/MacroExpansionNode.hh"
+#include "Transformer/TransformedDefinition.hh"
 
 #include "clang/AST/ASTContext.h"
 #include "clang/Lex/Preprocessor.h"
+#include "clang/Rewrite/Core/Rewriter.h"
 
 namespace Transformer
 {
@@ -44,5 +46,16 @@ namespace Transformer
     std::string isParamSEFreeAndLValueIndependent(
         CppSig::MacroExpansionNode *Expansion,
         clang::ASTContext &Ctx);
+
+    // Checks if a given transformed definition contains an untransformable
+    // language construct.
+    // If so, returns an error message.
+    // If not, returns the empty string.
+    // TODO: Change this to take a MacroExpansionNode as an argument,
+    // not a TransformedDefinition
+    std::string isUnsupportedConstruct(
+        Transformer::TransformedDefinition *TD,
+        clang::ASTContext &Ctx,
+        clang::Rewriter &RW);
 
 } // namespace Transformer

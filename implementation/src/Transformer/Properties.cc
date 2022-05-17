@@ -12,8 +12,10 @@ namespace Transformer
     using clang::DeclRefExpr;
     using clang::dyn_cast_or_null;
     using clang::Expr;
+    using clang::Rewriter;
     using clang::Stmt;
     using clang::UnaryOperator;
+    using llvm::isa_and_nonnull;
     using namespace Utils;
 
     std::string isWellFormed(
@@ -311,6 +313,89 @@ namespace Transformer
                 }
                 Parents = Ctx.getParents(P);
             }
+        }
+
+        return "";
+    }
+
+    std::string isUnsupportedConstruct(
+        Transformer::TransformedDefinition *TD,
+        clang::ASTContext &Ctx,
+        Rewriter &RW)
+    {
+        // Don't transform definitions with signatures with array types
+        // TODO: We should be able to transform these so long as we
+        // properly transform array types to pointers
+        if (TD->hasArrayTypes())
+        {
+            return "Transformed signature includes array types";
+        }
+
+        // Check that the transformed definition's signature
+        // does not include function types or function pointer
+        // types.
+        // Returning a function is unhygienic, but function parameters
+        // are fine.
+        // TODO: We could allow function parameters if we could
+        // emit the names of parameters correctly, and we could possibly
+        // allow function return types if we cast them to pointers
+        if (TD->hasFunctionTypes())
+        {
+            return "Transformed signature includes function or function pointer types";
+        }
+
+        auto ST = *TD->getExpansion()->getStmtsRef().begin();
+        auto E = dyn_cast_or_null<Expr>(ST);
+        assert(E != nullptr);
+
+        // Check that this expansion is not string literal, because it
+        // may have been used in a place where a string literal is
+        // required, e.g., as the format string to printf
+        // TODO:    I think we should be able to transform these if we could fix
+        //          transforming array types
+        if (isa_and_nonnull<clang::StringLiteral>(ST))
+        {
+            return "Expansion is a string literal";
+        }
+
+        auto FD = getFunctionDeclStmtExpandedIn(Ctx, ST);
+
+        // Check that expansion is inside a function, because if it
+        // isn't none of the constructs we transform to
+        // (var and function call) would be valid at the global scope
+        if (FD == nullptr)
+        {
+            return "Expansion not inside a function definition";
+        }
+
+        clang::SourceManager &SM = Ctx.getSourceManager();
+
+        // TODO: Record this rewrite location somewhere so we can
+        // just reference it later when we go to emit the
+        // transformed definition
+        // TODO: There has to be a smarter way of generating the transformed definition's rewrite location
+        auto TransformedDefinitionLoc = SM.getExpansionLoc(FD->getBeginLoc());
+
+        if (!RW.isRewritable(TransformedDefinitionLoc))
+        {
+            return "Transformed definition not in a rewritable location";
+        }
+
+        if (!SM.isInMainFile(TransformedDefinitionLoc))
+        {
+            return "Transformed definition location not in main file";
+        }
+
+        if (!RW.isRewritable(TD->getExpansion()->getSpellingRange().getBegin()) ||
+            !RW.isRewritable(TD->getExpansion()->getSpellingRange().getEnd()))
+        {
+            return "Expansion not in a rewritable location";
+        }
+
+        if (!SM.isInMainFile(TD->getExpansion()->getSpellingRange().getBegin()) ||
+            !SM.isInMainFile(TD->getExpansion()->getSpellingRange().getEnd()))
+        {
+            return "Transformed expansion not in main file";
         }
 
         return "";
