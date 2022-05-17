@@ -15,6 +15,19 @@ namespace Utils
     using namespace llvm;
     using namespace std;
 
+    bool transformsToVar(
+        MacroExpansionNode *Expansion,
+        ASTContext &Ctx)
+    {
+        auto ST = *Expansion->getStmtsRef().begin();
+        auto E = dyn_cast_or_null<Expr>(ST);
+        assert(E != nullptr);
+        return Expansion->getMI()->isObjectLike() &&
+               !containsGlobalVars(E) &&
+               !containsFunctionCalls(E) &&
+               getDesugaredCanonicalType(Ctx, ST).getAsString() != "void";
+    }
+
     inline SourceLocation getStmtOrExprLocation(const Stmt &Node)
     {
         if (const auto E = dyn_cast_or_null<Expr>(&Node))

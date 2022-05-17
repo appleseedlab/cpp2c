@@ -14,6 +14,7 @@ namespace Transformer
     using Utils::containsGlobalVars;
     using Utils::expansionHasUnambiguousSignature;
     using Utils::getDesugaredCanonicalType;
+    using Utils::transformsToVar;
 
     TransformedDefinition::TransformedDefinition(
         ASTContext &Ctx,
@@ -22,21 +23,8 @@ namespace Transformer
         this->Expansion = Expansion;
         this->OriginalMacroName = Expansion->getName();
         assert(Expansion->getStmts().size() == 1);
-        // Transform object-like macros which reference global vars,
-        // call functions, or expand to void-type expressions
-        // into nullary functions, since global vars cannot do
-        // any of those
-        {
-            auto ST = *this->Expansion->getStmtsRef().begin();
-            assert(ST != nullptr);
-            auto E = dyn_cast_or_null<Expr>(*this->Expansion->getStmtsRef().begin());
-            assert(E != nullptr);
-            this->IsVar =
-                this->Expansion->getMI()->isObjectLike() &&
-                !containsGlobalVars(E) &&
-                !containsFunctionCalls(E) &&
-                getDesugaredCanonicalType(Ctx, ST).getAsString() != "void";
-        }
+
+        this->IsVar = transformsToVar(this->Expansion, Ctx);
         this->VarOrReturnType = getDesugaredCanonicalType(Ctx, *(Expansion->getStmts().begin()));
         for (auto &&Arg : Expansion->getArguments())
         {

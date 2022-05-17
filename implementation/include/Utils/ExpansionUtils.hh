@@ -15,6 +15,17 @@ namespace Utils
 {
     using CppSig::MacroExpansionNode;
 
+    // Returns true if the given expansion transforms to a variable, false
+    // otherwise
+    //
+    // Transform object-like macros which reference global vars,
+    // call functions, or expand to void-type expressions
+    // into nullary functions, since global vars initializers cannot contain
+    // any of those constcuts
+    bool transformsToVar(
+        CppSig::MacroExpansionNode *Expansion,
+        clang::ASTContext &Ctx);
+
     // Hashes a macro based on its name, type, and definition text
     std::string hashMacro(
         const clang::MacroInfo *MI,
