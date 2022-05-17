@@ -1,11 +1,17 @@
 #include "Transformer/Properties.hh"
 #include "Utils/ExpansionUtils.hh"
 
+#include <vector>
+
 namespace Transformer
 {
+    using clang::DeclRefExpr;
     using clang::dyn_cast_or_null;
     using clang::Expr;
+    using Utils::collectLocalVarDeclRefExprs;
     using Utils::compareTrees;
+    using Utils::containsDeclRefExpr;
+    using Utils::containsLocalVars;
     using Utils::expansionHasUnambiguousSignature;
     using Utils::mustBeConstExpr;
 
@@ -115,4 +121,47 @@ namespace Transformer
 
         return "";
     }
+
+    std::string isEnvironmentCapturing(
+        CppSig::MacroExpansionNode *Expansion,
+        clang::ASTContext &Ctx)
+    {
+        auto ST = *Expansion->getStmtsRef().begin();
+        auto E = dyn_cast_or_null<Expr>(ST);
+        assert(E != nullptr);
+
+        if (containsLocalVars(Ctx, E))
+        {
+            std::vector<const DeclRefExpr *> DREs;
+            collectLocalVarDeclRefExprs(E, &DREs);
+            for (auto &&DRE : DREs)
+            {
+                bool varComesFromArg = false;
+                // Check all the macros arguments for the variable
+                for (auto &&Arg : Expansion->getArgumentsRef())
+                {
+                    for (auto &&S : Arg.getStmtsRef())
+                    {
+                        if (containsDeclRefExpr(S, DRE))
+                        {
+                            varComesFromArg = true;
+                            break;
+                        }
+                    }
+                    if (varComesFromArg)
+                    {
+                        break;
+                    }
+                }
+
+                if (!varComesFromArg)
+                {
+                    return "Captures environment";
+                }
+            }
+        }
+
+        return "";
+    }
+
 } // namespace Transformer

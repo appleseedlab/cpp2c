@@ -15,4 +15,12 @@ namespace Transformer
         clang::ASTContext &Ctx,
         clang::Preprocessor &PP);
 
+    // Checks if a given macro expansion captures any variables from its
+    // environment.
+    // If so, returns an error message.
+    // If not, returns the empty string.
+    std::string isEnvironmentCapturing(
+        CppSig::MacroExpansionNode *Expansion,
+        clang::ASTContext &Ctx);
+
 } // namespace Transformer

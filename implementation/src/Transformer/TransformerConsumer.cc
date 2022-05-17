@@ -126,12 +126,23 @@ namespace Transformer
         for (auto TopLevelExpansion : ExpansionRoots)
         {
             //// Syntactic well-formedness
-            auto errMsg = isWellFormed(TopLevelExpansion, Ctx, PP);
+            string errMsg = isWellFormed(TopLevelExpansion, Ctx, PP);
             if (errMsg != "")
             {
                 if (TSettings.Verbose)
                 {
                     emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, SYNTAX, errMsg);
+                }
+                continue;
+            }
+
+            //// Environment capture
+            errMsg = isEnvironmentCapturing(TopLevelExpansion, Ctx);
+            if (errMsg != "")
+            {
+                if (TSettings.Verbose)
+                {
+                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, ENVIRONMENT_CAPTURE, errMsg);
                 }
                 continue;
             }
@@ -144,53 +155,6 @@ namespace Transformer
             // TODO: Free this even if we break from this loop early
             TransformedDefinition *TD =
                 new TransformedDefinition(Ctx, TopLevelExpansion);
-
-            //// Environment capture
-            {
-                if (containsLocalVars(Ctx, E))
-                {
-                    vector<const DeclRefExpr *> DREs;
-                    collectLocalVarDeclRefExprs(E, &DREs);
-                    bool hasEnvironmentCapture = false;
-                    for (auto &&DRE : DREs)
-                    {
-                        bool varComesFromArg = false;
-                        // Check all the macros arguments for the variable
-                        for (auto &&Arg : TopLevelExpansion->getArgumentsRef())
-                        {
-                            for (auto &&S : Arg.getStmtsRef())
-                            {
-                                if (containsDeclRefExpr(S, DRE))
-                                {
-                                    varComesFromArg = true;
-                                    break;
-                                }
-                            }
-                            if (varComesFromArg)
-                            {
-                                break;
-                            }
-                        }
-
-                        if (!varComesFromArg)
-                        {
-                            if (TSettings.Verbose)
-                            {
-                                emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, ENVIRONMENT_CAPTURE, "Captures environment");
-                            }
-                            hasEnvironmentCapture = true;
-                        }
-                        if (hasEnvironmentCapture)
-                        {
-                            break;
-                        }
-                    }
-                    if (hasEnvironmentCapture)
-                    {
-                        continue;
-                    }
-                }
-            }
 
             //// Parameter side-effects and L-Value Independence
             {
