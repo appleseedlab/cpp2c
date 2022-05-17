@@ -147,6 +147,17 @@ namespace Transformer
                 continue;
             }
 
+            //// Parameter side-effects and L-Value Independence
+            errMsg = isParamSEFreeAndLValueIndependent(TopLevelExpansion, Ctx);
+            if (errMsg != "")
+            {
+                if (TSettings.Verbose)
+                {
+                    emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, errMsg);
+                }
+                continue;
+            }
+
             auto ST = *TopLevelExpansion->getStmtsRef().begin();
             auto E = dyn_cast_or_null<Expr>(ST);
             assert(E != nullptr);
@@ -155,205 +166,6 @@ namespace Transformer
             // TODO: Free this even if we break from this loop early
             TransformedDefinition *TD =
                 new TransformedDefinition(Ctx, TopLevelExpansion);
-
-            //// Parameter side-effects and L-Value Independence
-            {
-                // Don't transform expansions which:
-                // 1)   Change the R-value associated with the L-value of a symbol
-                //      in one of their arguments
-                // 2)   Return the L-value of a symbol in one of their arguments
-                //      in the *body* of the definition; e.g., FOO(&x) is fine, but
-                //          #define FOO(x) &x
-                //          FOO(x)
-                //      is not
-                // We don't expansions like this because they require that
-                // the L-value of the operand symbol be the same for the
-                // inlined symbol and the symbol for the local variable we
-                // create for the expression containing it it in the
-                // transformed code, and they will not be.
-                bool writesToRValueFromArg = false;
-                bool returnsLValueFromArg = false;
-                set<const Stmt *> LValuesFromArgs;
-                set<const Stmt *> StmtsThatChangeRValue;
-                set<const Stmt *> StmtsThatReturnLValue;
-                for (auto &&it : TopLevelExpansion->getArgumentsRef())
-                {
-                    collectLValuesSpelledInRange(Ctx, ST, it.getTokenRangesRef(), &LValuesFromArgs);
-                }
-
-                collectStmtsThatChangeRValue(ST, &StmtsThatChangeRValue);
-                for (auto &&StmtThatChangesRValue : StmtsThatChangeRValue)
-                {
-                    for (auto &&LVal : LValuesFromArgs)
-                    {
-                        if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(StmtThatChangesRValue))
-                        {
-
-                            if (containsStmt(UO, LVal))
-                            {
-                                writesToRValueFromArg = true;
-                                break;
-                            }
-                        }
-                        else if (auto BO = dyn_cast_or_null<BinaryOperator>(StmtThatChangesRValue))
-                        {
-                            if (containsStmt(BO->getLHS(), LVal))
-                            {
-                                writesToRValueFromArg = true;
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            // NOTE: This shouldn't happen? What do we do here?
-                            assert(false);
-                        }
-                    }
-                    if (writesToRValueFromArg)
-                    {
-                        break;
-                    }
-                }
-                if (writesToRValueFromArg)
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, "Writes to R-value of symbol from arguments");
-                    }
-                    continue;
-                }
-
-                collectStmtsThatReturnLValue(ST, &StmtsThatReturnLValue);
-                for (auto &&StmtThatReturnsLValue : StmtsThatReturnLValue)
-                {
-                    bool isOk = false;
-                    // We can allow this statement if the entire expression
-                    // came from a single argument
-                    for (auto &&it : TopLevelExpansion->getArgumentsRef())
-                    {
-                        if (StmtAndSubStmtsSpelledInRanges(Ctx, StmtThatReturnsLValue, it.getTokenRangesRef()))
-                        {
-                            isOk = true;
-                            break;
-                        }
-                    }
-                    // If this expansion is ok, don't proceed with the check
-                    if (isOk)
-                    {
-                        break;
-                    }
-
-                    for (auto &&LVal : LValuesFromArgs)
-                    {
-                        if (containsStmt(StmtThatReturnsLValue, LVal))
-                        {
-                            returnsLValueFromArg = true;
-                            break;
-                        }
-                    }
-                    if (returnsLValueFromArg)
-                    {
-                        break;
-                    }
-                }
-                if (returnsLValueFromArg)
-                {
-                    if (TSettings.Verbose)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Contains an expression that returns L-value of symbol from arguments");
-                    }
-                    continue;
-                }
-
-                // Perform function-specific checks
-                if (!TD->IsVar)
-                {
-                    auto Parents = Ctx.getParents(*E);
-                    if (Parents.size() > 1)
-                    {
-                        emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on C++ code?");
-                        continue;
-                    }
-
-                    // Check that function call is not on LHS of assignment
-                    bool isLHSOfAssignment = false;
-                    while (Parents.size() > 0)
-                    {
-                        auto P = Parents[0];
-                        if (auto BO = P.get<BinaryOperator>())
-                        {
-                            if (BO->isAssignmentOp())
-                            {
-                                if (SM.getExpansionRange(BO->getLHS()->getSourceRange()).getAsRange().fullyContains(SM.getExpansionRange(E->getSourceRange()).getAsRange()))
-                                {
-                                    isLHSOfAssignment = true;
-                                    break;
-                                }
-                            }
-                        }
-                        Parents = Ctx.getParents(P);
-                    }
-                    if (isLHSOfAssignment)
-                    {
-                        if (TSettings.Verbose)
-                        {
-                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion on LHS of assignment");
-                        }
-                        continue;
-                    }
-
-                    // Check that function call is not the operand of an inc or dec
-                    Parents = Ctx.getParents(*E);
-                    bool isOperandOfDecOrInc = false;
-                    while (Parents.size() > 0)
-                    {
-                        auto P = Parents[0];
-                        if (auto UO = P.get<clang::UnaryOperator>())
-                        {
-                            if (UO->isIncrementDecrementOp())
-                            {
-                                isOperandOfDecOrInc = true;
-                                break;
-                            }
-                        }
-                        Parents = Ctx.getParents(P);
-                    }
-                    if (isOperandOfDecOrInc)
-                    {
-                        if (TSettings.Verbose)
-                        {
-                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of -- or ++");
-                        }
-                        continue;
-                    }
-
-                    // Check that function call is not the operand of address of
-                    // (&)
-                    Parents = Ctx.getParents(*E);
-                    bool isOperandOfAddressOf = false;
-                    while (Parents.size() > 0)
-                    {
-                        auto P = Parents[0];
-                        if (auto UO = P.get<clang::UnaryOperator>())
-                        {
-                            if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
-                            {
-                                isOperandOfAddressOf = true;
-                                break;
-                            }
-                        }
-                        Parents = Ctx.getParents(P);
-                    }
-                    if (isOperandOfAddressOf)
-                    {
-                        if (TSettings.Verbose)
-                        {
-                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, UNSUPPORTED_CONSTRUCT, "Expansion operand of &");
-                        }
-                        continue;
-                    }
-                }
-            }
 
             // Get the location to emit the transformed definition
             auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->getStmtsRef().begin());

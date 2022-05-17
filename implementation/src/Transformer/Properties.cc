@@ -1,19 +1,20 @@
 #include "Transformer/Properties.hh"
 #include "Utils/ExpansionUtils.hh"
 
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+
 #include <vector>
+#include <set>
 
 namespace Transformer
 {
+    using clang::BinaryOperator;
     using clang::DeclRefExpr;
     using clang::dyn_cast_or_null;
     using clang::Expr;
-    using Utils::collectLocalVarDeclRefExprs;
-    using Utils::compareTrees;
-    using Utils::containsDeclRefExpr;
-    using Utils::containsLocalVars;
-    using Utils::expansionHasUnambiguousSignature;
-    using Utils::mustBeConstExpr;
+    using clang::Stmt;
+    using clang::UnaryOperator;
+    using namespace Utils;
 
     std::string isWellFormed(
         CppSig::MacroExpansionNode *Expansion,
@@ -158,6 +159,157 @@ namespace Transformer
                 {
                     return "Captures environment";
                 }
+            }
+        }
+
+        return "";
+    }
+
+    std::string isParamSEFreeAndLValueIndependent(
+        CppSig::MacroExpansionNode *Expansion,
+        clang::ASTContext &Ctx)
+    {
+        // Don't transform expansions which:
+        // 1)   Change the R-value associated with the L-value of a symbol
+        //      in one of their arguments
+        // 2)   Return the L-value of a symbol in one of their arguments
+        //      in the *body* of the definition; e.g., FOO(&x) is fine, but
+        //          #define FOO(x) &x
+        //          FOO(x)
+        //      is not
+        // We don't transform expansions like this because they require that
+        // the L-value of the operand symbol be the same for the
+        // inlined symbol and the symbol for the local variable we
+        // create for the expression containing it it in the
+        // transformed code, and they will not be.
+
+        auto ST = *Expansion->getStmtsRef().begin();
+        auto E = dyn_cast_or_null<Expr>(ST);
+        assert(E != nullptr);
+
+        std::set<const Stmt *> LValuesFromArgs;
+        for (auto &&it : Expansion->getArgumentsRef())
+        {
+            collectLValuesSpelledInRange(Ctx, ST, it.getTokenRangesRef(), &LValuesFromArgs);
+        }
+
+        std::set<const Stmt *> StmtsThatChangeRValue;
+        collectStmtsThatChangeRValue(ST, &StmtsThatChangeRValue);
+        for (auto &&StmtThatChangesRValue : StmtsThatChangeRValue)
+        {
+            for (auto &&LVal : LValuesFromArgs)
+            {
+                if (auto UO = dyn_cast_or_null<clang::UnaryOperator>(StmtThatChangesRValue))
+                {
+
+                    if (containsStmt(UO, LVal))
+                    {
+                        return "Writes to R-value of symbol from arguments in unary expression";
+                    }
+                }
+                else if (auto BO = dyn_cast_or_null<BinaryOperator>(StmtThatChangesRValue))
+                {
+                    if (containsStmt(BO->getLHS(), LVal))
+                    {
+                        return "Writes to R-value of symbol from arguments in a binary expression";
+                    }
+                }
+                else
+                {
+                    // NOTE: This shouldn't happen? What do we do here?
+                    assert(false);
+                }
+            }
+        }
+
+        std::set<const Stmt *> StmtsThatReturnLValue;
+        collectStmtsThatReturnLValue(ST, &StmtsThatReturnLValue);
+        for (auto &&StmtThatReturnsLValue : StmtsThatReturnLValue)
+        {
+            bool isOk = false;
+            // We can allow this statement if the entire expression
+            // came from a single argument
+            for (auto &&it : Expansion->getArgumentsRef())
+            {
+                if (StmtAndSubStmtsSpelledInRanges(Ctx, StmtThatReturnsLValue, it.getTokenRangesRef()))
+                {
+                    isOk = true;
+                    break;
+                }
+            }
+            // If this expansion is ok, don't proceed with the check
+            if (isOk)
+            {
+                // TODO: Should this be continue instead?
+                break;
+            }
+
+            for (auto &&LVal : LValuesFromArgs)
+            {
+                if (containsStmt(StmtThatReturnsLValue, LVal))
+                {
+                    return "Contains an expression that returns L-value of symbol from arguments";
+                }
+            }
+        }
+
+        clang::SourceManager &SM = Ctx.getSourceManager();
+
+        // Perform function-specific checks
+        if (!transformsToVar(Expansion, Ctx))
+        {
+            auto Parents = Ctx.getParents(*E);
+            if (Parents.size() > 1)
+            {
+                return "Expansion on C++ code?";
+            }
+
+            // Check that function call is not on LHS of assignment
+            while (Parents.size() > 0)
+            {
+                auto P = Parents[0];
+                if (auto BO = P.get<clang::BinaryOperator>())
+                {
+                    if (BO->isAssignmentOp())
+                    {
+                        if (SM.getExpansionRange(BO->getLHS()->getSourceRange()).getAsRange().fullyContains(SM.getExpansionRange(E->getSourceRange()).getAsRange()))
+                        {
+                            return "Expansion on LHS of assignment";
+                        }
+                    }
+                }
+                Parents = Ctx.getParents(P);
+            }
+
+            // Check that function call is not the operand of an inc or dec
+            Parents = Ctx.getParents(*E);
+            while (Parents.size() > 0)
+            {
+                auto P = Parents[0];
+                if (auto UO = P.get<clang::UnaryOperator>())
+                {
+                    if (UO->isIncrementDecrementOp())
+                    {
+                        return "Expansion operand of -- or ++";
+                    }
+                }
+                Parents = Ctx.getParents(P);
+            }
+
+            // Check that function call is not the operand of address of
+            // (&)
+            Parents = Ctx.getParents(*E);
+            while (Parents.size() > 0)
+            {
+                auto P = Parents[0];
+                if (auto UO = P.get<clang::UnaryOperator>())
+                {
+                    if (UO->getOpcode() == clang::UnaryOperator::Opcode::UO_AddrOf)
+                    {
+                        return "Expansion operand of &";
+                    }
+                }
+                Parents = Ctx.getParents(P);
             }
         }
 
