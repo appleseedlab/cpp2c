@@ -4,6 +4,7 @@
 #include "Transformer/TransformedDefinition.hh"
 #include "Transformer/TransformerConsumer.hh"
 #include "Transformer/TransformerSettings.hh"
+#include "Utils/TransformedDeclarationAnnotation.hh"
 #include "Utils/ExpansionUtils.hh"
 #include "CppSig/MacroExpansionNode.hh"
 #include "CppSig/CppSigUtils.hh"
@@ -13,6 +14,9 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Lex/Lexer.h"
 #include "clang/Lex/Preprocessor.h"
+
+#include <sstream>
+#include <iomanip>
 
 namespace Transformer
 {
@@ -42,10 +46,8 @@ namespace Transformer
         MacroNameCollector *MNC = new MacroNameCollector(
             MacroNames,
             MultiplyDefinedMacros,
-            MacroDefinitionToTransformedDefinitionPrototypes,
             CI->getSourceManager(),
-            CI->getLangOpts(),
-            TSettings.OnlyCollectNotDefinedInStdHeaders);
+            CI->getLangOpts());
         CppSig::MacroForest *MF = new MacroForest(*CI, ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
@@ -61,13 +63,17 @@ namespace Transformer
 
         TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
 
-        // Collect the names of all the variables and functions
+        // Collect the names of all the variables, functions, and macros
         // defined in the program
-        set<string> FunctionNames;
-        set<string> VarNames;
+        set<string> UsedSymbols;
         {
+            set<string> FunctionNames;
+            set<string> VarNames;
             CollectDeclNamesVisitor CDNvisitor(CI, &FunctionNames, &VarNames);
             CDNvisitor.TraverseTranslationUnitDecl(TUD);
+            UsedSymbols.insert(FunctionNames.begin(), FunctionNames.end());
+            UsedSymbols.insert(VarNames.begin(), VarNames.end());
+            UsedSymbols.insert(MacroNames.begin(), MacroNames.end());
         }
 
         // Step 0: Remove all Macro Roots that are not expanded
@@ -102,16 +108,6 @@ namespace Transformer
             errs() << "Step 3: Find Arguments \n";
         }
         matchArguments(Ctx, ExpansionRoots);
-
-        // Mapping of macro names to all emitted transformed definitions for
-        // that macro. This enables to quickly check for duplicate
-        // identical transformations
-        map<SourceLocation, vector<TransformedDefinition *>>
-            MacroDefinitionLocationToTransformedDefinition;
-
-        set<string> TransformedPrototypes;
-        set<pair<string, const FunctionDecl *>>
-            TransformedDefinitionsAndFunctionDeclExpandedIn;
 
         // Step 4: Transform macros that satisfy these four requirements:
         // 1) Syntactic well-formedness
@@ -177,183 +173,126 @@ namespace Transformer
                 continue;
             }
 
-            // Get the location to emit the transformed definition
-            // NOTE: There is some coupling here with isUnsupportedConstruct.
-            // That function guarantees that FD is not null.
-            auto FD = getFunctionDeclStmtExpandedIn(Ctx, *TopLevelExpansion->getStmtsRef().begin());
-
             //// Transform the expansion
+            // 1.   Generate a unique name for the transformed declaration
+            // 2.   Emit the transformed declaration at the start of the file
+            //      the macro was defined in
+            //          a)  Forward declare any structs and unions
+            //              in the signature
+            // 3.   Replace the invocation with the transformed call or
+            //      var ref
+            // 4.   Emit the transformed definition before the definition
+            //      of the function in which the original macro was called
 
-            // If an identical transformation for this expansion exists,
-            // use it; otherwise generate a unique name for this transformation
-            // and insert its definition into the program
-            string EmittedName = "";
-            if (TSettings.UnifyMacrosWithSameSignature)
+            // Generate a unique name for this transformed macro
             {
-                // If we are unifying macros, then we have to check
-                // all transformed definitions for an identical one
-                for (auto &&MacroLocationAndTransformedDefinitions : MacroDefinitionLocationToTransformedDefinition)
-                {
-                    for (auto &&ETD : MacroLocationAndTransformedDefinitions.second)
-                    {
-                        // Find which, if any, of the prior transformation
-                        // definitions of this macro are identical to the one
-                        // we are considering adding to the program.
-                        if (ETD->IsVar == TD->IsVar &&
-                            ETD->VarOrReturnType == TD->VarOrReturnType &&
-                            ETD->ArgTypes == TD->ArgTypes &&
-                            ETD->InitializerOrDefinition == TD->InitializerOrDefinition)
-                        {
-                            EmittedName = ETD->EmittedName;
-                            break;
-                        }
-                        // Found a match?
-                        if (EmittedName != "")
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // Otherwise, we can use the macro definition location to
-                // quickly find any identical prior transformations
-                if (MacroDefinitionLocationToTransformedDefinition.find(TD->Expansion->getMI()->getDefinitionLoc()) !=
-                    MacroDefinitionLocationToTransformedDefinition.end())
-                {
-                    // Find which, if any, of the prior transformation
-                    // definitions of this macro are identical to the one
-                    // we are considering adding to the program.
-                    for (auto &&ETD : MacroDefinitionLocationToTransformedDefinition[TD->Expansion->getMI()->getDefinitionLoc()])
-                    {
-                        if (ETD->IsVar == TD->IsVar &&
-                            ETD->VarOrReturnType == TD->VarOrReturnType &&
-                            ETD->ArgTypes == TD->ArgTypes &&
-                            ETD->InitializerOrDefinition == TD->InitializerOrDefinition)
-                        {
-                            EmittedName = ETD->EmittedName;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // If EmittedName is not empty at this point, then we found a match
-            if (EmittedName != "")
-            {
-                if (TSettings.Verbose)
-                {
-                    errs() << "Not emitting a definition for " +
-                                  TopLevelExpansion->getName() +
-                                  " because an identical "
-                                  "definition already exists\n";
-                }
-            }
-            // Otherwise, we need to generate a unique name for this
-            // transformation and emit its definition
-            else
-            {
-                string Basename = getNameForExpansionTransformation(
-                    SM, TopLevelExpansion, TD->IsVar);
-                EmittedName = Basename;
-                unsigned suffix = 0;
-                while (FunctionNames.find(EmittedName) != FunctionNames.end() &&
-                       VarNames.find(EmittedName) != VarNames.end() &&
-                       MacroNames.find(EmittedName) != MacroNames.end())
-                {
-                    EmittedName = Basename + "_" + to_string(suffix);
-                    suffix += 1;
-                }
-                FunctionNames.insert(EmittedName);
-                VarNames.insert(EmittedName);
-                MacroNames.insert(EmittedName);
-
+                string EmittedName = getUniqueNameForExpansionTransformation(TopLevelExpansion, UsedSymbols, Ctx);
+                UsedSymbols.insert(EmittedName);
                 TD->EmittedName = EmittedName;
+            }
 
-                string TransformedSignature =
-                    TD->getExpansionSignatureOrDeclaration(Ctx, false);
+            // Emit declaration
+            {
 
-                string FullTransformationDefinition =
-                    TransformedSignature + TD->InitializerOrDefinition;
+                // Create the annotation and convert it to json
+                TransformedDeclarationAnnotation TDA = {
+                    .NameOfOriginalMacro = TD->getExpansion()->getName(),
+                    .MacroType = TD->getExpansion()->getMI()->isObjectLike() ? "object-like" : "function-like",
+                    .MacroDefinitionDefinitionFileName = SM.getFilename(TD->getExpansion()->getDefinitionRange().getBegin()).str(),
+                    .MacroDefinitionNumber = TD->getExpansion()->getDefinitionNumber(),
+                    .TransformedSignature = TD->getExpansionSignatureOrDeclaration(Ctx, false),
+                };
+                nlohmann::json j = TDA;
 
-                TransformedPrototypes.insert(TransformedSignature + ";");
-                TransformedDefinitionsAndFunctionDeclExpandedIn.emplace(FullTransformationDefinition, FD);
+                // Create the full declaration
+                std::ostringstream transformedDefinition;
+                transformedDefinition
+                    << TD->getExpansionSignatureOrDeclaration(Ctx, true)
+                    << "\n"
+                    << "    __attribute__((annotate(\""
+                    << escape_json(j.dump())
+                    << "\")));\n\n";
+
+                // Can only get this from a macro defined callback
+                auto TransformedDeclarationLoc = TD->getTransformedDeclarationLocation(Ctx);
+                bool rewriteFailed = RW.InsertTextBefore(
+                    TransformedDeclarationLoc,
+                    StringRef(transformedDefinition.str()));
+                assert(!rewriteFailed);
+
+                // Forward declare structs and unions in signature
+                auto structNamesInSignature = TD->getNamesOfStructAndUnionTypesInSignature();
+                for (auto &&it : structNamesInSignature)
+                {
+                    // Annotate forward declarations with the fact
+                    // that they came from Cpp2C
+                    string structPrefix = "struct";
+                    string unionPrefix = "union";
+
+                    string annotation = " __attribute__((annotate(\"CPP2C\")))";
+                    size_t insertLoc = it.find(structPrefix);
+                    size_t prefixLength = structPrefix.length();
+                    if (insertLoc == string::npos)
+                    {
+                        insertLoc = it.find(unionPrefix);
+                        prefixLength = unionPrefix.length();
+                    }
+
+                    assert(insertLoc != string::npos);
+                    string annotatedFwdDecl = it.insert(insertLoc + prefixLength, annotation);
+                    RW.InsertTextBefore(
+                        SM.getLocForStartOfFile(SM.getFileID(TransformedDeclarationLoc)),
+                        StringRef(annotatedFwdDecl + ";\n\n"));
+                }
+            }
+
+            // Replace invocation with a call or var ref
+            {
+                string CallOrRef = TD->EmittedName;
+                if (!TD->IsVar)
+                {
+                    CallOrRef += "(";
+                    unsigned i = 0;
+                    for (auto &&Arg : TopLevelExpansion->getArgumentsRef())
+                    {
+                        if (i >= 1)
+                        {
+                            CallOrRef += ", ";
+                        }
+
+                        CallOrRef += Arg.getRawText();
+
+                        i += 1;
+                    }
+                    CallOrRef += ")";
+                }
+                bool rewriteFailed = RW.ReplaceText(
+                    TD->getInvocationReplacementRange(), StringRef(CallOrRef));
+                assert(!rewriteFailed);
+                // TODO: Only emit transformed expansion if verbose
+                emitTransformedExpansionMessage(errs(), TopLevelExpansion, Ctx, SM, LO);
+            }
+
+            // Emit transformed definition
+            {
+                // Emit each transformed definition before the
+                // definition of the function in which it is called.
+                string TransformedSignature = TD->getExpansionSignatureOrDeclaration(Ctx, true);
+                string FullTransformationDefinition = TransformedSignature + TD->InitializerOrDefinition;
+
+                // NOTE: This has some coupling with an earlier check
+                // that the spelling location of the start fo the function decl
+                // is rewritable
+                bool rewriteFailed = RW.InsertTextBefore(
+                    TD->getTransformedDefinitionLocation(Ctx),
+                    StringRef(FullTransformationDefinition + "\n\n"));
+                assert(!rewriteFailed);
                 // TODO: Only emit transformed definition if verbose
                 emitTransformedDefinitionMessage(errs(), TD, Ctx, SM, LO);
-
-                // Record the number of unique definitions emitted for this
-                // macro definition
-                {
-                    string key = hashMacro(TopLevelExpansion->getMI(), SM, LO);
-                    // Set the emitted name to the empty string right before
-                    // recording the signature so that we get an anonymous
-                    // signature
-                    string temp = TD->EmittedName;
-                    TD->EmittedName = "";
-                    MacroDefinitionToTransformedDefinitionPrototypes[key].insert(TD->getExpansionSignatureOrDeclaration(Ctx, true));
-                    TD->EmittedName = temp;
-                }
-
-                (MacroDefinitionLocationToTransformedDefinition[TD->Expansion->getMI()->getDefinitionLoc()]).push_back(TD);
             }
 
-            // Rewrite the invocation into a function call or var ref
-            string CallOrRef = EmittedName;
-            if (!TD->IsVar)
-            {
-                CallOrRef += "(";
-                unsigned i = 0;
-                for (auto &&Arg : TopLevelExpansion->getArgumentsRef())
-                {
-                    if (i >= 1)
-                    {
-                        CallOrRef += ", ";
-                    }
-
-                    CallOrRef += Arg.getRawText();
-
-                    i += 1;
-                }
-                CallOrRef += ")";
-            }
-            SourceRange InvocationRange = TopLevelExpansion->getSpellingRange();
-            bool rewriteFailed = RW.ReplaceText(InvocationRange, StringRef(CallOrRef));
-            assert(!rewriteFailed);
-
-            // TODO: Only emit transformed expansion if verbose
-            emitTransformedExpansionMessage(errs(), TopLevelExpansion, Ctx, SM, LO);
-        }
-
-        // Free allocated TransformedDefinition objects
-        for (auto &&it : MacroDefinitionLocationToTransformedDefinition)
-        {
-            for (auto &&TD : it.second)
-            {
-                delete TD;
-            }
-        }
-
-        // Emit transformed definitions after functions in which they appear
-        for (auto &&it : TransformedDefinitionsAndFunctionDeclExpandedIn)
-        {
-            auto StartOfFD = it.second->getBeginLoc();
-            // NOTE: This has some coupling with an earlier check
-            // that the spelling location of the start fo the function decl
-            // is rewritable
-            auto RewriteLoc = SM.getExpansionLoc(StartOfFD);
-            // RW.InsertTextAfter(
-            //     SM.getLocForEndOfFile(SM.getMainFileID()),
-            //     StringRef(it + "\n\n"));
-            bool rewriteFailed = RW.InsertTextBefore(
-                RewriteLoc,
-                StringRef(it.first + "\n\n"));
-            assert(!rewriteFailed);
-            if (TSettings.Verbose)
-            {
-                errs() << "Emitted a definition: "
-                       << it.first + "\n";
-            }
+            // Free the TransformedDefinition object since it is no longer needed at this point
+            delete TD;
         }
 
         if (TSettings.OverwriteFiles)
@@ -363,8 +302,7 @@ namespace Transformer
         else
         {
             // Print the results of the rewriting for the current file
-            if (const RewriteBuffer *RewriteBuf =
-                    RW.getRewriteBufferFor(SM.getMainFileID()))
+            if (const RewriteBuffer *RewriteBuf = RW.getRewriteBufferFor(SM.getMainFileID()))
             {
                 RewriteBuf->write(outs());
             }
