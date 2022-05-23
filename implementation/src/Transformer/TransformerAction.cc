@@ -31,10 +31,6 @@ namespace Transformer
             {
                 TSettings.Verbose = true;
             }
-            else if (arg == "-u" || arg == "--unify-macros-with-different-names")
-            {
-                TSettings.UnifyMacrosWithSameSignature = true;
-            }
             else if (arg == "-shm" || arg == "--standard-header-macros")
             {
                 TSettings.OnlyCollectNotDefinedInStdHeaders = false;
