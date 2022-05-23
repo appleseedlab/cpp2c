@@ -38,6 +38,7 @@ add_library(Cpp2C SHARED
   Utils/ExpansionUtils.cc
   Utils/Logging/TransformerMessages.cc
   Utils/SourceRangeCollection.cc
+  Utils/TransformedDeclarationAnnotation.cc
   Transformer/TransformerConsumer.cc
   Transformer/TransformerAction.cc
   Transformer/TransformedDefinition.cc
