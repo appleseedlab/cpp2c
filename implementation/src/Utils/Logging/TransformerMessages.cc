@@ -64,17 +64,14 @@ namespace Utils
             SourceManager &SM,
             const LangOptions &LO)
         {
-            string temp = TD->getEmittedName();
-            TD->getEmittedName() = "";
             string TransformedSignatureNoName =
-                TD->getExpansionSignatureOrDeclaration(Ctx, true);
+                TD->getExpansionSignatureOrDeclaration(Ctx, false);
             OS << "CPP2C:"
                << "Transformed Definition,"
                << "\"" << hashMacro(TD->getExpansion()->getMI(), SM, LO) << "\","
                << "\"" << TransformedSignatureNoName << "\""
                << ","
-               << temp << "\n";
-            TD->getEmittedName() = temp;
+               << TD->getEmittedName() << "\n";
         }
 
         void emitTransformedExpansionMessage(
