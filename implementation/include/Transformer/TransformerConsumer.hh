@@ -22,7 +22,6 @@ namespace Transformer
         CppSig::MacroForest::Roots ExpansionRoots;
         std::set<std::string> MacroNames;
         std::set<std::string> MultiplyDefinedMacros;
-        std::map<std::string, std::set<std::string>> MacroDefinitionToTransformedDefinitionPrototypes;
 
         // To give it access to members
         friend class TransformerAction;
