@@ -73,6 +73,10 @@ namespace CppSig
         // should only be one
         std::set<const clang::Stmt *> Stmts;
 
+        // The number of the definition that the expansion references
+        // in the unpreprocessed translation unit
+        std::size_t DefinitionNumber;
+
     public:
         MacroExpansionNode *getRoot();
         MacroExpansionNode *getParent();
@@ -88,6 +92,7 @@ namespace CppSig
         std::vector<MacroArgument> &getArgumentsRef();
         std::set<const clang::Stmt *> getStmts();
         std::set<const clang::Stmt *> &getStmtsRef();
+        std::size_t getDefinitionNumber();
 
         // Dump information about the node and its argument
         void dump(clang::SourceManager &SM);

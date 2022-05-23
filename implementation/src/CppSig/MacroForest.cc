@@ -33,7 +33,6 @@ namespace CppSig
         const clang::MacroArgs *Args)
     {
         // Create the new node for the expansion
-        // TODO: delete this later
         MacroExpansionNode *Expansion = new MacroExpansionNode();
 
         // Get the macro's name
@@ -51,6 +50,22 @@ namespace CppSig
                                                             Range.getEnd());
         Expansion->DefinitionRange = DefinitionRange;
         Expansion->SpellingRange = SpellingRange;
+
+        // Count the number of times this macro has been defined
+        // up to this point
+        {
+            size_t count = 1;
+            auto temp = MD.getLocalDirective()->getPrevious();
+            while (temp != nullptr)
+            {
+                if (temp->getKind() == clang::MacroDirective::Kind::MD_Define)
+                {
+                    count++;
+                }
+                temp = temp->getPrevious();
+            }
+            Expansion->DefinitionNumber = count;
+        }
 
         // Get the source manager
         clang::SourceManager &SM = Ctx.getSourceManager();

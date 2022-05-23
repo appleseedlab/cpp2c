@@ -122,4 +122,10 @@ namespace CppSig
     {
         return Stmts;
     }
+
+    size_t MacroExpansionNode::getDefinitionNumber()
+    {
+        return DefinitionNumber;
+    }
+
 } // namespace CppSig
