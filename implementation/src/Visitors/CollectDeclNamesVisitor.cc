@@ -33,9 +33,9 @@ namespace Visitors
         //             S,
         //             Ctx->getPrintingPolicy());
         //         string annotation = S.str();
-        //         unsigned posOfFirstQuote = annotation.find('"');
-        //         unsigned lengthOfQuotedSubstring = annotation.rfind('"') - posOfFirstQuote + 1;
-        //         annotation = annotation.substr(posOfFirstQuote, lengthOfQuotedSubstring);
+        //         unsigned posOfFirstLBrace = annotation.find('{');
+        //         unsigned lengthOfBracedPortion = annotation.rfind('}') - posOfFirstLBrace + 1;
+        //         annotation = annotation.substr(posOfFirstLBrace, lengthOfBracedPortion);
         //         llvm::outs() << annotation << "\n";
         //     }
         // }
