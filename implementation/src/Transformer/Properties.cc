@@ -358,44 +358,51 @@ namespace Transformer
             return "Expansion is a string literal";
         }
 
-        auto FD = getFunctionDeclStmtExpandedIn(Ctx, ST);
-
         // Check that expansion is inside a function, because if it
         // isn't none of the constructs we transform to
         // (var and function call) would be valid at the global scope
-        if (FD == nullptr)
+        if (getFunctionDeclStmtExpandedIn(Ctx, ST) == nullptr)
         {
             return "Expansion not inside a function definition";
         }
 
+        // Check that the transformed declaration location is allowed
+        {
+            auto TransformedDeclarationLoc = TD->getTransformedDeclarationLocation(Ctx);
+            if (!RW.isRewritable(TransformedDeclarationLoc))
+            {
+                return "Transformed declaration not in a rewritable location";
+            }
+        }
+
         clang::SourceManager &SM = Ctx.getSourceManager();
 
-        // TODO: Record this rewrite location somewhere so we can
-        // just reference it later when we go to emit the
-        // transformed definition
-        // TODO: There has to be a smarter way of generating the transformed definition's rewrite location
-        auto TransformedDefinitionLoc = SM.getExpansionLoc(FD->getBeginLoc());
-
-        if (!RW.isRewritable(TransformedDefinitionLoc))
+        // Check that the transformed definition location is allowed
         {
-            return "Transformed definition not in a rewritable location";
+            auto TransformedDefinitionLoc = TD->getTransformedDefinitionLocation(Ctx);
+            if (!RW.isRewritable(TransformedDefinitionLoc))
+            {
+                return "Transformed definition not in a rewritable location";
+            }
+            if (!SM.isInMainFile(TransformedDefinitionLoc))
+            {
+                return "Transformed definition location not in main file";
+            }
         }
 
-        if (!SM.isInMainFile(TransformedDefinitionLoc))
+        // Check that transformed expansion range is allowed
         {
-            return "Transformed definition location not in main file";
-        }
+            if (!RW.isRewritable(TD->getInvocationReplacementRange().getBegin()) ||
+                !RW.isRewritable(TD->getInvocationReplacementRange().getEnd()))
+            {
+                return "Expansion not in a rewritable location";
+            }
 
-        if (!RW.isRewritable(TD->getExpansion()->getSpellingRange().getBegin()) ||
-            !RW.isRewritable(TD->getExpansion()->getSpellingRange().getEnd()))
-        {
-            return "Expansion not in a rewritable location";
-        }
-
-        if (!SM.isInMainFile(TD->getExpansion()->getSpellingRange().getBegin()) ||
-            !SM.isInMainFile(TD->getExpansion()->getSpellingRange().getEnd()))
-        {
-            return "Transformed expansion not in main file";
+            if (!SM.isInMainFile(TD->getInvocationReplacementRange().getBegin()) ||
+                !SM.isInMainFile(TD->getInvocationReplacementRange().getEnd()))
+            {
+                return "Transformed expansion not in main file";
+            }
         }
 
         return "";
