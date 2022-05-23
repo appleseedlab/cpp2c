@@ -36,13 +36,14 @@ namespace Transformer
             CppSig::MacroExpansionNode *Expansion);
 
         std::string getEmittedName();
+        void setEmittedName(std::string s);
         CppSig::MacroExpansionNode *getExpansion();
 
         // Gets the signature for this transformed expansion if it's a function;
         // otherwise gets the declaration
         std::string getExpansionSignatureOrDeclaration(
             clang::ASTContext &Ctx,
-            bool CanBeAnonymous);
+            bool includeEmittedName);
 
         // Returns true if the transformed function signature contains a
         // user-defined type
@@ -55,5 +56,21 @@ namespace Transformer
         // Returns true if the transformed function signature contains a function
         // type or function pointer type
         bool hasFunctionTypes();
+
+        // Returns the full types of any structs and unions in the transformed
+        // definition's signature as a vector of strings
+        std::vector<std::string> getNamesOfStructAndUnionTypesInSignature();
+
+        // Returns the location that the transformed declaration of this macro
+        // should be emitted to
+        clang::SourceLocation getTransformedDeclarationLocation(clang::ASTContext &Ctx);
+
+        // Returns the location that the transformed definition of this macro
+        // should be emitted to
+        clang::SourceLocation getTransformedDefinitionLocation(clang::ASTContext &Ctx);
+
+        // Returns the range that the transformed invocation of this macro
+        // should replace
+        clang::SourceRange getInvocationReplacementRange();
     };
 }

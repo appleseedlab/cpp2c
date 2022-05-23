@@ -14,22 +14,21 @@ namespace Transformer
     using Utils::containsGlobalVars;
     using Utils::expansionHasUnambiguousSignature;
     using Utils::getDesugaredCanonicalType;
+    using Utils::getFunctionDeclStmtExpandedIn;
     using Utils::transformsToVar;
 
     TransformedDefinition::TransformedDefinition(
         ASTContext &Ctx,
         MacroExpansionNode *Expansion)
+        : Expansion(Expansion),
+          OriginalMacroName(Expansion->getName()),
+          IsVar(transformsToVar(Expansion, Ctx)),
+          VarOrReturnType(getDesugaredCanonicalType(Ctx, *(Expansion->getStmts().begin())))
     {
-        this->Expansion = Expansion;
-        this->OriginalMacroName = Expansion->getName();
-        assert(Expansion->getStmts().size() == 1);
-
-        this->IsVar = transformsToVar(this->Expansion, Ctx);
-        this->VarOrReturnType = getDesugaredCanonicalType(Ctx, *(Expansion->getStmts().begin()));
         for (auto &&Arg : Expansion->getArguments())
         {
             // Note that we don't assert that the argument has only one stmt.
-            // This is because the argument may have been asserted multiple times.
+            // This is because the argument may have been expanded multiple times.
             QualType ArgType = getDesugaredCanonicalType(Ctx, *(Arg.getStmts().begin()));
             this->ArgTypes.push_back(ArgType);
         }
@@ -46,21 +45,21 @@ namespace Transformer
     }
 
     string TransformedDefinition::getEmittedName() { return EmittedName; }
+    void TransformedDefinition::setEmittedName(string s) { EmittedName = s; }
     MacroExpansionNode *TransformedDefinition::getExpansion() { return Expansion; }
 
     std::string TransformedDefinition::getExpansionSignatureOrDeclaration(
         ASTContext &Ctx,
-        bool CanBeAnonymous)
+        bool includeEmittedName)
     {
-        assert(expansionHasUnambiguousSignature(Ctx, this->Expansion));
-        assert(CanBeAnonymous || this->EmittedName != "");
+        assert(expansionHasUnambiguousSignature(Ctx, Expansion));
 
         // Decls begin with the type of the var/return type of function
-        string Signature = this->VarOrReturnType.getAsString();
+        string Signature = VarOrReturnType.getAsString();
 
-        if (EmittedName != "")
+        if (includeEmittedName)
         {
-            Signature += " " + this->EmittedName;
+            Signature += " " + EmittedName;
         }
 
         // If it's not a var, then add formal params
@@ -154,4 +153,66 @@ namespace Transformer
         }
         return false;
     }
+
+    std::vector<string> TransformedDefinition::getNamesOfStructAndUnionTypesInSignature()
+    {
+        std::vector<string> result;
+        if (auto T = this->VarOrReturnType.getTypePtr())
+        {
+            // Remove all pointers until we get down to the base type
+            auto PointeeType = VarOrReturnType;
+            auto temp = T;
+            while (temp->isPointerType())
+            {
+                PointeeType = temp->getPointeeType();
+                temp = temp->getPointeeType().getTypePtr();
+            }
+            if (PointeeType->isStructureType() || PointeeType->isUnionType())
+            {
+                result.push_back(PointeeType.getAsString());
+            }
+        }
+
+        for (auto &&it : this->ArgTypes)
+        {
+            if (auto T = it.getTypePtr())
+            {
+                // Remove all pointers until we get down to the base type
+                auto PointeeType = it;
+                auto temp = T;
+                while (temp->isPointerType())
+                {
+                    PointeeType = temp->getPointeeType();
+                    temp = temp->getPointeeType().getTypePtr();
+                }
+                if (PointeeType->isStructureType() || PointeeType->isUnionType())
+                {
+                    result.push_back(PointeeType.getAsString());
+                }
+            }
+        }
+
+        return result;
+    }
+
+    clang::SourceLocation TransformedDefinition::getTransformedDeclarationLocation(ASTContext &Ctx)
+    {
+        auto &SM = Ctx.getSourceManager();
+        auto DefinitionSpellingLoc = SM.getSpellingLoc(Expansion->getMI()->getDefinitionLoc());
+        return SM.getLocForStartOfFile(SM.getFileID(DefinitionSpellingLoc));
+    }
+
+    clang::SourceLocation TransformedDefinition::getTransformedDefinitionLocation(ASTContext &Ctx)
+    {
+        auto &SM = Ctx.getSourceManager();
+        auto FD = getFunctionDeclStmtExpandedIn(Ctx, *Expansion->getStmtsRef().begin());
+        assert(FD != nullptr && "Containing function definition is null");
+        return SM.getExpansionLoc(FD->getBeginLoc());
+    }
+
+    clang::SourceRange TransformedDefinition::getInvocationReplacementRange()
+    {
+        return Expansion->getSpellingRange();
+    }
+
 } // namespace Transformer
