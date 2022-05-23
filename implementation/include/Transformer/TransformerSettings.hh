@@ -6,7 +6,6 @@ namespace Transformer
     {
         bool OverwriteFiles = false;
         bool Verbose = false;
-        bool UnifyMacrosWithSameSignature = false;
         bool OnlyCollectNotDefinedInStdHeaders = true;
     };
 } // namespace Transformer
