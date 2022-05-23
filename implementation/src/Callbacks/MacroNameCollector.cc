@@ -14,16 +14,12 @@ namespace Callbacks
     MacroNameCollector::MacroNameCollector(
         set<string> &MacroNames,
         set<string> &MultiplyDefinedMacros,
-        map<string, set<string>> &MacroDefinitionToTransformedDefinitionPrototypes,
         SourceManager &SM,
-        const LangOptions &LO,
-        bool OnlyCollectNotDefinedInStdHeaders)
+        const LangOptions &LO)
         : MacroNames(MacroNames),
           MultiplyDefinedMacros(MultiplyDefinedMacros),
-          MacroDefinitionToTransformedDefinitionPrototypes(MacroDefinitionToTransformedDefinitionPrototypes),
           SM(SM),
-          LO(LO),
-          OnlyCollectNotDefinedInStdHeaders(OnlyCollectNotDefinedInStdHeaders){};
+          LO(LO){};
 
     void MacroNameCollector::MacroDefined(const Token &MacroNameTok, const MacroDirective *MD)
     {
@@ -38,22 +34,5 @@ namespace Callbacks
         }
         // TODO: Only emit macro definition if verbose
         emitMacroDefinitionMessage(llvm::errs(), MD, SM, LO);
-
-        if (OnlyCollectNotDefinedInStdHeaders)
-        {
-            if (auto MI = MD->getMacroInfo())
-            {
-                if (!isInStdHeader(MI->getDefinitionLoc(), SM))
-                {
-                    string key = hashMacro(MD->getMacroInfo(), SM, LO);
-                    MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
-                }
-            }
-        }
-        else
-        {
-            string key = hashMacro(MD->getMacroInfo(), SM, LO);
-            MacroDefinitionToTransformedDefinitionPrototypes[key] = {};
-        }
     }
 } // namespace Callbacks

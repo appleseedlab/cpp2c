@@ -18,18 +18,14 @@ namespace Callbacks
     private:
         std::set<std::string> &MacroNames;
         std::set<std::string> &MultiplyDefinedMacros;
-        std::map<std::string, std::set<std::string>> &MacroDefinitionToTransformedDefinitionPrototypes;
         clang::SourceManager &SM;
         const clang::LangOptions &LO;
-        bool OnlyCollectNotDefinedInStdHeaders;
 
     public:
         MacroNameCollector(std::set<std::string> &MacroNames,
                            std::set<std::string> &MultiplyDefinedMacros,
-                           std::map<std::string, std::set<std::string>> &MacroDefinitionToTransformedDefinitionPrototypes,
                            clang::SourceManager &SM,
-                           const clang::LangOptions &LO,
-                           bool OnlyCollectNotDefinedInStdHeaders);
+                           const clang::LangOptions &LO);
 
         void MacroDefined(const clang::Token &MacroNameTok, const clang::MacroDirective *MD) override;
     };
