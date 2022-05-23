@@ -131,9 +131,9 @@ namespace Utils
 
     std::string getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(clang::ASTContext &Ctx, const clang::Stmt *S);
 
-    std::string getNameForExpansionTransformation(
-        clang::SourceManager &SM,
-        MacroExpansionNode *Expansion,
-        bool TransformToVar);
+    std::string getUniqueNameForExpansionTransformation(
+        CppSig::MacroExpansionNode *Expansion,
+        std::set<std::string> &UsedSymbols,
+        clang::ASTContext &Ctx);
 
 } // namespace Utils

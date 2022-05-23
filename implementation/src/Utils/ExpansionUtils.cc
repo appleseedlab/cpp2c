@@ -624,15 +624,23 @@ namespace Utils
         return none;
     }
 
-    string getNameForExpansionTransformation(SourceManager &SM,
-                                             MacroExpansionNode *Expansion,
-                                             bool TransformToVar)
+    string getUniqueNameForExpansionTransformation(
+        MacroExpansionNode *Expansion,
+        set<string> &UsedSymbols,
+        ASTContext &Ctx)
     {
-
-        // Generate a unique basename using a timetamp
+        // Generate a unique name using a timetamp
         auto t = std::chrono::system_clock::now();
-        string transformType = TransformToVar ? "var" : "function";
-        return Expansion->getName() + "_" + std::to_string(t.time_since_epoch().count()) + transformType;
+        string transformType = transformsToVar(Expansion, Ctx) ? "var" : "function";
+        string baseName = Expansion->getName() + "_" + std::to_string(t.time_since_epoch().count()) + transformType;
+        string uniqueName = baseName;
+        unsigned suffix = 0;
+        while (UsedSymbols.find(uniqueName) != UsedSymbols.end())
+        {
+            uniqueName = baseName + "_" + to_string(suffix);
+            suffix += 1;
+        }
+        return uniqueName;
 
         /*
 
