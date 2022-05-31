@@ -136,4 +136,8 @@ namespace Utils
         std::set<std::string> &UsedSymbols,
         clang::ASTContext &Ctx);
 
+    // Given a pointer to a Type object, removes all pointers in the type
+    // and returns the base type
+    clang::QualType getPointeeType(clang::QualType T);
+
 } // namespace Utils

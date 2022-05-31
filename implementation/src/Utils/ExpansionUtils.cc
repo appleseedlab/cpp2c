@@ -674,4 +674,15 @@ namespace Utils
         */
     }
 
+    clang::QualType getPointeeType(clang::QualType T)
+    {
+        // Remove all pointers until we get down to the base type
+        auto PointeeType = T;
+        while (PointeeType.getTypePtr()->isPointerType())
+        {
+            PointeeType = PointeeType.getTypePtr()->getPointeeType();
+        }
+        return PointeeType;
+    }
+
 } // namespace Utils
