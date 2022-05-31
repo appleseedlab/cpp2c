@@ -9,6 +9,7 @@
 #include "CppSig/MacroExpansionNode.hh"
 #include "CppSig/CppSigUtils.hh"
 #include "Visitors/CollectDeclNamesVisitor.hh"
+#include "Visitors/DeanonymizerVisitor.hh"
 
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Rewrite/Core/Rewriter.h"
@@ -74,6 +75,12 @@ namespace Transformer
             UsedSymbols.insert(FunctionNames.begin(), FunctionNames.end());
             UsedSymbols.insert(VarNames.begin(), VarNames.end());
             UsedSymbols.insert(MacroNames.begin(), MacroNames.end());
+        }
+
+        // Make all anonymous structs/union behind typedefs not anonymous
+        {
+            DeanonymizerVisitor DV(Ctx, RW);
+            DV.TraverseTranslationUnitDecl(TUD);
         }
 
         // Step 0: Remove all Macro Roots that are not expanded
@@ -193,7 +200,6 @@ namespace Transformer
 
             // Emit declaration
             {
-
                 // Create the annotation and convert it to json
                 TransformedDeclarationAnnotation TDA = {
                     .NameOfOriginalMacro = TD->getExpansion()->getName(),
@@ -220,26 +226,39 @@ namespace Transformer
                     StringRef(transformedDefinition.str()));
                 assert(!rewriteFailed);
 
-                // Forward declare structs and unions in signature
-                auto structNamesInSignature = TD->getNamesOfStructAndUnionTypesInSignature();
+                // Forward declare structs/unions/enums in signature
+                auto structNamesInSignature = TD->getStructUnionEnumTypesInSignature();
                 for (auto &&it : structNamesInSignature)
                 {
                     // Annotate forward declarations with the fact
                     // that they came from Cpp2C
-                    string structPrefix = "struct";
-                    string unionPrefix = "union";
-
-                    string annotation = " __attribute__((annotate(\"CPP2C\")))";
-                    size_t insertLoc = it.find(structPrefix);
-                    size_t prefixLength = structPrefix.length();
-                    if (insertLoc == string::npos)
+                    auto T = it.getTypePtrOrNull();
+                    if (T == nullptr)
                     {
-                        insertLoc = it.find(unionPrefix);
-                        prefixLength = unionPrefix.length();
+                        assert(false && "nullptr error");
                     }
+                    string prefix = (T->isStructureType()
+                                         ? "struct"
+                                     : T->isUnionType() ? "union"
+                                                        : "enum");
+                    size_t prefixLength = prefix.length();
+                    string annotation = " __attribute__((annotate(\"CPP2C\"))) ";
 
-                    assert(insertLoc != string::npos);
-                    string annotatedFwdDecl = it.insert(insertLoc + prefixLength, annotation);
+                    string annotatedFwdDecl = "";
+                    string typeString = it.getDesugaredType(Ctx).getCanonicalType().getUnqualifiedType().getAsString();
+                    size_t prefixLoc = typeString.find(prefix);
+                    if (prefixLoc != string::npos)
+                    {
+                        // If the struct or union keyword is present, then we have
+                        // to emit the annotation after it
+                        annotatedFwdDecl = typeString.insert(prefixLoc + prefixLength, annotation);
+                    }
+                    else
+                    {
+                        // If a keyword is not present, then we have to emit
+                        // it as well at the start of the forward declaration
+                        annotatedFwdDecl = typeString.insert(0, prefix + annotation);
+                    }
                     RW.InsertTextBefore(
                         SM.getLocForStartOfFile(SM.getFileID(TransformedDeclarationLoc)),
                         StringRef(annotatedFwdDecl + ";\n\n"));
