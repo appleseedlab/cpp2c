@@ -57,9 +57,9 @@ namespace Transformer
         // type or function pointer type
         bool hasFunctionTypes();
 
-        // Returns the full types of any structs and unions in the transformed
-        // definition's signature as a vector of strings
-        std::vector<std::string> getNamesOfStructAndUnionTypesInSignature();
+        // Returns the full types of any structs/unions/enums in the
+        // transformed definition's signature as a QualType vector
+        std::vector<clang::QualType> getStructUnionEnumTypesInSignature();
 
         // Returns the location that the transformed declaration of this macro
         // should be emitted to

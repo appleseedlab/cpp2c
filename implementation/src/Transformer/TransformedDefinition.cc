@@ -15,6 +15,7 @@ namespace Transformer
     using Utils::expansionHasUnambiguousSignature;
     using Utils::getDesugaredCanonicalType;
     using Utils::getFunctionDeclStmtExpandedIn;
+    using Utils::getPointeeType;
     using Utils::transformsToVar;
 
     TransformedDefinition::TransformedDefinition(
@@ -55,7 +56,33 @@ namespace Transformer
         assert(expansionHasUnambiguousSignature(Ctx, Expansion));
 
         // Decls begin with the type of the var/return type of function
-        string Signature = VarOrReturnType.getAsString();
+        string Signature = "";
+
+        // Check if return type is a struct/union/enum
+        {
+            // TODO: Maybe we should remove const here as well?
+            QualType ReturnTypePointeeType = getPointeeType(VarOrReturnType);
+            auto RTPT = ReturnTypePointeeType.getTypePtr();
+            string TString = VarOrReturnType.getAsString();
+            // Add struct/union/enum before type name if not present
+            if (RTPT->isStructureType() &&
+                TString.find("struct") == string::npos)
+            {
+                TString = "struct " + TString;
+            }
+            else if (RTPT->isUnionType() &&
+                     TString.find("union") == string::npos)
+            {
+                TString = "union " + TString;
+            }
+            else if (RTPT->isEnumeralType() &&
+                     TString.find("enum") == string::npos)
+            {
+                TString = "enum " + TString;
+            }
+
+            Signature = TString;
+        }
 
         if (includeEmittedName)
         {
@@ -73,9 +100,38 @@ namespace Transformer
                 {
                     Signature += ", ";
                 }
-                QualType ArgType =
-                    getDesugaredCanonicalType(Ctx, *(Arg.getStmts().begin()));
+                auto ST = *(Arg.getStmts().begin());
+                QualType ArgType = getDesugaredCanonicalType(Ctx, ST);
                 string TString = ArgType.getAsString();
+
+                // TODO: This is a hack
+                // Manually remove const qualifiers
+                {
+                    auto i = TString.find("const");
+                    if (i != string::npos)
+                    {
+                        TString.erase(i, string("const").length());
+                    }
+                }
+
+                QualType ArgPointeeType = getPointeeType(ArgType);
+                auto APTP = ArgPointeeType.getTypePtr();
+                // Add struct/union/enum before type name if not present
+                if (APTP->isStructureType() &&
+                    TString.find("struct") == string::npos)
+                {
+                    TString = "struct " + TString;
+                }
+                else if (APTP->isUnionType() &&
+                         TString.find("union") == string::npos)
+                {
+                    TString = "union " + TString;
+                }
+                else if (APTP->isEnumeralType() &&
+                         TString.find("enum") == string::npos)
+                {
+                    TString = "enum " + TString;
+                }
                 // NOTE: This doesn't work for function types
                 Signature += TString + " " + Arg.getName();
                 i += 1;
@@ -154,41 +210,22 @@ namespace Transformer
         return false;
     }
 
-    std::vector<string> TransformedDefinition::getNamesOfStructAndUnionTypesInSignature()
+    std::vector<QualType> TransformedDefinition::getStructUnionEnumTypesInSignature()
     {
-        std::vector<string> result;
-        if (auto T = this->VarOrReturnType.getTypePtr())
-        {
-            // Remove all pointers until we get down to the base type
-            auto PointeeType = VarOrReturnType;
-            auto temp = T;
-            while (temp->isPointerType())
-            {
-                PointeeType = temp->getPointeeType();
-                temp = temp->getPointeeType().getTypePtr();
-            }
-            if (PointeeType->isStructureType() || PointeeType->isUnionType())
-            {
-                result.push_back(PointeeType.getAsString());
-            }
-        }
+        std::vector<QualType> typesToCheck;
+        typesToCheck.push_back(this->VarOrReturnType);
+        typesToCheck.insert(typesToCheck.end(), this->ArgTypes.begin(), this->ArgTypes.end());
 
-        for (auto &&it : this->ArgTypes)
+        std::vector<QualType> result;
+
+        for (auto &&it : typesToCheck)
         {
-            if (auto T = it.getTypePtr())
+            auto PointeeType = getPointeeType(it);
+            if (PointeeType->isStructureType() ||
+                PointeeType->isUnionType() ||
+                PointeeType->isEnumeralType())
             {
-                // Remove all pointers until we get down to the base type
-                auto PointeeType = it;
-                auto temp = T;
-                while (temp->isPointerType())
-                {
-                    PointeeType = temp->getPointeeType();
-                    temp = temp->getPointeeType().getTypePtr();
-                }
-                if (PointeeType->isStructureType() || PointeeType->isUnionType())
-                {
-                    result.push_back(PointeeType.getAsString());
-                }
+                result.push_back(PointeeType);
             }
         }
 
