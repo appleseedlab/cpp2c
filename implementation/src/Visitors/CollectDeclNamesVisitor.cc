@@ -19,27 +19,6 @@ namespace Visitors
                                   .getAsString();
         FunctionNames->insert(functionName);
 
-        // llvm::outs() << functionName << "\n";
-        // for (auto &&it : FDecl->attrs())
-        // {
-        //     string attrName = it->getAttrName()->getName().str();
-        //     llvm::outs() << attrName << "\n";
-
-        //     if (attrName.compare("annotate") == 0)
-        //     {
-        //         string SS;
-        //         llvm::raw_string_ostream S(SS);
-        //         it->printPretty(
-        //             S,
-        //             Ctx->getPrintingPolicy());
-        //         string annotation = S.str();
-        //         unsigned posOfFirstLBrace = annotation.find('{');
-        //         unsigned lengthOfBracedPortion = annotation.rfind('}') - posOfFirstLBrace + 1;
-        //         annotation = annotation.substr(posOfFirstLBrace, lengthOfBracedPortion);
-        //         llvm::outs() << annotation << "\n";
-        //     }
-        // }
-
         return true;
     }
 
