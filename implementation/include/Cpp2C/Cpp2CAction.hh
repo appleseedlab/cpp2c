@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Cpp2C/Cpp2CCommand.hh"
 #include "Transformer/TransformerSettings.hh"
+#include "AnnotationRemover/AnnotationRemoverSettings.hh"
 
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/AST/ASTConsumer.h"
@@ -10,9 +12,9 @@
 #include <string>
 #include <vector>
 
-namespace Transformer
+namespace Cpp2C
 {
-    class TransformerAction : public clang::PluginASTAction
+    class Cpp2CAction : public clang::PluginASTAction
     {
 
     protected:
@@ -29,7 +31,9 @@ namespace Transformer
         clang::PluginASTAction::ActionType getActionType() override;
 
     private:
-        TransformerSettings TSettings;
+        Cpp2CCommand Command = HELP;
+        Transformer::TransformerSettings TSettings;
+        AnnotationRemover::AnnotationRemoverSettings ARSettings;
     };
 
 } // namespace Transformer
