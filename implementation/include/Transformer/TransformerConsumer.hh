@@ -23,9 +23,6 @@ namespace Transformer
         std::set<std::string> MacroNames;
         std::set<std::string> MultiplyDefinedMacros;
 
-        // To give it access to members
-        friend class TransformerAction;
-
         TransformerSettings TSettings;
 
     public:
