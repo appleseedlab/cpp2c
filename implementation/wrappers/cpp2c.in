@@ -1,39 +1,83 @@
 #!/bin/bash
 
+# Wrapper script for Cpp2C to make it more user-friendly
+# Based off of wrapper script for Dietrich's tool, CppSig
+
 argc=$#
 argv=("$@")
 
+# Usage info string
+# FIXME: This has tight coupling with the variable USAGE_STRING in Cpp2CAction.cc
+USAGE_STRING="USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra [-i|--in-place]) FILE_NAME"
+
+# Helper method for printing errors messages
+function exit_with_error() {
+    # Terminal colors
+    BRed='\033[1;31m'
+    NC='\033[0m'
+    echo -e "${BRed}error:${NC} $1" 1>/dev/stderr
+    echo "$USAGE_STRING" 1>/dev/stderr
+    exit 1
+}
+
+# Keep a list of the Clang arguments we've accumulated so far
 clang_args=()
+# Adding a single Clang plugin argument needs a lot of boiler-plate code, so
+# we use a helper function to make this easier
 function clang_arg() {
     clang_args+=(-Xclang -plugin-arg-cpp2c -Xclang "$1")
 }
 
-compile=false
+# Exit if user passed no arguments
+test $argc -eq 0 && exit_with_error "No arguments"
+
+# Input file should be the last argument
+input=${argv[(($argc-1))]}
+
+# Check that the user passed a valid input file, and exit if not
+test -f "$input" || exit_with_error "No input file passed"
+
+# Replace user-passed arguments with the corresponding clang plugin argument
 for (( j=0; j<argc; j++ )); do
-    if [ "${argv[j]}" = "-c" ]; then
-        compile=true;
-    elif [ "${argv[j]}" = "-o" ]; then
-        output="${argv[j+1]}";
-    elif [ "${argv[j]}" = "-v" ]; then
+    arg="${argv[j]}"
+
+    # Check that the user passed a valid command
+    if [[ $j = 0 ]]; then
+        if [[ $arg != "tr" && $arg != "transform" && $arg != "ra" && arg != "remove_annotations" ]]; then
+            exit_with_error "Unkown command '$arg'"
+        fi
+    fi
+
+    # Commands
+    if [[ $arg = "tr" || $arg = "transform" ]]; then
+        clang_arg "transform"
+    elif [[ $arg = "ra" || $arg = "remove_annotations" ]]; then
+        clang_arg "remove_annotations"
+
+    # Arguments
+    elif [[ $arg = "-i" || $arg == "--in-place" ]]; then
+        clang_arg -i
+    elif [[ $arg = "-v" || $arg == "--verbose" ]]; then
         clang_arg -v
-    elif [ "${argv[j]}" = "/dev/null" ]; then
-        exec gcc "$@"
+    elif [[ $arg = "-shm" || $arg == "--standard-header-macros" ]]; then
+        clang_arg -shm
+
+    # Error if an unknown arg was passed 
+    else
+        if [[ $j != $(($argc-1)) ]]; then
+           exit_with_error "Unknown argument '$arg'"
+        fi
     fi
 done
 
 
-if [ $compile = true ]; then
-    clang_arg -o
-    clang_arg "$output".macros
-fi
-
+# Execute Cpp2C as a Clang plugin with the given arguments
 exec @CLANG_C_COMPILER@ -fplugin=@PROJECT_BINARY_DIR@/lib/libCpp2C.so \
      -Wno-address-of-packed-member \
      -Wno-unused-argument \
-     "${clang_args[@]}" \
-     "$@" \
      -Wno-unused-parameter \
+     -fsyntax-only \
      -Wno-sign-compare \
-     -Wno-initializer-overrides
-
-
+     -Wno-initializer-overrides \
+     "${clang_args[@]}" \
+     "$input" \
