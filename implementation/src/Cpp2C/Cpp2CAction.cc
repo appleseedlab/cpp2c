@@ -7,7 +7,7 @@ namespace Cpp2C
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c <(transform|tr [(--overwrite-files|-ow)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra)> FILE_NAME";
+    string USAGE_STRING = "USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
@@ -66,7 +66,7 @@ namespace Cpp2C
             for (auto it = optionalArgs; it != args.end(); ++it)
             {
                 std::string arg = *it;
-                if (arg == "-ow" || arg == "--overwrite-files")
+                if (arg == "-i" || arg == "--in-place")
                 {
                     TSettings.OverwriteFiles = true;
                 }
@@ -93,7 +93,7 @@ namespace Cpp2C
             for (auto it = optionalArgs; it != args.end(); ++it)
             {
                 std::string arg = *it;
-                if (arg == "-ow" || arg == "--overwrite-files")
+                if (arg == "-i" || arg == "--in-place")
                 {
                     TSettings.OverwriteFiles = true;
                 }
