@@ -7,7 +7,7 @@ namespace Cpp2C
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c <(transform|tr [(--overwrite-files|-ow)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra)>";
+    string USAGE_STRING = "USAGE: cpp2c <(transform|tr [(--overwrite-files|-ow)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra)> FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
@@ -60,7 +60,7 @@ namespace Cpp2C
         optionalArgs++;
 
         // Transform
-        if (command == "transform" || command == "tr")
+        if (command == "tr" || command == "transform")
         {
             Command = TRANSFORM;
             for (auto it = optionalArgs; it != args.end(); ++it)
@@ -87,7 +87,7 @@ namespace Cpp2C
         }
 
         // Remove annotations
-        else if (command == "remove_annotations" || command == "ra")
+        else if (command == "ra" || command == "remove_annotations")
         {
             Command = REMOVE_ANNOTATIONS;
             for (auto it = optionalArgs; it != args.end(); ++it)
