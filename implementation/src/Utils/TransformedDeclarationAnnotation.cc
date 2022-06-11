@@ -22,8 +22,8 @@ namespace Utils
         j.at("macro name").get_to(TDA.NameOfOriginalMacro);
         j.at("macro type").get_to(TDA.MacroType);
         j.at("macro definition file").get_to(TDA.MacroDefinitionDefinitionFileName);
-        j.at("macro macro definition number").get_to(TDA.MacroDefinitionNumber);
-        j.at("macro transformed signature").get_to(TDA.TransformedSignature);
+        j.at("macro definition number").get_to(TDA.MacroDefinitionNumber);
+        j.at("transformed signature").get_to(TDA.TransformedSignature);
     }
 
     std::string escape_json(const std::string &s)
@@ -53,6 +53,23 @@ namespace Utils
             }
         }
         return o.str();
+    }
+
+    std::string hashTDAOriginalMacro(const TransformedDeclarationAnnotation &TDA)
+    {
+        return TDA.NameOfOriginalMacro + ";" +
+               TDA.MacroType + ";" +
+               TDA.MacroDefinitionDefinitionFileName + ";" +
+               std::to_string(TDA.MacroDefinitionNumber);
+    }
+
+    std::string hashTDA(const TransformedDeclarationAnnotation &TDA)
+    {
+        return TDA.NameOfOriginalMacro + ";" +
+               TDA.MacroType + ";" +
+               TDA.TransformedSignature + ';' +
+               TDA.MacroDefinitionDefinitionFileName + ";" +
+               std::to_string(TDA.MacroDefinitionNumber);
     }
 
 } // namespace Utils

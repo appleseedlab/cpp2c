@@ -42,4 +42,12 @@ namespace Utils
     // This enables us to wrap the emitted JSON string in another string
     // https://stackoverflow.com/questions/7724448/simple-json-string-escape-for-c
     std::string escape_json(const std::string &s);
+
+    // Hashes the original macro that a TransformedDeclarationAnnotation was
+    // transformed from to a string
+    std::string hashTDAOriginalMacro(const TransformedDeclarationAnnotation &TDA);
+
+    // Hashes a given TransformedDeclarationAnnotation instance to a string
+    std::string hashTDA(const TransformedDeclarationAnnotation &TDA);
+
 } // namespace Utils
