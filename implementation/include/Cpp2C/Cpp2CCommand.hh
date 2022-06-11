@@ -6,6 +6,7 @@ namespace Cpp2C
     {
         HELP,
         TRANSFORM,
+        DEDUPLICATE,
         REMOVE_ANNOTATIONS
     };
 } // namespace Cpp2C
