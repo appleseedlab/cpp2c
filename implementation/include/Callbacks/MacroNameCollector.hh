@@ -18,12 +18,14 @@ namespace Callbacks
     private:
         std::set<std::string> &MacroNames;
         std::set<std::string> &MultiplyDefinedMacros;
+        bool Verbose;
         clang::SourceManager &SM;
         const clang::LangOptions &LO;
 
     public:
         MacroNameCollector(std::set<std::string> &MacroNames,
                            std::set<std::string> &MultiplyDefinedMacros,
+                           bool Verbose,
                            clang::SourceManager &SM,
                            const clang::LangOptions &LO);
 

@@ -47,6 +47,7 @@ namespace Transformer
         MacroNameCollector *MNC = new MacroNameCollector(
             MacroNames,
             MultiplyDefinedMacros,
+            TSettings.Verbose,
             CI->getSourceManager(),
             CI->getLangOpts());
         CppSig::MacroForest *MF = new MacroForest(*CI, ExpansionRoots);

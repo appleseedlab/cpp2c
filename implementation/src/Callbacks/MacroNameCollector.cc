@@ -14,10 +14,12 @@ namespace Callbacks
     MacroNameCollector::MacroNameCollector(
         set<string> &MacroNames,
         set<string> &MultiplyDefinedMacros,
+        bool Verbose,
         SourceManager &SM,
         const LangOptions &LO)
         : MacroNames(MacroNames),
           MultiplyDefinedMacros(MultiplyDefinedMacros),
+          Verbose(Verbose),
           SM(SM),
           LO(LO){};
 
@@ -32,7 +34,9 @@ namespace Callbacks
                 MultiplyDefinedMacros.insert(MacroName);
             }
         }
-        // TODO: Only emit macro definition if verbose
-        emitMacroDefinitionMessage(llvm::errs(), MD, SM, LO);
+        if (Verbose)
+        {
+            emitMacroDefinitionMessage(llvm::errs(), MD, SM, LO);
+        }
     }
 } // namespace Callbacks
