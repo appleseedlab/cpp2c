@@ -8,7 +8,7 @@ argv=("$@")
 
 # Usage info string
 # FIXME: This has tight coupling with the variable USAGE_STRING in Cpp2CAction.cc
-USAGE_STRING="USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra [-i|--in-place]) FILE_NAME"
+USAGE_STRING="USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra [-i|--in-place]|(deduplicate|dd [-i|--in-place])) FILE_NAME"
 
 # Helper method for printing errors messages
 function exit_with_error() {
