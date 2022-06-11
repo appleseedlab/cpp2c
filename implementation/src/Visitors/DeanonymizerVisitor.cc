@@ -19,13 +19,13 @@ namespace Visitors
         const clang::Type *T = QT.getTypePtr();
         if (T->isStructureType() || T->isUnionType() || T->isEnumeralType())
         {
-            llvm::errs() << "Found an typedef of a struct/union/enum " << TD->getName().str() << "\n";
+            // llvm::errs() << "Found an typedef of a struct/union/enum " << TD->getName().str() << "\n";
             // Is this type an anonymous type?
             const clang::TagDecl *TaD = T->getAsTagDecl();
             if (TaD->getDeclName().isEmpty())
             {
                 auto TDName = TD->getName();
-                llvm::errs() << "typedef'd struct/union/enum " << TDName.str() << " is anonymous\n";
+                // llvm::errs() << "typedef'd struct/union/enum " << TDName.str() << " is anonymous\n";
 
                 // If so, then rewrite it to not be anonymous by
                 // inserting the typedef name just before the definition
@@ -33,16 +33,16 @@ namespace Visitors
                 auto &SM = Ctx.getSourceManager();
                 auto Def = TaD->getDefinition();
 
-                {
-                    if (Def == nullptr)
-                    {
-                        llvm::errs() << "Deanonymizing a typedef'd struct/union/enum without a definition: " << TDName.str() << "\n";
-                    }
-                    else
-                    {
-                        llvm::errs() << "Deanonymizing a typedef'd struct/union/enum with a definition: " << TDName.str() << "\n";
-                    }
-                }
+                // {
+                //     if (Def == nullptr)
+                //     {
+                //         llvm::errs() << "Deanonymizing a typedef'd struct/union/enum without a definition: " << TDName.str() << "\n";
+                //     }
+                //     else
+                //     {
+                //         llvm::errs() << "Deanonymizing a typedef'd struct/union/enum with a definition: " << TDName.str() << "\n";
+                //     }
+                // }
 
                 auto LBraceLoc = Def->getBraceRange().getBegin();
                 LBraceLoc = SM.getExpansionLoc(LBraceLoc);
