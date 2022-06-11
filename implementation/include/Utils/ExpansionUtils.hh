@@ -3,6 +3,8 @@
 #include "CppSig/MacroExpansionNode.hh"
 #include "SourceRangeCollection.hh"
 
+#include "nlohmann/single_include/json.hpp"
+
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/LangOptions.h"
 #include "clang/Lex/MacroInfo.h"
@@ -11,10 +13,10 @@
 #include <string>
 #include <vector>
 
+// TODO: Divide these functions up under more meaningful namespaces
+
 namespace Utils
 {
-    using CppSig::MacroExpansionNode;
-
     // Returns true if the given expansion transforms to a variable, false
     // otherwise
     //
@@ -46,7 +48,7 @@ namespace Utils
     // function signature; false otherwise
     bool expansionHasUnambiguousSignature(
         clang::ASTContext &Ctx,
-        MacroExpansionNode *Expansion);
+        CppSig::MacroExpansionNode *Expansion);
 
     // Returns true if the given variable declaration is a global variable,
     // false otherwise
@@ -139,5 +141,14 @@ namespace Utils
     // Given a pointer to a Type object, removes all pointers in the type
     // and returns the base type
     clang::QualType getPointeeType(clang::QualType T);
+
+    // Given a pointer to a Decl, returns the string representation of
+    // the Decl's first 'annotate' attribute, or the empty string
+    // if it doesn't have one
+    std::string getFirstAnnotationOrEmpty(clang::Decl *);
+
+    // Given an entire annotation string, extracts the braced portion of the
+    // string, parses it to JSON, and the returns the parsed value
+    nlohmann::json annotationStringToJson(std::string anno);
 
 } // namespace Utils
