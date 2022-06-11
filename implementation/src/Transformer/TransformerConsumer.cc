@@ -50,7 +50,9 @@ namespace Transformer
             TSettings.Verbose,
             CI->getSourceManager(),
             CI->getLangOpts());
-        CppSig::MacroForest *MF = new MacroForest(*CI, ExpansionRoots);
+        CppSig::MacroForest *MF = new MacroForest(*CI,
+                                                  TSettings.Verbose,
+                                                  ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
     }
