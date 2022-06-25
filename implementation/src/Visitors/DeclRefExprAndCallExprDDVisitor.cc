@@ -41,7 +41,7 @@ namespace Visitors
             ReferencedDecl = clang::dyn_cast_or_null<clang::NamedDecl>(PD);
         }
 
-        // Check that wer are replacing a transformed decl
+        // Check that we are replacing a transformed decl
         if (TransformedDeclToCanonicalDecl.find(ReferencedDecl) !=
             TransformedDeclToCanonicalDecl.end())
         {
