@@ -54,10 +54,6 @@ namespace Deduplicator
             if (CanonD == nullptr)
             {
                 CanonD = TransformedDecls.front();
-                // FIXME: There has to be a better way to do this
-                // UPDATE: There is!
-                // See here for a great way to refactor this: https://reviews.llvm.org/D31343
-                // Look at AnnotateAttr:Create
 
                 // Get the range the decl originally covered
                 auto ReplacementRange = SM.getExpansionRange(CanonD->getSourceRange());
