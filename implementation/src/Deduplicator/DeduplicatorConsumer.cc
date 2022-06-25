@@ -47,6 +47,7 @@ namespace Deduplicator
                 if (Utils::getFirstAnnotationOrEmpty(D).find("canonical") != std::string::npos)
                 {
                     CanonD = D;
+                    break;
                 }
             }
             // If we didn't find a canonical decl, then assign the first one in
