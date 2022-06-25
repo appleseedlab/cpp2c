@@ -8,7 +8,7 @@ namespace Cpp2C
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra [-i|--in-place]|(deduplicate|dd [-i|--in-place])) FILE_NAME";
+    string USAGE_STRING = "USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(deduplicate|dd [-i|--in-place])|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
