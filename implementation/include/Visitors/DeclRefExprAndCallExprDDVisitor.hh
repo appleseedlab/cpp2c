@@ -14,12 +14,12 @@ namespace Visitors
     {
     private:
         clang::Rewriter &RW;
-        std::map<std::string, std::string> &TransformedDeclNameToCanonicalName;
+        std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl;
 
     public:
         explicit DeclRefExprAndCallExprDDVisitor(
             clang::Rewriter &RW,
-            std::map<std::string, std::string> &TransformedDeclNameToCanonicalName);
+            std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl);
 
         bool VisitExpr(clang::Expr *E);
     };

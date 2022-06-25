@@ -72,4 +72,26 @@ namespace Utils
                std::to_string(TDA.MacroDefinitionNumber);
     }
 
+    std::string getFirstAnnotationOrEmpty(clang::Decl *D)
+    {
+        for (auto &&it : D->attrs())
+        {
+            if (auto Atty = clang::dyn_cast_or_null<clang::AnnotateAttr>(it))
+            {
+                return Atty->getAnnotation().str();
+            }
+        }
+        return "";
+    }
+
+    nlohmann::json annotationStringToJson(std::string annotation)
+    {
+        // Remove all the parts of the annotation around the JSON string
+        std::size_t JSONBegin = annotation.find_first_of('{');
+        std::size_t JSONEnd = annotation.find_last_of('}');
+        auto JSONLen = JSONEnd - JSONBegin + 1;
+        auto JSONString = annotation.substr(JSONBegin, JSONLen);
+        return nlohmann::json::parse(JSONString);
+    }
+
 } // namespace Utils

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "nlohmann/single_include/json.hpp"
+
 #include "clang/AST/RecursiveASTVisitor.h"
 
 #include <map>
@@ -16,13 +18,15 @@ namespace Visitors
         : public clang::RecursiveASTVisitor<MacroTransformationMapperVisitor>
     {
     private:
-        std::map<std::string, std::vector<clang::Decl *>> TransformedMacroMap;
-        std::map<clang::Decl *, std::string> TransformedDeclToMacroHash;
+        std::map<std::string, std::vector<clang::NamedDecl *>> MacroHashToTransformedDecls;
+        std::map<clang::NamedDecl *, std::string> TransformedDeclToMacroHash;
+        std::map<clang::NamedDecl *, nlohmann::json> TransformedDeclToJSONAnnotation;
 
     public:
-        bool VisitDecl(clang::Decl *D);
+        bool VisitNamedDecl(clang::NamedDecl *ND);
 
-        std::map<std::string, std::vector<clang::Decl *>> &getTransformedMacroMapRef();
-        std::map<clang::Decl *, std::string> &getTransformedDeclToMacroHashRef();
+        std::map<std::string, std::vector<clang::NamedDecl *>> &getMacroHashToTransformedDeclsRef();
+        std::map<clang::NamedDecl *, std::string> &getTransformedDeclToMacroHashRef();
+        std::map<clang::NamedDecl *, nlohmann::json> &getTransformedDeclToJSONAnnotationRef();
     };
 } // namespace Visitors

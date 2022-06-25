@@ -1,5 +1,5 @@
 #include "Visitors/ForwardDeclDDVisitor.hh"
-#include "Utils/ExpansionUtils.hh"
+#include "Utils/TransformedDeclarationAnnotation.hh"
 
 #include "clang/Basic/SourceManager.h"
 

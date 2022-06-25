@@ -6,21 +6,14 @@ namespace Visitors
 
     FunctionDefinitionDDVisitor::FunctionDefinitionDDVisitor(
         clang::Rewriter &RW,
-        std::set<std::string> &TransformedDeclNames,
-        std::set<clang::Decl *> &CanonicalDecls)
+        std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl,
+        std::map<clang::NamedDecl *, nlohmann::json> &TransformedDeclToJSON)
         : RW(RW),
-          TransformedDeclNames(TransformedDeclNames),
-          CanonicalDecls(CanonicalDecls) {}
+          TransformedDeclToCanonicalDecl(TransformedDeclToCanonicalDecl),
+          TransformedDeclToJSON(TransformedDeclToJSON) {}
 
     bool FunctionDefinitionDDVisitor::VisitNamedDecl(clang::NamedDecl *ND)
     {
-        // Only visit transformed definitions
-        if (TransformedDeclNames.find(ND->getNameAsString()) ==
-            TransformedDeclNames.end())
-        {
-            return true;
-        }
-
         // Only visit function definitions and variable initializations
         if (
             (!llvm::isa_and_nonnull<clang::FunctionDecl>(ND) ||
@@ -31,25 +24,31 @@ namespace Visitors
             return true;
         }
 
-        // Get the previous declaration (should be a single one)
-        if (auto PD = ND->getPreviousDecl())
+        // Get the previous declaration (should be the single declaration
+        // for this transformed definition since we emit one transformed
+        // decl and def per transformation)
+        if (auto TransformedDecl = clang::dyn_cast_or_null<clang::NamedDecl>(ND->getPreviousDecl()))
         {
-            // Only erase noncanonical decls
-            if (CanonicalDecls.find(PD) == CanonicalDecls.end())
+            // Only erase transformed, noncanonical decls
+            if ((TransformedDeclToCanonicalDecl.find(TransformedDecl) != TransformedDeclToCanonicalDecl.end()) &&
+                (!TransformedDeclToJSON[TransformedDecl].contains("canonical")))
             {
-                // Not sure if it matters if I use ND, FD, or PD here
-                auto &Ctx = ND->getASTContext();
-                auto &SM = Ctx.getSourceManager();
-                auto PDRange = SM.getExpansionRange(PD->getSourceRange());
+                auto &SM = RW.getSourceMgr();
+                auto TransformedDeclRange = SM.getExpansionRange(TransformedDecl->getSourceRange());
                 auto FDRange = SM.getExpansionRange(ND->getSourceRange());
                 // Extend ranges by 1 to account for trailing semicolon
-                PDRange.setEnd(PDRange.getEnd().getLocWithOffset(1));
+                TransformedDeclRange.setEnd(TransformedDeclRange.getEnd().getLocWithOffset(1));
                 FDRange.setEnd(FDRange.getEnd().getLocWithOffset(1));
                 bool failed;
-                failed = RW.RemoveText(PDRange);
+                failed = RW.RemoveText(TransformedDeclRange);
                 assert(!failed);
                 RW.RemoveText(FDRange);
                 assert(!failed);
+
+                // Update the deduplication count for this transformed decl's
+                // canonical decl
+                auto CanonD = TransformedDeclToCanonicalDecl[TransformedDecl];
+                TransformedDeclToJSON[CanonD]["deduped definitions"] = TransformedDeclToJSON[CanonD]["deduped definitions"].get<unsigned int>() + 1;
             }
         }
         return true;

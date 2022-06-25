@@ -6,21 +6,21 @@ namespace Visitors
 {
     DeclRefExprAndCallExprDDVisitor::DeclRefExprAndCallExprDDVisitor(
         clang::Rewriter &RW,
-        std::map<std::string, std::string> &TransformedDeclNameToCanonicalName)
+        std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl)
         : RW(RW),
-          TransformedDeclNameToCanonicalName(TransformedDeclNameToCanonicalName) {}
+          TransformedDeclToCanonicalDecl(TransformedDeclToCanonicalDecl) {}
 
     bool DeclRefExprAndCallExprDDVisitor::VisitExpr(clang::Expr *E)
     {
         // Get the name of the referenced deduped decl
-        std::string ReferencedName;
+        clang::NamedDecl *ReferencedDecl = nullptr;
         if (auto DRE = clang::dyn_cast_or_null<clang::DeclRefExpr>(E))
         {
-            ReferencedName = DRE->getFoundDecl()->getNameAsString();
+            ReferencedDecl = DRE->getFoundDecl();
         }
         else if (auto CE = clang::dyn_cast_or_null<clang::CallExpr>(E))
         {
-            ReferencedName = CE->getDirectCallee()->getNameAsString();
+            ReferencedDecl = CE->getDirectCallee();
         }
         // Only visit DeclRefExpr and CallExpr
         else
@@ -28,14 +28,30 @@ namespace Visitors
             return true;
         }
 
-        // Check that wer are replacing a transformed decl name
-        if (TransformedDeclNameToCanonicalName.find(ReferencedName) !=
-            TransformedDeclNameToCanonicalName.end())
+        // Our mapping is strictly from _declarations_ to _declarations_,
+        // and does not include definitions.
+        // However, (I think) the referenced decl we just found may be a
+        // definition; if this is the case, then it would be the second decl
+        // we emitted for this transformed decl and def.
+        // So set it to its previous decl
+        // (which is guaranteed to be just a declaration) instead.
+        // This may all be unnecessary, but better safe than sorry!
+        if (auto PD = ReferencedDecl->getPreviousDecl())
         {
+            ReferencedDecl = clang::dyn_cast_or_null<clang::NamedDecl>(PD);
+        }
+
+        // Check that wer are replacing a transformed decl
+        if (TransformedDeclToCanonicalDecl.find(ReferencedDecl) !=
+            TransformedDeclToCanonicalDecl.end())
+        {
+            auto CanonicalDecl = TransformedDeclToCanonicalDecl[ReferencedDecl];
+
             // Replace the first n characters of the expression,
             // where n is the length of the referenced name,
             // with the name of the canonical decl
-            auto CanonicalName = TransformedDeclNameToCanonicalName[ReferencedName];
+            std::string CanonicalName = CanonicalDecl->getNameAsString();
+            std::string ReferencedName = ReferencedDecl->getNameAsString();
 
             auto &SM = RW.getSourceMgr();
             auto Begin = SM.getExpansionLoc(E->getBeginLoc());

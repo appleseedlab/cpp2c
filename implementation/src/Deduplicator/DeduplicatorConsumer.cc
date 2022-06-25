@@ -30,21 +30,23 @@ namespace Deduplicator
         // Map each transformed macro to its transformed declarations
         auto MTMV = Visitors::MacroTransformationMapperVisitor();
         MTMV.TraverseTranslationUnitDecl(TUD);
+        auto &DeclToJSON = MTMV.getTransformedDeclToJSONAnnotationRef();
 
-        std::map<std::string, clang::Decl *> MacroHashToCanonDecl;
+        std::map<std::string, clang::NamedDecl *> MacroHashToCanonDecl;
         // Map each transformed macro to its "canonical declaration", i.e.
         // the transformed declaration to keep when deduplicating
-        // Also map each transformed decl to its macro hash
-        for (auto &&it : MTMV.getTransformedMacroMapRef())
+        for (auto &&it : MTMV.getMacroHashToTransformedDeclsRef())
         {
             auto MacroHash = it.first;
             auto TransformedDecls = it.second;
 
             // Find the canonical decl, if one was already chosen in a prior run
-            clang::Decl *CanonD = nullptr;
+            clang::NamedDecl *CanonD = nullptr;
             for (auto &&D : TransformedDecls)
             {
-                if (Utils::getFirstAnnotationOrEmpty(D).find("canonical") != std::string::npos)
+                // The decl should definitely be in the map, so do an
+                // unconditional lookup
+                if (DeclToJSON[D].contains("canonical"))
                 {
                     CanonD = D;
                     break;
@@ -56,85 +58,63 @@ namespace Deduplicator
             {
                 CanonD = TransformedDecls.front();
 
-                // Get the range the decl originally covered
-                auto ReplacementRange = SM.getExpansionRange(CanonD->getSourceRange());
-
-                // Get the current JSON annotation
-                auto annotation = Utils::getFirstAnnotationOrEmpty(CanonD);
-                auto j = Utils::annotationStringToJson(annotation);
-                // Add the field '"canonical" : true' to it
-                j["canonical"] = true;
-                auto newAnnotationString = Utils::escape_json(j.dump());
-
-                // Replace the decl's annotation with the new one
-                CanonD->dropAttrs();
-                auto Atty = clang::AnnotateAttr::Create(Ctx, newAnnotationString);
-                CanonD->addAttr(Atty);
-
-                // Print the new decl to a string
-                std::string S;
-                llvm::raw_string_ostream SS(S);
-                CanonD->print(SS);
-
-                // Replace the old decl with the new one
-                auto failed = RW.ReplaceText(ReplacementRange, SS.str());
-                if (failed)
-                {
-                    llvm::errs() << "Failed to remove attribute range: ";
-                    ReplacementRange.getAsRange().dump(SM);
-                }
+                // Update the canonical decl's JSON annotation
+                DeclToJSON[CanonD]["canonical"] = true;
+                DeclToJSON[CanonD]["deduped definitions"] = 0U;
             }
             MacroHashToCanonDecl[MacroHash] = CanonD;
         }
 
-        // Create a set of all the canonical decls
-        // Should all be unique anyway
-        std::set<clang::Decl *> CanonicalDecls;
-        for (auto &&it : MacroHashToCanonDecl)
-        {
-            auto CD = it.second;
-            CanonicalDecls.insert(CD);
-        }
-        // Create a set of all transformed declaration names
-        std::set<std::string> TransformedDeclNames;
-        for (auto &&it : MTMV.getTransformedDeclToMacroHashRef())
-        {
-            auto D = it.first;
-            if (auto ND = clang::dyn_cast_or_null<clang::NamedDecl>(D))
-            {
-                TransformedDeclNames.insert(ND->getNameAsString());
-            }
-        }
-
-        // Visit each function definiton, and remove those which have a
-        // previous declaration without the key "canonical" in their
-        // JSON annotation
-        auto FDDV = Visitors::FunctionDefinitionDDVisitor(RW, TransformedDeclNames, CanonicalDecls);
-        FDDV.TraverseTranslationUnitDecl(TUD);
-
-        // Map each transformed decl name to the name of its transformed
+        // Map each transformed decl to its transformed
         // macro's canonical decl (which may just be itself)
-        std::map<std::string, std::string> TransformedDeclNameToCanonicalName;
+        std::map<clang::NamedDecl *, clang::NamedDecl *> TransformedDeclToCanonicalDecl;
         for (auto &&it : MTMV.getTransformedDeclToMacroHashRef())
         {
             auto TD = it.first;
-            auto TransformedName = clang::dyn_cast<clang::NamedDecl>(TD)->getNameAsString();
-
             auto MacroHash = it.second;
             auto CanonicalD = MacroHashToCanonDecl[MacroHash];
-            auto CanonicalName = clang::dyn_cast<clang::NamedDecl>(CanonicalD)->getNameAsString();
 
-            TransformedDeclNameToCanonicalName[TransformedName] = CanonicalName;
+            TransformedDeclToCanonicalDecl[TD] = CanonicalD;
         }
+
+        // Remove all noncanonical transformed definitions
+        auto FDDV = Visitors::FunctionDefinitionDDVisitor(RW,
+                                                          TransformedDeclToCanonicalDecl,
+                                                          DeclToJSON);
+        FDDV.TraverseTranslationUnitDecl(TUD);
 
         // Replace calls/var derefs to deduplicated definitions with their
         // canonical counterparts
-        auto DRECEDV = Visitors::DeclRefExprAndCallExprDDVisitor(RW, TransformedDeclNameToCanonicalName);
+        auto DRECEDV = Visitors::DeclRefExprAndCallExprDDVisitor(RW, TransformedDeclToCanonicalDecl);
         DRECEDV.TraverseTranslationUnitDecl(TUD);
 
-        // TODO
-        // Add the number of deduplicated decls to the JSON annotation
-        // of each canonical decl
+        // Write changes to all canonical decls' JSON annotations
+        for (auto &&it : MacroHashToCanonDecl)
+        {
+            auto ND = it.second;
+            // Get the new annotation
+            auto j = DeclToJSON[ND];
+            // Dump it to a string
+            auto newAnnotationString = Utils::escape_json(j.dump());
+
+            // Replace the decl's annotation with the new one
+            ND->dropAttrs();
+            auto Atty = clang::AnnotateAttr::Create(Ctx, newAnnotationString);
+            ND->addAttr(Atty);
+
+            // Print the new decl to a string
+            std::string S;
+            llvm::raw_string_ostream SS(S);
+            ND->print(SS);
+
+            auto &SM = Ctx.getSourceManager();
+            // Get the range the decl originally covered
+            auto ReplacementRange = SM.getExpansionRange(ND->getSourceRange());
+
+            // Replace the old decl with the new one
+            auto failed = RW.ReplaceText(ReplacementRange, SS.str());
+            assert(!failed);
+        }
 
         // Rewrite changes, or print them to stdout
         if (DDSettings.OverwriteFiles)

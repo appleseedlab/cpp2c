@@ -6,17 +6,17 @@
 
 namespace Visitors
 {
-    bool MacroTransformationMapperVisitor::VisitDecl(clang::Decl *D)
+    bool MacroTransformationMapperVisitor::VisitNamedDecl(clang::NamedDecl *ND)
     {
         // Only visit transformed decls, not definitions
-        if (auto VD = clang::dyn_cast_or_null<clang::VarDecl>(D))
+        if (auto VD = clang::dyn_cast_or_null<clang::VarDecl>(ND))
         {
             if (VD->hasInit())
             {
                 return true;
             }
         }
-        else if (auto FD = clang::dyn_cast_or_null<clang::FunctionDecl>(D))
+        else if (auto FD = clang::dyn_cast_or_null<clang::FunctionDecl>(ND))
         {
             if (FD->isThisDeclarationADefinition())
             {
@@ -25,7 +25,7 @@ namespace Visitors
         }
 
         // Get this decl's first annotation
-        std::string annotation = Utils::getFirstAnnotationOrEmpty(D);
+        std::string annotation = Utils::getFirstAnnotationOrEmpty(ND);
         // Check that this annotation is in fact one that was
         // emitted by Cpp2C
         if (annotation.find("emitted by CPP2C") != std::string::npos)
@@ -42,8 +42,11 @@ namespace Visitors
 
                 // Add it to the list of transformed declarations for
                 // this macro
-                TransformedMacroMap[hash].push_back(D);
-                TransformedDeclToMacroHash[D] = hash;
+                MacroHashToTransformedDecls[hash].push_back(ND);
+                // Map this transformed decl to its macro hash
+                TransformedDeclToMacroHash[ND] = hash;
+                // Map this transformed decl to its JSON annotation
+                TransformedDeclToJSONAnnotation[ND] = j;
             }
             catch (nlohmann::json::parse_error &e)
             {
@@ -54,16 +57,22 @@ namespace Visitors
         return true;
     }
 
-    std::map<std::string, std::vector<clang::Decl *>>
-        &MacroTransformationMapperVisitor::getTransformedMacroMapRef()
+    std::map<std::string, std::vector<clang::NamedDecl *>>
+        &MacroTransformationMapperVisitor::getMacroHashToTransformedDeclsRef()
     {
-        return TransformedMacroMap;
+        return MacroHashToTransformedDecls;
     }
 
-    std::map<clang::Decl *, std::string>
+    std::map<clang::NamedDecl *, std::string>
         &MacroTransformationMapperVisitor::getTransformedDeclToMacroHashRef()
     {
         return TransformedDeclToMacroHash;
+    }
+
+    std::map<clang::NamedDecl *, nlohmann::json>
+        &MacroTransformationMapperVisitor::getTransformedDeclToJSONAnnotationRef()
+    {
+        return TransformedDeclToJSONAnnotation;
     }
 
 } // namespace Visitors

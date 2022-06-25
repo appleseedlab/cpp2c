@@ -1,6 +1,12 @@
 #pragma once
 
 #include "nlohmann/single_include/json.hpp"
+
+#include "clang/AST/ASTContext.h"
+#include "clang/AST/Attr.h"
+#include "clang/Basic/SourceManager.h"
+#include "clang/Rewrite/Core/Rewriter.h"
+
 #include <string>
 #include <stddef.h>
 
@@ -49,5 +55,14 @@ namespace Utils
 
     // Hashes a given TransformedDeclarationAnnotation instance to a string
     std::string hashTDA(const TransformedDeclarationAnnotation &TDA);
+
+    // Given a pointer to a Decl, returns the string representation of
+    // the Decl's first 'annotate' attribute, or the empty string
+    // if it doesn't have one
+    std::string getFirstAnnotationOrEmpty(clang::Decl *);
+
+    // Given an entire annotation string, extracts the braced portion of the
+    // string, parses it to JSON, and the returns the parsed value
+    nlohmann::json annotationStringToJson(std::string anno);
 
 } // namespace Utils

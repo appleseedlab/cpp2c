@@ -685,35 +685,4 @@ namespace Utils
         return PointeeType;
     }
 
-    std::string getFirstAnnotationOrEmpty(clang::Decl *D)
-    {
-        for (auto &&it : D->attrs())
-        {
-            if (auto attrName = it->getAttrName())
-            {
-                std::string attrNameStr = attrName->getName().str();
-                if (attrNameStr == "annotate")
-                {
-                    std::string SS;
-                    llvm::raw_string_ostream S(SS);
-                    auto &PP = D->getASTContext().getPrintingPolicy();
-                    it->printPretty(S, PP);
-                    std::string annotation = S.str();
-                    return annotation;
-                }
-            }
-        }
-        return "";
-    }
-
-    nlohmann::json annotationStringToJson(std::string annotation)
-    {
-        // Remove all the parts of the annotation around the JSON string
-        std::size_t JSONBegin = annotation.find_first_of('{');
-        std::size_t JSONEnd = annotation.find_last_of('}');
-        auto JSONLen = JSONEnd - JSONBegin + 1;
-        auto JSONString = annotation.substr(JSONBegin, JSONLen);
-        return nlohmann::json::parse(JSONString);
-    }
-
 } // namespace Utils
