@@ -34,7 +34,7 @@ namespace Deduplicator
         std::map<std::string, clang::Decl *> MacroHashToCanonDecl;
         // Map each transformed macro to its "canonical declaration", i.e.
         // the transformed declaration to keep when deduplicating
-        // Also map each transformed decls to its macro hash
+        // Also map each transformed decl to its macro hash
         for (auto &&it : MTMV.getTransformedMacroMapRef())
         {
             auto MacroHash = it.first;
