@@ -1,32 +1,23 @@
 #include "Visitors/DeclRefExprAndCallExprDDVisitor.hh"
 
+#include "Utils/ExpansionUtils.hh"
+
 #include "clang/Basic/SourceManager.h"
 
 namespace Visitors
 {
     DeclRefExprAndCallExprDDVisitor::DeclRefExprAndCallExprDDVisitor(
         clang::Rewriter &RW,
-        std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl)
+        std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl,
+        std::map<clang::NamedDecl *, nlohmann::json> &TransformedDeclToJSON)
         : RW(RW),
-          TransformedDeclToCanonicalDecl(TransformedDeclToCanonicalDecl) {}
+          TransformedDeclToCanonicalDecl(TransformedDeclToCanonicalDecl),
+          TransformedDeclToJSON(TransformedDeclToJSON) {}
 
-    bool DeclRefExprAndCallExprDDVisitor::VisitExpr(clang::Expr *E)
+    bool DeclRefExprAndCallExprDDVisitor::VisitDeclRefExpr(clang::DeclRefExpr *DRE)
     {
         // Get the name of the referenced deduped decl
-        clang::NamedDecl *ReferencedDecl = nullptr;
-        if (auto DRE = clang::dyn_cast_or_null<clang::DeclRefExpr>(E))
-        {
-            ReferencedDecl = DRE->getFoundDecl();
-        }
-        else if (auto CE = clang::dyn_cast_or_null<clang::CallExpr>(E))
-        {
-            ReferencedDecl = CE->getDirectCallee();
-        }
-        // Only visit DeclRefExpr and CallExpr
-        else
-        {
-            return true;
-        }
+        clang::NamedDecl *ReferencedDecl = DRE->getFoundDecl();
 
         // Our mapping is strictly from _declarations_ to _declarations_,
         // and does not include definitions.
@@ -45,7 +36,31 @@ namespace Visitors
         if (TransformedDeclToCanonicalDecl.find(ReferencedDecl) !=
             TransformedDeclToCanonicalDecl.end())
         {
+
+            // Are we trying to replace a call/declref inside a
+            // noncanonical transformed definition?
+            auto &Ctx = ReferencedDecl->getASTContext();
+            // TODO: Remove this const cast
+            auto DeclExpandedIn = const_cast<clang::NamedDecl *>(Utils::getTopLevelNamedDeclStmtExpandedIn(Ctx, DRE));
+            // Again, make sure we get the decl, not the def
+            if (auto PD = DeclExpandedIn->getPreviousDecl())
+            {
+                DeclExpandedIn = clang::dyn_cast_or_null<clang::NamedDecl>(PD);
+            }
+
+            // Don't replace calls inside of deduped definitions
+            if ((TransformedDeclToJSON.find(DeclExpandedIn) != TransformedDeclToJSON.end()) &&
+                !TransformedDeclToJSON[DeclExpandedIn].contains("canonical"))
+            {
+                return true;
+            }
             auto CanonicalDecl = TransformedDeclToCanonicalDecl[ReferencedDecl];
+
+            // Don't replace calls to canonical decls
+            if (TransformedDeclToJSON[ReferencedDecl].contains("canonical"))
+            {
+                return true;
+            }
 
             // Replace the first n characters of the expression,
             // where n is the length of the referenced name,
@@ -54,13 +69,11 @@ namespace Visitors
             std::string ReferencedName = ReferencedDecl->getNameAsString();
 
             auto &SM = RW.getSourceMgr();
-            auto Begin = SM.getExpansionLoc(E->getBeginLoc());
-            // Important: Need to subtract 1 here for range to be correct
-            auto End = Begin.getLocWithOffset(ReferencedName.length() - 1);
-            auto RewriteRange = clang::SourceRange(Begin, End);
-
-            bool failed = RW.ReplaceText(RewriteRange, CanonicalName);
+            auto Begin = SM.getFileLoc(DRE->getExprLoc());
+            bool failed = RW.ReplaceText(Begin, ReferencedName.size(), CanonicalName);
+            TransformedDeclToJSON[CanonicalDecl]["unique transformations"] = TransformedDeclToJSON[CanonicalDecl]["unique transformations"].get<int>() + 1;
             assert(!failed);
+            // llvm::errs() << "Replaced " << ReferencedName << " with " << CanonicalName << " in " << DeclExpandedIn->getNameAsString() << "\n";
         }
 
         return true;

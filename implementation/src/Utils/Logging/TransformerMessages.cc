@@ -21,12 +21,12 @@ namespace Utils
             SourceManager &SM = Ctx.getSourceManager();
             const LangOptions &LO = Ctx.getLangOpts();
             auto ST = Expansion->getStmtsRef().size() > 0 ? *Expansion->getStmtsRef().begin() : nullptr;
-            string s = getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(Ctx, ST);
+            auto ND = Utils::getTopLevelNamedDeclStmtExpandedIn(Ctx, ST);
             OS << "CPP2C:"
                << "Untransformed Expansion,"
                << "\"" << hashMacro(Expansion->getMI(), SM, LO) << "\","
                << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
-               << s << ","
+               << ND->getNameAsString() << ","
                << Category << ","
                << Reason << "\n";
         }
@@ -81,12 +81,12 @@ namespace Utils
             SourceManager &SM,
             const LangOptions &LO)
         {
-            string s = getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(Ctx, *Expansion->getStmtsRef().begin());
+            auto ND = Utils::getTopLevelNamedDeclStmtExpandedIn(Ctx, *Expansion->getStmtsRef().begin());
             OS << "CPP2C:"
                << "Transformed Expansion,"
                << "\"" << hashMacro(Expansion->getMI(), SM, LO) << "\","
                << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
-               << s << "\n";
+               << ND->getNameAsString() << "\n";
         }
 
     } // namespace Logging

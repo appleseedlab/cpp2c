@@ -27,28 +27,35 @@ namespace Visitors
         // Get the previous declaration (should be the single declaration
         // for this transformed definition since we emit one transformed
         // decl and def per transformation)
-        if (auto TransformedDecl = clang::dyn_cast_or_null<clang::NamedDecl>(ND->getPreviousDecl()))
+        if (auto PD = clang::dyn_cast_or_null<clang::NamedDecl>(ND->getPreviousDecl()))
         {
-            // Only erase transformed, noncanonical decls
-            if ((TransformedDeclToCanonicalDecl.find(TransformedDecl) != TransformedDeclToCanonicalDecl.end()) &&
-                (!TransformedDeclToJSON[TransformedDecl].contains("canonical")))
+            // Only consider defs of a transformed decl
+            if ((TransformedDeclToCanonicalDecl.find(PD) != TransformedDeclToCanonicalDecl.end()))
             {
-                auto &SM = RW.getSourceMgr();
-                auto TransformedDeclRange = SM.getExpansionRange(TransformedDecl->getSourceRange());
-                auto FDRange = SM.getExpansionRange(ND->getSourceRange());
-                // Extend ranges by 1 to account for trailing semicolon
-                TransformedDeclRange.setEnd(TransformedDeclRange.getEnd().getLocWithOffset(1));
-                FDRange.setEnd(FDRange.getEnd().getLocWithOffset(1));
-                bool failed;
-                failed = RW.RemoveText(TransformedDeclRange);
-                assert(!failed);
-                RW.RemoveText(FDRange);
-                assert(!failed);
+                auto TransformedDecl = PD;
+                auto TransformedDef = ND;
+                // Only erase noncanonical defs and decls
+                if (!TransformedDeclToJSON[TransformedDecl].contains("canonical"))
+                {
+                    auto &SM = RW.getSourceMgr();
+                    auto TransformedDeclRange = clang::SourceRange(
+                        SM.getFileLoc(TransformedDecl->getBeginLoc()),
+                        SM.getFileLoc(TransformedDecl->getEndLoc()));
 
-                // Update the deduplication count for this transformed decl's
-                // canonical decl
-                auto CanonD = TransformedDeclToCanonicalDecl[TransformedDecl];
-                TransformedDeclToJSON[CanonD]["deduped definitions"] = TransformedDeclToJSON[CanonD]["deduped definitions"].get<unsigned int>() + 1;
+                    // Add 1 to decl range end for trailing semicolon
+                    TransformedDeclRange.setEnd(TransformedDeclRange.getEnd().getLocWithOffset(1));
+
+                    auto TransformedDefinitionRange = clang::SourceRange(
+                        SM.getFileLoc(TransformedDef->getBeginLoc()),
+                        SM.getFileLoc(TransformedDef->getEndLoc()));
+
+                    bool failed;
+
+                    failed = RW.RemoveText(TransformedDeclRange);
+                    assert(!failed);
+                    failed = RW.RemoveText(TransformedDefinitionRange);
+                    assert(!failed);
+                }
             }
         }
         return true;

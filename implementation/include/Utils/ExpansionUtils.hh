@@ -132,7 +132,7 @@ namespace Utils
     // was expanded in
     const clang::FunctionDecl *getFunctionDeclStmtExpandedIn(clang::ASTContext &Ctx, const clang::Stmt *S);
 
-    std::string getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(clang::ASTContext &Ctx, const clang::Stmt *S);
+    const clang::NamedDecl *getTopLevelNamedDeclStmtExpandedIn(clang::ASTContext &Ctx, const clang::Stmt *S);
 
     std::string getUniqueNameForExpansionTransformation(
         CppSig::MacroExpansionNode *Expansion,

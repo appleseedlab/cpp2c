@@ -590,12 +590,11 @@ namespace Utils
         return nullptr;
     }
 
-    string getNameOfTopLevelVarOrFunctionDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S)
+    const clang::NamedDecl *getTopLevelNamedDeclStmtExpandedIn(ASTContext &Ctx, const Stmt *S)
     {
-        string none = "<none>";
         if (!S)
         {
-            return none;
+            return nullptr;
         }
 
         Ctx.getParents(*S);
@@ -608,20 +607,16 @@ namespace Utils
                 if (D->getParentFunctionOrMethod() == nullptr)
                 {
                     // Found a top level declaration
-                    if (auto FD = dyn_cast_or_null<FunctionDecl>(D))
+                    if (auto ND = dyn_cast_or_null<clang::NamedDecl>(D))
                     {
-                        return FD->getName().str();
-                    }
-                    else if (auto VD = dyn_cast_or_null<VarDecl>(D))
-                    {
-                        return VD->getName().str();
+                        return ND;
                     }
                 }
             }
             P = (Ctx.getParents(*P).begin());
         }
 
-        return none;
+        return nullptr;
     }
 
     string getUniqueNameForExpansionTransformation(

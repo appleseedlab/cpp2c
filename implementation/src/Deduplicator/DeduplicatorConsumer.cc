@@ -33,9 +33,10 @@ namespace Deduplicator
         auto &DeclToJSON = MTMV.getTransformedDeclToJSONAnnotationRef();
 
         std::map<std::string, clang::NamedDecl *> MacroHashToCanonDecl;
+        auto &MacroHashToTransformedDecl = MTMV.getMacroHashToTransformedDeclsRef();
         // Map each transformed macro to its "canonical declaration", i.e.
         // the transformed declaration to keep when deduplicating
-        for (auto &&it : MTMV.getMacroHashToTransformedDeclsRef())
+        for (auto &&it : MacroHashToTransformedDecl)
         {
             auto MacroHash = it.first;
             auto TransformedDecls = it.second;
@@ -52,15 +53,15 @@ namespace Deduplicator
                     break;
                 }
             }
-            // If we didn't find a canonical decl, then assign the first one in
+            // If we didn't find a canonical decl, then assign the last one in
             // the vector of transformed decls to be the canonical decl
             if (CanonD == nullptr)
             {
-                CanonD = TransformedDecls.front();
+                CanonD = TransformedDecls.back();
 
                 // Update the canonical decl's JSON annotation
                 DeclToJSON[CanonD]["canonical"] = true;
-                DeclToJSON[CanonD]["deduped definitions"] = 0U;
+                DeclToJSON[CanonD]["unique transformations"] = 1;
             }
             MacroHashToCanonDecl[MacroHash] = CanonD;
         }
@@ -77,16 +78,23 @@ namespace Deduplicator
             TransformedDeclToCanonicalDecl[TD] = CanonicalD;
         }
 
+        // NOTE: This is a tricky part
+        // We have to rewrite the decl refs and calls FIRST before the decls
+        // and definitions, because otherwise we remove text in a function
+        // that was *already* removed
+
+        // Replace calls/var derefs to deduplicated definitions with their
+        // canonical counterparts
+        auto DRECEDV = Visitors::DeclRefExprAndCallExprDDVisitor(RW,
+                                                                 TransformedDeclToCanonicalDecl,
+                                                                 DeclToJSON);
+        DRECEDV.TraverseTranslationUnitDecl(TUD);
+
         // Remove all noncanonical transformed definitions
         auto FDDV = Visitors::FunctionDefinitionDDVisitor(RW,
                                                           TransformedDeclToCanonicalDecl,
                                                           DeclToJSON);
         FDDV.TraverseTranslationUnitDecl(TUD);
-
-        // Replace calls/var derefs to deduplicated definitions with their
-        // canonical counterparts
-        auto DRECEDV = Visitors::DeclRefExprAndCallExprDDVisitor(RW, TransformedDeclToCanonicalDecl);
-        DRECEDV.TraverseTranslationUnitDecl(TUD);
 
         // Write changes to all canonical decls' JSON annotations
         for (auto &&it : MacroHashToCanonDecl)
@@ -97,6 +105,23 @@ namespace Deduplicator
             // Dump it to a string
             auto newAnnotationString = Utils::escape_json(j.dump());
 
+            auto &SM = Ctx.getSourceManager();
+            // Remove the decl's old annotations
+            // (decl expansion range doesn't include this)
+            for (auto &&it : ND->attrs())
+            {
+                clang::SourceRange RemovalRange(
+                    SM.getFileLoc(it->getLocation()),
+                    SM.getFileLoc(it->getRange().getEnd()));
+                auto failed = RW.RemoveText(RemovalRange);
+                assert(!failed);
+            }
+
+            // Get the decl's expansion range
+            auto ReplacementRange = clang::SourceRange(
+                SM.getFileLoc(ND->getBeginLoc()),
+                SM.getFileLoc(ND->getEndLoc()));
+
             // Replace the decl's annotation with the new one
             ND->dropAttrs();
             auto Atty = clang::AnnotateAttr::Create(Ctx, newAnnotationString);
@@ -106,10 +131,6 @@ namespace Deduplicator
             std::string S;
             llvm::raw_string_ostream SS(S);
             ND->print(SS);
-
-            auto &SM = Ctx.getSourceManager();
-            // Get the range the decl originally covered
-            auto ReplacementRange = SM.getExpansionRange(ND->getSourceRange());
 
             // Replace the old decl with the new one
             auto failed = RW.ReplaceText(ReplacementRange, SS.str());

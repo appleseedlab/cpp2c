@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "nlohmann/single_include/json.hpp"
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
@@ -15,12 +17,14 @@ namespace Visitors
     private:
         clang::Rewriter &RW;
         std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl;
+        std::map<clang::NamedDecl *, nlohmann::json> &TransformedDeclToJSON;
 
     public:
         explicit DeclRefExprAndCallExprDDVisitor(
             clang::Rewriter &RW,
-            std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl);
+            std::map<clang::NamedDecl *, clang::NamedDecl *> &TransformedDeclToCanonicalDecl,
+            std::map<clang::NamedDecl *, nlohmann::json> &TransformedDeclToJSON);
 
-        bool VisitExpr(clang::Expr *E);
+        bool VisitDeclRefExpr(clang::DeclRefExpr *DRE);
     };
 } // namespace Visitors
