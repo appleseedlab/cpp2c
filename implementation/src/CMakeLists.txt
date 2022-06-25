@@ -34,6 +34,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 
 add_library(Cpp2C SHARED
   AnnotationRemover/AnnotationRemoverConsumer.cc
+  Deduplicator/DeduplicatorConsumer.cc
   Callbacks/ForestCollector.cc
   Callbacks/MacroNameCollector.cc
   Cpp2C.cc
@@ -53,8 +54,12 @@ add_library(Cpp2C SHARED
   Visitors/CollectCpp2CAnnotatedDeclsVisitor.cc
   Visitors/CollectDeclNamesVisitor.cc
   Visitors/DeanonymizerVisitor.cc
-)
-
+  Visitors/DeclRefExprAndCallExprDDVisitor
+  Visitors/ForwardDeclDDVisitor.cc
+  Visitors/FunctionDefinitionDDVisitor.cc
+  Visitors/MacroTransformationMapperVisitor.cc
+  )
+  
 target_include_directories(Cpp2C PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 # Allow undefined symbols in shared objects on Darwin (this is the default

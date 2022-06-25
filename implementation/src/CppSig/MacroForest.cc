@@ -15,8 +15,14 @@ namespace CppSig
         }
     }
 
-    MacroForest::MacroForest(clang::CompilerInstance &CI, Roots &roots)
-        : CI(CI), MacroRoots(roots), Ctx(CI.getASTContext()){};
+    MacroForest::MacroForest(
+        clang::CompilerInstance &CI,
+        bool Verbose,
+        Roots &roots)
+        : CI(CI),
+          Verbose(Verbose),
+          MacroRoots(roots),
+          Ctx(CI.getASTContext()){};
 
     clang::SourceRange MacroForest::getSpellingRange(
         clang::SourceLocation S,
@@ -89,7 +95,10 @@ namespace CppSig
         }
 
         // TODO: Only emit macro expansions if verbose
-        Utils::Logging::emitMacroExpansionMessage(llvm::errs(), SpellingRange, MD, SM, LO);
+        if (Verbose)
+        {
+            Utils::Logging::emitMacroExpansionMessage(llvm::errs(), SpellingRange, MD, SM, LO);
+        }
 
         // ATTENTION: If we are in a macro-argument expansion, we have to
         // store our expansion stack beforehand as we would pop too much here.

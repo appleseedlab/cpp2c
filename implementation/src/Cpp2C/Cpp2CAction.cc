@@ -1,5 +1,6 @@
 #include "Cpp2C/Cpp2CAction.hh"
 #include "Transformer/TransformerConsumer.hh"
+#include "Deduplicator/DeduplicatorConsumer.hh"
 #include "AnnotationRemover/AnnotationRemoverConsumer.hh"
 
 namespace Cpp2C
@@ -7,7 +8,7 @@ namespace Cpp2C
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
+    string USAGE_STRING = "USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(deduplicate|dd [-i|--in-place])|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
@@ -33,6 +34,11 @@ namespace Cpp2C
         {
             auto AR = make_unique<AnnotationRemover::AnnotationRemoverConsumer>(ARSettings);
             return AR;
+        }
+        else if (Command == DEDUPLICATE)
+        {
+            auto DD = make_unique<Deduplicator::DeduplicatorConsumer>(DDSettings);
+            return DD;
         }
         llvm::errs() << "No command passed\n";
         exit(1);
@@ -86,6 +92,25 @@ namespace Cpp2C
             }
         }
 
+        // Dedpuplicate
+        else if (command == "dd" || command == "deduplicate")
+        {
+            Command = DEDUPLICATE;
+            for (auto it = optionalArgs; it != args.end(); ++it)
+            {
+                std::string arg = *it;
+                if (arg == "-i" || arg == "--in-place")
+                {
+                    DDSettings.OverwriteFiles = true;
+                }
+                else
+                {
+                    llvm::errs() << "Unknown annotation remover argument: " << arg << '\n';
+                    exit(1);
+                }
+            }
+        }
+
         // Remove annotations
         else if (command == "ra" || command == "remove_annotations")
         {
@@ -95,7 +120,7 @@ namespace Cpp2C
                 std::string arg = *it;
                 if (arg == "-i" || arg == "--in-place")
                 {
-                    TSettings.OverwriteFiles = true;
+                    ARSettings.OverwriteFiles = true;
                 }
                 else
                 {

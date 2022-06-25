@@ -27,6 +27,7 @@ int main(int argc, char const *argv[])
 {
     S s;
     GET_X_STATIC(s);
+    GET_X_STATIC(s);
     GET_X_PTR((&s));
 
     union U u;

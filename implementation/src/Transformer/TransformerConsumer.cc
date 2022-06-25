@@ -47,9 +47,12 @@ namespace Transformer
         MacroNameCollector *MNC = new MacroNameCollector(
             MacroNames,
             MultiplyDefinedMacros,
+            TSettings.Verbose,
             CI->getSourceManager(),
             CI->getLangOpts());
-        CppSig::MacroForest *MF = new MacroForest(*CI, ExpansionRoots);
+        CppSig::MacroForest *MF = new MacroForest(*CI,
+                                                  TSettings.Verbose,
+                                                  ExpansionRoots);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
     }
@@ -289,7 +292,10 @@ namespace Transformer
                     TD->getInvocationReplacementRange(), StringRef(CallOrRef));
                 assert(!rewriteFailed);
                 // TODO: Only emit transformed expansion if verbose
-                emitTransformedExpansionMessage(errs(), TopLevelExpansion, Ctx, SM, LO);
+                if (TSettings.Verbose)
+                {
+                    emitTransformedExpansionMessage(errs(), TopLevelExpansion, Ctx, SM, LO);
+                }
             }
 
             // Emit transformed definition
@@ -307,7 +313,10 @@ namespace Transformer
                     StringRef(FullTransformationDefinition + "\n\n"));
                 assert(!rewriteFailed);
                 // TODO: Only emit transformed definition if verbose
-                emitTransformedDefinitionMessage(errs(), TD, Ctx, SM, LO);
+                if (TSettings.Verbose)
+                {
+                    emitTransformedDefinitionMessage(errs(), TD, Ctx, SM, LO);
+                }
             }
 
             // Free the TransformedDefinition object since it is no longer needed at this point

@@ -3,18 +3,21 @@
 #include "CppSig/MacroExpansionNode.hh"
 #include "SourceRangeCollection.hh"
 
+#include "nlohmann/single_include/json.hpp"
+
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/LangOptions.h"
 #include "clang/Lex/MacroInfo.h"
+#include "clang/Rewrite/Core/Rewriter.h"
 
 #include <set>
 #include <string>
 #include <vector>
 
+// TODO: Divide these functions up under more meaningful namespaces
+
 namespace Utils
 {
-    using CppSig::MacroExpansionNode;
-
     // Returns true if the given expansion transforms to a variable, false
     // otherwise
     //
@@ -46,7 +49,7 @@ namespace Utils
     // function signature; false otherwise
     bool expansionHasUnambiguousSignature(
         clang::ASTContext &Ctx,
-        MacroExpansionNode *Expansion);
+        CppSig::MacroExpansionNode *Expansion);
 
     // Returns true if the given variable declaration is a global variable,
     // false otherwise

@@ -35,6 +35,9 @@ namespace CppSig
         // The Clang CompilerInstance
         clang::CompilerInstance &CI;
 
+        // Whether to emit debug messages to stderr
+        bool Verbose;
+
         // The roots of all macro expansions in a program
         Roots &MacroRoots;
 
@@ -57,7 +60,10 @@ namespace CppSig
     public:
         // Copy constructor
         // Gets the Ctx from CI
-        MacroForest(clang::CompilerInstance &CI, Roots &roots);
+        MacroForest(
+            clang::CompilerInstance &CI,
+            bool Verbose,
+            Roots &roots);
 
         // Callback called when the preprocessor encounters a macro expansion.
         // Adds the expansion to the MacroForest

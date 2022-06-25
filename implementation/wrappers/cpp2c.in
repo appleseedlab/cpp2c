@@ -8,7 +8,7 @@ argv=("$@")
 
 # Usage info string
 # FIXME: This has tight coupling with the variable USAGE_STRING in Cpp2CAction.cc
-USAGE_STRING="USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(remove_annotations|ra [-i|--in-place]) FILE_NAME"
+USAGE_STRING="USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(deduplicate|dd [-i|--in-place])|(remove_annotations|ra [-i|--in-place]) FILE_NAME"
 
 # Helper method for printing errors messages
 function exit_with_error() {
@@ -43,7 +43,7 @@ for (( j=0; j<argc; j++ )); do
 
     # Check that the user passed a valid command
     if [[ $j = 0 ]]; then
-        if [[ $arg != "tr" && $arg != "transform" && $arg != "ra" && arg != "remove_annotations" ]]; then
+        if [[ $arg != "tr" && $arg != "transform" && $arg != "dd" && $arg != "deduplicate" && $arg != "ra" && arg != "remove_annotations" ]]; then
             exit_with_error "Unkown command '$arg'"
         fi
     fi
@@ -51,6 +51,8 @@ for (( j=0; j<argc; j++ )); do
     # Commands
     if [[ $arg = "tr" || $arg = "transform" ]]; then
         clang_arg "transform"
+    elif [[ $arg = "dd" || $arg = "deduplicate" ]]; then
+        clang_arg "deduplicate"
     elif [[ $arg = "ra" || $arg = "remove_annotations" ]]; then
         clang_arg "remove_annotations"
 
