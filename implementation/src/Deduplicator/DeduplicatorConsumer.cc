@@ -61,7 +61,7 @@ namespace Deduplicator
 
                 // Update the canonical decl's JSON annotation
                 DeclToJSON[CanonD]["canonical"] = true;
-                DeclToJSON[CanonD]["unique transformations"] = 1;
+                DeclToJSON[CanonD]["unique transformed invocations"] = 0;
             }
             MacroHashToCanonDecl[MacroHash] = CanonD;
         }
@@ -77,11 +77,6 @@ namespace Deduplicator
 
             TransformedDeclToCanonicalDecl[TD] = CanonicalD;
         }
-
-        // NOTE: This is a tricky part
-        // We have to rewrite the decl refs and calls FIRST before the decls
-        // and definitions, because otherwise we remove text in a function
-        // that was *already* removed
 
         // Replace calls/var derefs to deduplicated definitions with their
         // canonical counterparts

@@ -54,14 +54,8 @@ namespace Visitors
             {
                 return true;
             }
+
             auto CanonicalDecl = TransformedDeclToCanonicalDecl[ReferencedDecl];
-
-            // Don't replace calls to canonical decls
-            if (TransformedDeclToJSON[ReferencedDecl].contains("canonical"))
-            {
-                return true;
-            }
-
             // Replace the first n characters of the expression,
             // where n is the length of the referenced name,
             // with the name of the canonical decl
@@ -71,7 +65,7 @@ namespace Visitors
             auto &SM = RW.getSourceMgr();
             auto Begin = SM.getFileLoc(DRE->getExprLoc());
             bool failed = RW.ReplaceText(Begin, ReferencedName.size(), CanonicalName);
-            TransformedDeclToJSON[CanonicalDecl]["unique transformations"] = TransformedDeclToJSON[CanonicalDecl]["unique transformations"].get<int>() + 1;
+            TransformedDeclToJSON[CanonicalDecl]["unique transformed invocations"] = TransformedDeclToJSON[CanonicalDecl]["unique transformed invocations"].get<int>() + 1;
             assert(!failed);
             // llvm::errs() << "Replaced " << ReferencedName << " with " << CanonicalName << " in " << DeclExpandedIn->getNameAsString() << "\n";
         }
