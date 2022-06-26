@@ -33,7 +33,8 @@ namespace Transformer
     string SYNTAX = "Syntactic well-formedness",
            ENVIRONMENT_CAPTURE = "Environment capture",
            PARAMETER_SIDE_EFFECTS = "Parameter side-effects",
-           UNSUPPORTED_CONSTRUCT = "Unsupported construct";
+           UNSUPPORTED_CONSTRUCT = "Unsupported construct",
+           TURNED_OFF_CONSTRUCT = "Turned off construct";
 
     TransformerConsumer::TransformerConsumer(
         CompilerInstance *CI,
@@ -119,11 +120,12 @@ namespace Transformer
         }
         matchArguments(Ctx, ExpansionRoots);
 
-        // Step 4: Transform macros that satisfy these four requirements:
+        // Step 4: Transform macros that satisfy these requirements:
         // 1) Syntactic well-formedness
         // 2) No environment capture
         // 3) No side-effects in parameters
-        // 4) Not unsupported (e.g., not L-value independent, Clang doesn't support rewriting, etc.)
+        // 4) Not turned off (e.g., conditional evaluation)
+        // 5) Not unsupported (e.g., not L-value independent, Clang doesn't support rewriting, etc.)
         if (TSettings.Verbose)
         {
             errs() << "Step 4: Transform hygienic and transformable macros \n";
@@ -162,6 +164,26 @@ namespace Transformer
                     emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, PARAMETER_SIDE_EFFECTS, errMsg);
                 }
                 continue;
+            }
+
+            // Turned off construct
+            // Currently the only construct that can be toggled is
+            // conditional evaluation (i.e., &&, ||, and ternary).
+            // This is turned off to prevent the accidental introduction
+            // of undefined behavior
+            if (!TSettings.TransformConditionalEvaluation)
+            {
+                if (auto E = clang::dyn_cast_or_null<clang::Expr>(*TopLevelExpansion->getStmtsRef().begin()))
+                {
+                    if (Utils::containsConditionalEvaluation(E))
+                    {
+                        if (TSettings.Verbose)
+                        {
+                            emitUntransformedMessage(errs(), Ctx, TopLevelExpansion, TURNED_OFF_CONSTRUCT, "Conditional evaluation turned off");
+                        }
+                        continue;
+                    }
+                }
             }
 
             // Create the transformed definition

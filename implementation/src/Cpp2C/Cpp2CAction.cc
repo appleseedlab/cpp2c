@@ -8,7 +8,7 @@ namespace Cpp2C
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c (transform|tr [(-i|--in-place)|(--verbose|-v)|(--standard-header-macros|-shm)*])|(deduplicate|dd [-i|--in-place])|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
+    string USAGE_STRING = "USAGE: cpp2c (transform|tr [((-i|--in-place)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
@@ -83,6 +83,10 @@ namespace Cpp2C
                 else if (arg == "-shm" || arg == "--standard-header-macros")
                 {
                     TSettings.OnlyCollectNotDefinedInStdHeaders = false;
+                }
+                else if (arg == "-tce" || arg == "--transform-conditional-evaluation")
+                {
+                    TSettings.TransformConditionalEvaluation = true;
                 }
                 else
                 {

@@ -680,4 +680,35 @@ namespace Utils
         return PointeeType;
     }
 
+    bool containsConditionalEvaluation(const clang::Expr *E)
+    {
+        if (!E)
+        {
+            return false;
+        }
+        if (auto BO = clang::dyn_cast_or_null<clang::BinaryOperator>(E))
+        {
+            if (BO->getOpcode() == clang::BinaryOperator::Opcode::BO_LAnd ||
+                BO->getOpcode() == clang::BinaryOperator::Opcode::BO_LOr)
+            {
+                return true;
+            }
+        }
+        else if (llvm::isa_and_nonnull<clang::ConditionalOperator>(E))
+        {
+            return true;
+        }
+        for (auto &&it : E->children())
+        {
+            if (auto Ec = clang::dyn_cast_or_null<clang::Expr>(it))
+            {
+                if (containsConditionalEvaluation(Ec))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 } // namespace Utils

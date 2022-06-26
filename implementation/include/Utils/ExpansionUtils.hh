@@ -143,4 +143,8 @@ namespace Utils
     // and returns the base type
     clang::QualType getPointeeType(clang::QualType T);
 
+    // Returns true if the given expression or one of its subexpressions
+    // contains conditional evaluation, i.e., &&, ||, or the ternary operator
+    bool containsConditionalEvaluation(const clang::Expr *E);
+
 } // namespace Utils
