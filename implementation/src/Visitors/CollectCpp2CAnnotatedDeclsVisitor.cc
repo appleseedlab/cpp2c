@@ -9,7 +9,8 @@ namespace Visitors
     {
         // We only annotate these types, so only check them
         if (!(llvm::isa_and_nonnull<clang::TagDecl>(D) ||
-              llvm::isa_and_nonnull<clang::FunctionDecl>(D)))
+              llvm::isa_and_nonnull<clang::FunctionDecl>(D) ||
+              llvm::isa_and_nonnull<clang::VarDecl>(D)))
         {
             return true;
         }
