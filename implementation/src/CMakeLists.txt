@@ -1,6 +1,6 @@
-#===============================================================================
+# ===============================================================================
 # 1. LOAD LLVM CONFIGURATION
-#===============================================================================
+# ===============================================================================
 # Set this to a valid LLVM installation dir
 set(CPP2C_LLVM_INSTALL_DIR "" CACHE PATH "LLVM installation directory")
 
@@ -14,9 +14,9 @@ find_package(Clang REQUIRED CONFIG)
 # accordingly
 include_directories(SYSTEM "${LLVM_INCLUDE_DIRS};${CLANG_INCLUDE_DIRS}")
 
-#===============================================================================
+# ===============================================================================
 # 2. LLVM-TUTOR BUILD CONFIGURATION
-#===============================================================================
+# ===============================================================================
 # Use the same C++ standard as LLVM does
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "")
 
@@ -27,18 +27,18 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 
-
-#===============================================================================
+# ===============================================================================
 # 3. ADD THE TARGET
-#===============================================================================
-
+# ===============================================================================
 add_library(Cpp2C SHARED
+  AnnotationPrinter/AnnotationPrinterConsumer.cc
   AnnotationRemover/AnnotationRemoverConsumer.cc
   Deduplicator/DeduplicatorConsumer.cc
   Callbacks/ForestCollector.cc
   Callbacks/MacroNameCollector.cc
   Cpp2C.cc
   Cpp2C/Cpp2CAction.cc
+
   # This should probably have a better name or be moved...
   CppSig/CppSigUtils.cc
   CppSig/MacroArgument.cc
@@ -58,8 +58,8 @@ add_library(Cpp2C SHARED
   Visitors/ForwardDeclDDVisitor.cc
   Visitors/FunctionDefinitionDDVisitor.cc
   Visitors/MacroTransformationMapperVisitor.cc
-  )
-  
+)
+
 target_include_directories(Cpp2C PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 # Allow undefined symbols in shared objects on Darwin (this is the default

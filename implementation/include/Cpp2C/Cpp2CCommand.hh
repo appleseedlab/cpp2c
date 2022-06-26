@@ -7,6 +7,7 @@ namespace Cpp2C
         HELP,
         TRANSFORM,
         DEDUPLICATE,
+        PRINT_ANNOTATIONS,
         REMOVE_ANNOTATIONS
     };
 } // namespace Cpp2C

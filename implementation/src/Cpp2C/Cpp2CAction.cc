@@ -2,13 +2,14 @@
 #include "Transformer/TransformerConsumer.hh"
 #include "Deduplicator/DeduplicatorConsumer.hh"
 #include "AnnotationRemover/AnnotationRemoverConsumer.hh"
+#include "AnnotationPrinter/AnnotationPrinterConsumer.hh"
 
 namespace Cpp2C
 {
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c (transform|tr [((-i|--in-place)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
+    string USAGE_STRING = "USAGE: cpp2c (transform|tr [((-i|--in-place)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(print_annotations|pa)|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
@@ -34,6 +35,11 @@ namespace Cpp2C
         {
             auto AR = make_unique<AnnotationRemover::AnnotationRemoverConsumer>(ARSettings);
             return AR;
+        }
+        else if (Command == PRINT_ANNOTATIONS)
+        {
+            auto AP = make_unique<AnnotationPrinter::AnnotationPrinterConsumer>();
+            return AP;
         }
         else if (Command == DEDUPLICATE)
         {
@@ -113,6 +119,12 @@ namespace Cpp2C
                     exit(1);
                 }
             }
+        }
+
+        // Print annotations
+        else if (command == "pa" || command == "print_annotations")
+        {
+            Command = PRINT_ANNOTATIONS;
         }
 
         // Remove annotations
