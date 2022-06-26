@@ -8,6 +8,8 @@ namespace Deduplicator
 {
     // AST consumer that removes duplicate
     // transformed declarations and definitions
+    // The deduplicator is meant to be run after the transformer
+    // has been run to a fixpoint
     class DeduplicatorConsumer : public clang::ASTConsumer
     {
 
