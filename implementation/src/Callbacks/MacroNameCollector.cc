@@ -7,9 +7,6 @@ namespace Callbacks
 {
     using namespace clang;
     using namespace std;
-    using Utils::hashMacro;
-    using Utils::isInStdHeader;
-    using Utils::Logging::emitMacroDefinitionMessage;
 
     MacroNameCollector::MacroNameCollector(
         set<string> &MacroNames,
@@ -33,10 +30,10 @@ namespace Callbacks
             {
                 MultiplyDefinedMacros.insert(MacroName);
             }
-        }
-        if (Verbose)
-        {
-            emitMacroDefinitionMessage(llvm::errs(), MD, SM, LO);
+            if (Verbose)
+            {
+                Utils::Logging::emitMacroDefinitionMessage(llvm::errs(), MacroName, MD, SM, LO);
+            }
         }
     }
 } // namespace Callbacks

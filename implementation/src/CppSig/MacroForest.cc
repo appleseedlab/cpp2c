@@ -59,19 +59,7 @@ namespace CppSig
 
         // Count the number of times this macro has been defined
         // up to this point
-        {
-            size_t count = 1;
-            auto temp = MD.getLocalDirective()->getPrevious();
-            while (temp != nullptr)
-            {
-                if (temp->getKind() == clang::MacroDirective::Kind::MD_Define)
-                {
-                    count++;
-                }
-                temp = temp->getPrevious();
-            }
-            Expansion->DefinitionNumber = count;
-        }
+        Expansion->DefinitionNumber = Utils::countMacroDefinitions(MD);
 
         // Get the source manager
         clang::SourceManager &SM = Ctx.getSourceManager();
@@ -94,10 +82,9 @@ namespace CppSig
             }
         }
 
-        // TODO: Only emit macro expansions if verbose
         if (Verbose)
         {
-            Utils::Logging::emitMacroExpansionMessage(llvm::errs(), SpellingRange, MD, SM, LO);
+            Utils::Logging::emitMacroExpansionMessage(llvm::errs(), Expansion->getName(), SpellingRange, MD, SM, LO);
         }
 
         // ATTENTION: If we are in a macro-argument expansion, we have to

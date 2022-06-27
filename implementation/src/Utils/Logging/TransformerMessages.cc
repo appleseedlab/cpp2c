@@ -11,6 +11,17 @@ namespace Utils
         using std::string;
         using Transformer::TransformedDefinition;
 
+        std::string hashMacro(
+            const std::string MacroName,
+            std::size_t DefinitionNumber,
+            const clang::MacroInfo *MI,
+            clang::SourceManager &SM)
+        {
+            auto MacroType = MI->isObjectLike() ? "object-like" : "function-like";
+            auto DefinitionFileName = SM.getFilename(MI->getDefinitionLoc()).str();
+            return MacroName + ';' + MacroType + ';' + DefinitionFileName + ';' + std::to_string(DefinitionNumber);
+        }
+
         void emitUntransformedMessage(
             raw_fd_ostream &OS,
             ASTContext &Ctx,
@@ -19,32 +30,30 @@ namespace Utils
             string Reason)
         {
             SourceManager &SM = Ctx.getSourceManager();
-            const LangOptions &LO = Ctx.getLangOpts();
-            auto ST = Expansion->getStmtsRef().size() > 0 ? *Expansion->getStmtsRef().begin() : nullptr;
-            auto ND = Utils::getTopLevelNamedDeclStmtExpandedIn(Ctx, ST);
+
             OS << "CPP2C:"
                << "Untransformed Expansion,"
-               << "\"" << hashMacro(Expansion->getMI(), SM, LO) << "\","
-               << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
-               << ND->getNameAsString() << ","
-               << Category << ","
+               << "\"" << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << "\","
+               << Expansion->getSpellingRange().getBegin().printToString(SM)
                << Reason << "\n";
         }
 
         void emitMacroDefinitionMessage(
             raw_fd_ostream &OS,
+            const std::string MacroName,
             const MacroDirective *MD,
             SourceManager &SM,
             const LangOptions &LO)
         {
             OS << "CPP2C:"
                << "Macro Definition,"
-               << '"' << hashMacro(MD->getMacroInfo(), SM, LO) << '"' << ','
+               << '"' << hashMacro(MacroName, Utils::countMacroDefinitions(*MD), MD->getMacroInfo(), SM) << '"' << ','
                << MD->getMacroInfo()->getDefinitionLoc().printToString(SM) << "\n";
         }
 
         void emitMacroExpansionMessage(
             raw_fd_ostream &OS,
+            const std::string MacroName,
             SourceRange SpellingRange,
             const MacroDefinition &MD,
             SourceManager &SM,
@@ -53,7 +62,7 @@ namespace Utils
             SourceLocation SpellingLoc = SpellingRange.getBegin();
             OS << "CPP2C:"
                << "Macro Expansion,"
-               << "\"" << hashMacro(MD.getMacroInfo(), SM, LO) << "\","
+               << "\"" << hashMacro(MacroName, Utils::countMacroDefinitions(MD), MD.getMacroInfo(), SM) << "\","
                << SpellingLoc.printToString(SM) << "\n";
         }
 
@@ -68,7 +77,7 @@ namespace Utils
                 TD->getExpansionSignatureOrDeclaration(Ctx, false);
             OS << "CPP2C:"
                << "Transformed Definition,"
-               << "\"" << hashMacro(TD->getExpansion()->getMI(), SM, LO) << "\","
+               << "\"" << hashMacro(TD->getExpansion()->getName(), TD->getExpansion()->getDefinitionNumber(), TD->getExpansion()->getMI(), SM) << "\","
                << "\"" << TransformedSignatureNoName << "\""
                << ","
                << TD->getEmittedName() << "\n";
@@ -84,7 +93,7 @@ namespace Utils
             auto ND = Utils::getTopLevelNamedDeclStmtExpandedIn(Ctx, *Expansion->getStmtsRef().begin());
             OS << "CPP2C:"
                << "Transformed Expansion,"
-               << "\"" << hashMacro(Expansion->getMI(), SM, LO) << "\","
+               << "\"" << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << "\","
                << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
                << ND->getNameAsString() << "\n";
         }

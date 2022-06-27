@@ -29,12 +29,6 @@ namespace Utils
         CppSig::MacroExpansionNode *Expansion,
         clang::ASTContext &Ctx);
 
-    // Hashes a macro based on its name, type, and definition text
-    std::string hashMacro(
-        const clang::MacroInfo *MI,
-        clang::SourceManager &SM,
-        const clang::LangOptions &LO);
-
     // Returns true if the given SourceLocation is in a standard header file
     bool isInStdHeader(
         clang::SourceLocation L,
@@ -146,5 +140,9 @@ namespace Utils
     // Returns true if the given expression or one of its subexpressions
     // contains conditional evaluation, i.e., &&, ||, or the ternary operator
     bool containsConditionalEvaluation(const clang::Expr *E);
+
+    // Counts the number of times a macro has been defined
+    std::size_t countMacroDefinitions(const clang::MacroDefinition &MD);
+    std::size_t countMacroDefinitions(const clang::MacroDirective &MD);
 
 } // namespace Utils
