@@ -30,29 +30,21 @@ namespace Visitors
         // emitted by Cpp2C
         if (annotation.find("emitted by CPP2C") != std::string::npos)
         {
-            try
-            {
-                nlohmann::json j = Utils::annotationStringToJson(annotation);
+            nlohmann::json j = Utils::annotationStringToJson(annotation);
 
-                // Create the unique macro hash based on data in
-                // the JSON object
-                Utils::TransformedDeclarationAnnotation TDA;
-                Utils::from_json(j, TDA);
-                std::string hash = Utils::hashTDA(TDA);
+            // Create the unique macro hash based on data in
+            // the JSON object
+            Utils::TransformedDeclarationAnnotation TDA;
+            Utils::from_json(j, TDA);
+            std::string hash = Utils::hashTDA(TDA);
 
-                // Add it to the list of transformed declarations for
-                // this macro
-                MacroHashToTransformedDecls[hash].push_back(ND);
-                // Map this transformed decl to its macro hash
-                TransformedDeclToMacroHash[ND] = hash;
-                // Map this transformed decl to its JSON annotation
-                TransformedDeclToJSONAnnotation[ND] = j;
-            }
-            catch (nlohmann::json::parse_error &e)
-            {
-                llvm::errs() << e.what() << "\n";
-                return true;
-            }
+            // Add it to the list of transformed declarations for
+            // this macro
+            MacroHashToTransformedDecls[hash].push_back(ND);
+            // Map this transformed decl to its macro hash
+            TransformedDeclToMacroHash[ND] = hash;
+            // Map this transformed decl to its JSON annotation
+            TransformedDeclToJSONAnnotation[ND] = j;
         }
         return true;
     }
