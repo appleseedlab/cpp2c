@@ -1,4 +1,5 @@
 #include "Visitors/FunctionDefinitionDDVisitor.hh"
+#include "Deduplicator/DeduplicatorConstants.hh"
 #include "Utils/ExpansionUtils.hh"
 
 namespace Visitors
@@ -35,7 +36,7 @@ namespace Visitors
                 auto TransformedDecl = PD;
                 auto TransformedDef = ND;
                 // Only erase noncanonical defs and decls
-                if (!TransformedDeclToJSON[TransformedDecl].contains("canonical"))
+                if (!TransformedDeclToJSON[TransformedDecl].contains(Deduplicator::Keys::CANONICAL))
                 {
                     auto &SM = RW.getSourceMgr();
                     auto TransformedDeclRange = clang::SourceRange(

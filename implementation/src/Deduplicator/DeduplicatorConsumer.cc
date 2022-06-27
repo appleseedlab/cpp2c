@@ -1,4 +1,5 @@
 #include "Deduplicator/DeduplicatorConsumer.hh"
+#include "Deduplicator/DeduplicatorConstants.hh"
 #include "Visitors/DeclRefExprAndCallExprDDVisitor.hh"
 #include "Visitors/ForwardDeclDDVisitor.hh"
 #include "Visitors/MacroTransformationMapperVisitor.hh"
@@ -47,7 +48,7 @@ namespace Deduplicator
             {
                 // The decl should definitely be in the map, so do an
                 // unconditional lookup
-                if (DeclToJSON[D].contains("canonical"))
+                if (DeclToJSON[D].contains(Keys::CANONICAL))
                 {
                     CanonD = D;
                     break;
@@ -60,8 +61,12 @@ namespace Deduplicator
                 CanonD = TransformedDecls.back();
 
                 // Update the canonical decl's JSON annotation
-                DeclToJSON[CanonD]["canonical"] = true;
-                DeclToJSON[CanonD]["unique transformed invocations"] = 0;
+                DeclToJSON[CanonD][Keys::CANONICAL] = true;
+                // Set the count of unique transformed invocations
+                // initially to 1 to account for the invocation that
+                // corresponds to the canonical decl
+                // (because we emit one decl per invocation)
+                DeclToJSON[CanonD][Keys::UNIQUE_TRANSFORMED_INVOCATIONS] = 1;
             }
             MacroHashToCanonDecl[MacroHash] = CanonD;
         }

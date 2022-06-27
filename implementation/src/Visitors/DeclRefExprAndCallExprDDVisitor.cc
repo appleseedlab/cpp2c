@@ -1,4 +1,5 @@
 #include "Visitors/DeclRefExprAndCallExprDDVisitor.hh"
+#include "Deduplicator/DeduplicatorConstants.hh"
 
 #include "Utils/ExpansionUtils.hh"
 
@@ -50,7 +51,13 @@ namespace Visitors
 
             // Don't replace calls inside of deduped definitions
             if ((TransformedDeclToJSON.find(DeclExpandedIn) != TransformedDeclToJSON.end()) &&
-                !TransformedDeclToJSON[DeclExpandedIn].contains("canonical"))
+                !TransformedDeclToJSON[DeclExpandedIn].contains(Deduplicator::Keys::CANONICAL))
+            {
+                return true;
+            }
+
+            // Don't count declrefs to canonical decl as new unique invocations
+            if (TransformedDeclToCanonicalDecl[ReferencedDecl] == ReferencedDecl)
             {
                 return true;
             }
@@ -65,7 +72,8 @@ namespace Visitors
             auto &SM = RW.getSourceMgr();
             auto Begin = SM.getFileLoc(DRE->getExprLoc());
             bool failed = RW.ReplaceText(Begin, ReferencedName.size(), CanonicalName);
-            TransformedDeclToJSON[CanonicalDecl]["unique transformed invocations"] = TransformedDeclToJSON[CanonicalDecl]["unique transformed invocations"].get<int>() + 1;
+            TransformedDeclToJSON[CanonicalDecl][Deduplicator::Keys::UNIQUE_TRANSFORMED_INVOCATIONS] =
+                TransformedDeclToJSON[CanonicalDecl][Deduplicator::Keys::UNIQUE_TRANSFORMED_INVOCATIONS].get<int>() + 1;
             assert(!failed);
             // llvm::errs() << "Replaced " << ReferencedName << " with " << CanonicalName << " in " << DeclExpandedIn->getNameAsString() << "\n";
         }
