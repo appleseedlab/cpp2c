@@ -113,6 +113,10 @@ namespace Cpp2C
                 {
                     DDSettings.OverwriteFiles = true;
                 }
+                else if (arg == "-v" || arg == "--verbose")
+                {
+                    DDSettings.Verbose = true;
+                }
                 else
                 {
                     llvm::errs() << "Unknown annotation remover argument: " << arg << '\n';
