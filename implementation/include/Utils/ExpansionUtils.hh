@@ -141,8 +141,10 @@ namespace Utils
     // contains conditional evaluation, i.e., &&, ||, or the ternary operator
     bool containsConditionalEvaluation(const clang::Expr *E);
 
-    // Counts the number of times a macro has been defined
-    std::size_t countMacroDefinitions(const clang::MacroDefinition &MD);
-    std::size_t countMacroDefinitions(const clang::MacroDirective &MD);
+    // Counts the number of times a macro has been defined in the same file
+    std::size_t countMacroDefinitions(clang::SourceManager &SM,
+                                      const clang::MacroDefinition &MD);
+    std::size_t countMacroDefinitions(clang::SourceManager &SM,
+                                      const clang::MacroDirective &MD);
 
 } // namespace Utils

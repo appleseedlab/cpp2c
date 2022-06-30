@@ -663,13 +663,17 @@ namespace Utils
         return false;
     }
 
-    std::size_t countMacroDefinitions(const clang::MacroDefinition &MD)
+    std::size_t countMacroDefinitions(
+        clang::SourceManager &SM,
+        const clang::MacroDefinition &MD)
     {
         size_t count = 1;
         auto temp = MD.getLocalDirective()->getPrevious();
         while (temp != nullptr)
         {
-            if (temp->getKind() == clang::MacroDirective::Kind::MD_Define)
+            if (temp->getKind() == clang::MacroDirective::Kind::MD_Define &&
+                (SM.getFileID(MD.getLocalDirective()->getLocation()) ==
+                 SM.getFileID(temp->getLocation())))
             {
                 count++;
             }
@@ -678,13 +682,18 @@ namespace Utils
         return count;
     }
 
-    std::size_t countMacroDefinitions(const clang::MacroDirective &MD)
+    std::size_t countMacroDefinitions(
+        clang::SourceManager &SM,
+        const clang::MacroDirective &MD)
     {
         size_t count = 1;
         auto temp = MD.getPrevious();
         while (temp != nullptr)
         {
-            if (temp->getKind() == clang::MacroDirective::Kind::MD_Define)
+            if (temp->getKind() == clang::MacroDirective::Kind::MD_Define &&
+                (SM.getFileID(MD.getLocation()) ==
+                 SM.getFileID(temp->getLocation())))
+
             {
                 count++;
             }
