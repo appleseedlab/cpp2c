@@ -139,7 +139,6 @@ def main():
 
         # Transform the program to a fixpoint
         num_runs_to_fixpoint = 0
-        transformed_macro_hashes: Set[str] = set()
         while True:
             emitted_a_transformation = False
             for c_file in program_c_files:
@@ -155,9 +154,6 @@ def main():
                 for line in cp.stderr.splitlines():
                     if line.startswith(f'CPP2C:{TRANSFORMED_EXPANSION}'):
                         emitted_a_transformation = True
-                        _, mhash, expansion_range, transformed_name = line.split(
-                            ',')
-                        transformed_macro_hashes.add(mhash)
 
             num_runs_to_fixpoint += 1
             if not emitted_a_transformation:
@@ -166,8 +162,6 @@ def main():
                 f'finished run {num_runs_to_fixpoint} of {evaluation_program.name}', file=sys.stderr)
 
         print(f'runs to reach a fixpoint: {num_runs_to_fixpoint}')
-
-        print(f'transformed macros: {len(transformed_macro_hashes)}')
 
         # Deduplicate transformed macros in all files
         for c_file in program_c_files:
@@ -233,6 +227,9 @@ def main():
                 canonical_transformed_decl_names)
             for mhash, count in hash_count_for_file.items():
                 macro_hash_to_unique_transformed_invocations[mhash] += count
+
+        print(
+            f'transformed macros: {len(macro_hash_to_unique_transformed_invocations)}')
 
         unique_transformed_invocations = list(
             macro_hash_to_unique_transformed_invocations.values())
