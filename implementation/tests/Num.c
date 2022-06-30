@@ -4,6 +4,8 @@ int main()
 {
     // Should transform
     ONE;
+    // Should transform
+    ONE;
 
     return 0;
 }
