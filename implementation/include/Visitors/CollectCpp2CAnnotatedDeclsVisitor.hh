@@ -16,15 +16,15 @@ namespace Visitors
     {
     private:
         clang::ASTContext &Ctx;
-        std::vector<clang::Decl *> Decls;
+        std::vector<clang::NamedDecl *> Decls;
 
     public:
         explicit CollectCpp2CAnnotatedDeclsVisitor(clang::ASTContext &Ctx);
 
         // Collect struct/union/enum forward declarations
         // and transformed function declarations
-        bool VisitDecl(clang::Decl *TD);
+        bool VisitNamedDecl(clang::NamedDecl *D);
 
-        std::vector<clang::Decl *> &getDeclsRef();
+        std::vector<clang::NamedDecl *> &getDeclsRef();
     };
 } // namespace Visitors

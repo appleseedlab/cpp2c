@@ -5,15 +5,8 @@ namespace Visitors
     CollectCpp2CAnnotatedDeclsVisitor::CollectCpp2CAnnotatedDeclsVisitor(
         clang::ASTContext &Ctx) : Ctx(Ctx) {}
 
-    bool CollectCpp2CAnnotatedDeclsVisitor::VisitDecl(clang::Decl *D)
+    bool CollectCpp2CAnnotatedDeclsVisitor::VisitNamedDecl(clang::NamedDecl *D)
     {
-        // We only annotate these types, so only check them
-        if (!(llvm::isa_and_nonnull<clang::TagDecl>(D) ||
-              llvm::isa_and_nonnull<clang::FunctionDecl>(D) ||
-              llvm::isa_and_nonnull<clang::VarDecl>(D)))
-        {
-            return true;
-        }
 
         auto PP = Ctx.getPrintingPolicy();
         for (auto &&it : D->attrs())
@@ -40,7 +33,7 @@ namespace Visitors
         return true;
     }
 
-    std::vector<clang::Decl *> &CollectCpp2CAnnotatedDeclsVisitor::getDeclsRef()
+    std::vector<clang::NamedDecl *> &CollectCpp2CAnnotatedDeclsVisitor::getDeclsRef()
     {
         return Decls;
     }
