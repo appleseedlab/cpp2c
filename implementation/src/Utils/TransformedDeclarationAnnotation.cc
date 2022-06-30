@@ -2,6 +2,7 @@
 
 namespace Utils
 {
+
     void to_json(
         nlohmann::json &j,
         const TransformedDeclarationAnnotation &TDA)
@@ -10,8 +11,9 @@ namespace Utils
             {"emitted by CPP2C", true},
             {"macro name", TDA.NameOfOriginalMacro},
             {"macro type", TDA.MacroType},
-            {"macro definition file", TDA.MacroDefinitionDefinitionFileName},
+            {"macro definition realpath", TDA.MacroDefinitionRealPath},
             {"macro definition number", TDA.MacroDefinitionNumber},
+            {"transformed definition realpath", TDA.TransformedDefinitionRealPath},
             {"transformed signature", TDA.TransformedSignature}};
     }
 
@@ -21,8 +23,9 @@ namespace Utils
     {
         j.at("macro name").get_to(TDA.NameOfOriginalMacro);
         j.at("macro type").get_to(TDA.MacroType);
-        j.at("macro definition file").get_to(TDA.MacroDefinitionDefinitionFileName);
+        j.at("macro definition realpath").get_to(TDA.MacroDefinitionRealPath);
         j.at("macro definition number").get_to(TDA.MacroDefinitionNumber);
+        j.at("transformed definition realpath").get_to(TDA.TransformedDefinitionRealPath);
         j.at("transformed signature").get_to(TDA.TransformedSignature);
     }
 
@@ -59,7 +62,7 @@ namespace Utils
     {
         return TDA.NameOfOriginalMacro + ";" +
                TDA.MacroType + ";" +
-               TDA.MacroDefinitionDefinitionFileName + ";" +
+               TDA.MacroDefinitionRealPath + ";" +
                std::to_string(TDA.MacroDefinitionNumber);
     }
 
@@ -67,9 +70,17 @@ namespace Utils
     {
         return TDA.NameOfOriginalMacro + ";" +
                TDA.MacroType + ";" +
-               TDA.TransformedSignature + ';' +
-               TDA.MacroDefinitionDefinitionFileName + ";" +
-               std::to_string(TDA.MacroDefinitionNumber);
+               TDA.MacroDefinitionRealPath + ";" +
+               std::to_string(TDA.MacroDefinitionNumber) + ';' +
+               TDA.TransformedDefinitionRealPath + ';' +
+               TDA.TransformedSignature;
+    }
+
+    std::string hashTDAFromJSON(const nlohmann::json &j)
+    {
+        TransformedDeclarationAnnotation TDA;
+        from_json(j, TDA);
+        return hashTDA(TDA);
     }
 
     std::string getFirstAnnotationOrEmpty(clang::Decl *D)

@@ -25,11 +25,15 @@ namespace Utils
         // Should either be <object-like> or <function-like>
         std::string MacroType;
 
-        // Name of the file in which the original macro was defined
-        std::string MacroDefinitionDefinitionFileName;
+        // Real path to the file in which the original macro was defined
+        std::string MacroDefinitionRealPath;
 
         // Definition number of the original macro
         std::size_t MacroDefinitionNumber;
+
+        // Real path to the file the transformed declaration's
+        // corresponding definition was emitted to
+        std::string TransformedDefinitionRealPath;
 
         // The signature of the transformed delcaration, without
         // the name of the variable/function itself
@@ -55,6 +59,9 @@ namespace Utils
 
     // Hashes a given TransformedDeclarationAnnotation instance to a string
     std::string hashTDA(const TransformedDeclarationAnnotation &TDA);
+
+    // Hashes a given TransformedDeclarationAnnotation JSON annotation to a string
+    std::string hashTDAFromJSON(const nlohmann::json &j);
 
     // Given a pointer to a Decl, returns the string representation of
     // the Decl's first 'annotate' attribute, or the empty string
