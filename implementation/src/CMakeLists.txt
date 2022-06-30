@@ -51,13 +51,10 @@ add_library(Cpp2C SHARED
   Utils/Logging/TransformerMessages.cc
   Utils/SourceRangeCollection.cc
   Utils/TransformedDeclarationAnnotation.cc
+  Visitors/CollectReferencingDREs.cc
   Visitors/CollectCpp2CAnnotatedDeclsVisitor.cc
   Visitors/CollectDeclNamesVisitor.cc
   Visitors/DeanonymizerVisitor.cc
-  Visitors/DeclRefExprAndCallExprDDVisitor
-  Visitors/ForwardDeclDDVisitor.cc
-  Visitors/FunctionDefinitionDDVisitor.cc
-  Visitors/MacroTransformationMapperVisitor.cc
 )
 
 target_include_directories(Cpp2C PUBLIC "${PROJECT_SOURCE_DIR}/include")
