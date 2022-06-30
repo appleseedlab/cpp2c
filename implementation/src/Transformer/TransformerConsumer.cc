@@ -225,12 +225,16 @@ namespace Transformer
 
             // Emit declaration
             {
+                auto realPath = [&SM](clang::SourceLocation L)
+                { return SM.getFileEntryForID(SM.getFileID(L))->tryGetRealPathName().str(); };
+
                 // Create the annotation and convert it to json
                 TransformedDeclarationAnnotation TDA = {
                     .NameOfOriginalMacro = TD->getExpansion()->getName(),
                     .MacroType = TD->getExpansion()->getMI()->isObjectLike() ? "object-like" : "function-like",
-                    .MacroDefinitionDefinitionFileName = SM.getFilename(TD->getExpansion()->getDefinitionRange().getBegin()).str(),
+                    .MacroDefinitionRealPath = realPath(SM.getFileLoc(TD->getExpansion()->getDefinitionRange().getBegin())),
                     .MacroDefinitionNumber = TD->getExpansion()->getDefinitionNumber(),
+                    .TransformedDefinitionRealPath = realPath(TD->getTransformedDefinitionLocation(Ctx)),
                     .TransformedSignature = TD->getExpansionSignatureOrDeclaration(Ctx, false),
                 };
                 nlohmann::json j = TDA;
