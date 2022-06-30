@@ -66,33 +66,6 @@ def main():
 
     for evaluation_program in EVALUATION_PROGRAMS:
 
-        # # DELETE THIS
-
-        # # Get the path to the source directory of the program
-        # src_dir = os.path.join(evaluation_program.extracted_archive_path,
-        #                        evaluation_program.src_dir)
-
-        # # Gather program .c files
-        # program_c_files: Deque[str] = deque()
-        # for dirpath, _, filenames in os.walk(src_dir):
-        #     for filename in filenames:
-        #         filepath = os.path.join(dirpath, filename)
-        #         if filepath.endswith('.c'):
-        #             program_c_files.append(filepath)
-
-        # # Deduplicate transformed macros in all files
-        # for c_file in program_c_files:
-        #     cp = subprocess.run(
-        #         f'../implementation/build/bin/cpp2c dd -i {c_file}',
-        #         shell=True, capture_output=True, text=True)
-        #     # Check that clang didn't crash...
-        #     if "PLEASE" in cp.stderr:
-        #         print(cp.stderr)
-        #         exit(1)
-        
-        # return
-        # # DELETE THIS
-
         # Download the program zip file if we do not already have it
         if not os.path.exists(evaluation_program.archive_file):
             print(
