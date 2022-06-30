@@ -4,6 +4,8 @@
 
 #include "clang/AST/ASTConsumer.h"
 
+#include <string>
+
 namespace Deduplicator
 {
     // AST consumer that removes duplicate
@@ -15,10 +17,10 @@ namespace Deduplicator
 
     private:
         DeduplicatorSettings DDSettings;
+        void debugMsg(std::string);
 
     public:
         explicit DeduplicatorConsumer(DeduplicatorSettings DDSettings);
-
         virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
     };
 } // namespace Deduplicator
