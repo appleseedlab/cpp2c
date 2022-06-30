@@ -105,12 +105,14 @@ namespace Transformer
                 string TString = ArgType.getAsString();
 
                 // TODO: This is a hack
-                // Manually remove const qualifiers
+                // Manually remove const qualifiers from parameters only
+                // We make sure we only remove from parameters by including
+                // the space after the const keyword
                 {
-                    auto i = TString.find("const");
+                    auto i = TString.find("const ");
                     if (i != string::npos)
                     {
-                        TString.erase(i, string("const").length());
+                        TString.erase(i, string("const ").length());
                     }
                 }
 
