@@ -130,10 +130,12 @@ def main():
                         macro_hashes_to_expansion_spelling_locations[mhash].add(
                             spelling_location)
 
+        print(f'## {evaluation_program.name}')
+
         print(
-            f'unique macro definitions in {evaluation_program.name}: {len(hashes_of_macros_defined_in_program)}')
+            f'unique macro definitions: {len(hashes_of_macros_defined_in_program)}')
         print(
-            f'unique expansions of macros defined in {evaluation_program.name}: {sum(len(vs) for vs in macro_hashes_to_expansion_spelling_locations.values())}')
+            f'unique expansions of macros defined: {sum(len(vs) for vs in macro_hashes_to_expansion_spelling_locations.values())}')
 
         # Transform the program to a fixpoint
         num_runs_to_fixpoint = 0
@@ -163,11 +165,9 @@ def main():
             print(
                 f'finished run {num_runs_to_fixpoint} of {evaluation_program.name}', file=sys.stderr)
 
-        print(
-            f'runs to reach a fixpoint in {evaluation_program.name}: {num_runs_to_fixpoint}')
+        print(f'runs to reach a fixpoint: {num_runs_to_fixpoint}')
 
-        print(
-            f'transformed macros in {evaluation_program.name}: {len(transformed_macro_hashes)}')
+        print(f'transformed macros: {len(transformed_macro_hashes)}')
 
         # Deduplicate transformed macros in all files
         for c_file in program_c_files:
@@ -239,16 +239,15 @@ def main():
 
         num_unique_transformed_invocations = sum(
             unique_transformed_invocations)
-        print(
-            f'unique transformed invocations in {evaluation_program.name}: {num_unique_transformed_invocations}')
+        print(f'unique transformed invocations: {num_unique_transformed_invocations}')
 
         invocations_fivenum = five_num(unique_transformed_invocations)
         print(
-            f'five point of unique transformed invocations in {evaluation_program.name}: {invocations_fivenum}')
+            f'five point of unique transformed invocations: {invocations_fivenum}')
 
         invocations_twentynum = twenty_num(unique_transformed_invocations)
         print(
-            f'twenty point of unique transformed invocations in {evaluation_program.name}: {invocations_twentynum}')
+            f'twenty point of unique transformed invocations: {invocations_twentynum}')
 
         top_five_most_transformed_macros = [
             (mhash.split(';')[0], count)
@@ -257,9 +256,31 @@ def main():
                 reverse=True,
                 key=lambda pair: pair[1])[0:5]]
         print(
-            f'top five most transformed macros in {evaluation_program.name}: {top_five_most_transformed_macros}')
+            f'top five most transformed macros: {top_five_most_transformed_macros}')
 
-        # TODO: Determine which macros had the most distinctly typed transformations
+        mhash_to_transformation_types: Dict[str, Set[str]] = defaultdict(set)
+        for annotation in transformed_names_to_annotations.values():
+            mhash = macro_hash_from_annotation(annotation)
+            sig = annotation['transformed signature']
+            mhash_to_transformation_types[mhash].add(sig)
+
+        num_unique_types = [len(v)
+                            for v in mhash_to_transformation_types.values()]
+
+        types_fivenum = five_num(num_unique_types)
+        print(f'five point of unique transformed types: {types_fivenum}')
+
+        types_twentynum = twenty_num(num_unique_types)
+        print(f'twenty point of unique transformed types: {types_twentynum}')
+
+        top_five_macros_with_most_unique_types = [
+            (mhash.split(';')[0], len(types))
+            for mhash, types in sorted(
+                mhash_to_transformation_types.items(),
+                reverse=True,
+                key=lambda pair: len(pair[1]))[0:5]]
+        print(
+            f'top five macros with most unique transformed types: {top_five_macros_with_most_unique_types}')
 
         sys.stdout.flush()
 
