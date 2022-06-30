@@ -57,15 +57,15 @@ namespace CppSig
         Expansion->DefinitionRange = DefinitionRange;
         Expansion->SpellingRange = SpellingRange;
 
-        // Count the number of times this macro has been defined
-        // up to this point
-        Expansion->DefinitionNumber = Utils::countMacroDefinitions(MD);
-
         // Get the source manager
         clang::SourceManager &SM = Ctx.getSourceManager();
 
         // Get the language options
         const clang::LangOptions &LO = Ctx.getLangOpts();
+
+        // Count the number of times this macro has been defined
+        // up to this point
+        Expansion->DefinitionNumber = Utils::countMacroDefinitions(SM, MD);
 
         // Record the raw text of the macro definition
         {
