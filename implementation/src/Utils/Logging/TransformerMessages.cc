@@ -33,7 +33,7 @@ namespace Utils
 
             OS << "CPP2C:"
                << "Untransformed Expansion,"
-               << "\"" << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << "\","
+               << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << ","
                << Expansion->getSpellingRange().getBegin().printToString(SM)
                << Reason << "\n";
         }
@@ -47,7 +47,7 @@ namespace Utils
         {
             OS << "CPP2C:"
                << "Macro Definition,"
-               << '"' << hashMacro(MacroName, Utils::countMacroDefinitions(*MD), MD->getMacroInfo(), SM) << '"' << ','
+               << hashMacro(MacroName, Utils::countMacroDefinitions(SM, *MD), MD->getMacroInfo(), SM) << ','
                << MD->getMacroInfo()->getDefinitionLoc().printToString(SM) << "\n";
         }
 
@@ -62,7 +62,7 @@ namespace Utils
             SourceLocation SpellingLoc = SpellingRange.getBegin();
             OS << "CPP2C:"
                << "Macro Expansion,"
-               << "\"" << hashMacro(MacroName, Utils::countMacroDefinitions(MD), MD.getMacroInfo(), SM) << "\","
+               << hashMacro(MacroName, Utils::countMacroDefinitions(SM, MD), MD.getMacroInfo(), SM) << ","
                << SpellingLoc.printToString(SM) << "\n";
         }
 
@@ -77,9 +77,8 @@ namespace Utils
                 TD->getExpansionSignatureOrDeclaration(Ctx, false);
             OS << "CPP2C:"
                << "Transformed Definition,"
-               << "\"" << hashMacro(TD->getExpansion()->getName(), TD->getExpansion()->getDefinitionNumber(), TD->getExpansion()->getMI(), SM) << "\","
-               << "\"" << TransformedSignatureNoName << "\""
-               << ","
+               << hashMacro(TD->getExpansion()->getName(), TD->getExpansion()->getDefinitionNumber(), TD->getExpansion()->getMI(), SM) << ","
+               << TransformedSignatureNoName << ","
                << TD->getEmittedName() << "\n";
         }
 
@@ -93,7 +92,7 @@ namespace Utils
             auto ND = Utils::getTopLevelNamedDeclStmtExpandedIn(Ctx, *Expansion->getStmtsRef().begin());
             OS << "CPP2C:"
                << "Transformed Expansion,"
-               << "\"" << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << "\","
+               << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << ","
                << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
                << ND->getNameAsString() << "\n";
         }
