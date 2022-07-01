@@ -137,7 +137,7 @@ def main():
         print(
             f'unique macro definitions: {len(hashes_of_macros_defined_in_program)}')
         print(
-            f'unique expansions of macros defined: {sum(len(vs) for vs in macro_hashes_to_expansion_spelling_locations.values())}')
+            f'unique expansions of source macros: {sum(len(vs) for vs in macro_hashes_to_expansion_spelling_locations.values())}')
 
         # Transform the program to a fixpoint
         num_runs_to_fixpoint = 0
