@@ -12,9 +12,9 @@ class EvaluationProgram:
     link_to_archive_file: str
     src_dir: str
 
-    configure_script: str
+    configure_compile_commands_script: str
     '''
-    Script to configure the program.
+    Script to configure the program and generate its compile_commands.json.
     Assumes it is run inside the top-level directory of the
     extracted archive.
     '''
@@ -47,7 +47,7 @@ EVALUATION_PROGRAMS = [
         r'bc-1.07',
         r'https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz',
         r'bc',
-        r'bash configure',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -61,7 +61,7 @@ EVALUATION_PROGRAMS = [
         r'gzip-1.10',
         r'https://gnu.mirror.constant.com/gzip/gzip-1.10.tar.gz',
         r'.',
-        r'bash configure',
+        r'bash configure && bear make',
         r'''
         make clean  &&
         make        &&
@@ -73,7 +73,7 @@ EVALUATION_PROGRAMS = [
         r'remind-03.04.02',
         r'https://dianne.skoll.ca/projects/remind/download/OLD/remind-03.04.02.tar.gz',
         r'src',
-        r'bash configure',
+        r'bash configure && bear make',
         r'''
         make clean      &&
         make            &&
@@ -85,7 +85,7 @@ EVALUATION_PROGRAMS = [
         r'lua-5.4.4',
         r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
         r'src',
-        r'',
+        r'bear make',
         f'''
         make                        &&
         if [[ -e {LUA_TESTS_DIR} ]]; then rm -fr {LUA_TESTS_DIR}; fi    &&
