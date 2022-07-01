@@ -1,17 +1,29 @@
-from collections import defaultdict
+from ast import arguments
 import json
+from collections import defaultdict
+import os
 from typing import Dict, Set
 
 import clang.cindex
 
+from compile_command import CompileCommand
 
-def collect_annotations_of_func_and_var_decls_emitted_by_cpp2c(filepath: str) -> Dict[str, Dict]:
+
+def collect_annotations_of_func_and_var_decls_emitted_by_cpp2c(cc: CompileCommand) -> Dict[str, Dict]:
     '''
-    Returns a dict mapping decl name's to their- parsed Cpp2C JSON annotations
+    Returns a dict mapping decl name's to their parsed Cpp2C JSON annotations
     '''
+    # Change to file directory
+    temp = os.getcwd()
+    os.chdir(cc.directory)
+
+    file = cc.file
+    # Omit the last argument since that is the file name
+    arguments = cc.arguments[:-1]
+
     result = {}
     idx: clang.cindex.Index = clang.cindex.Index.create()
-    tu: clang.cindex.TranslationUnit = idx.parse(filepath)
+    tu: clang.cindex.TranslationUnit = idx.parse(file, arguments)
     cur: clang.cindex.Cursor = tu.cursor
 
     for child in cur.walk_preorder():
@@ -21,15 +33,18 @@ def collect_annotations_of_func_and_var_decls_emitted_by_cpp2c(filepath: str) ->
             for subchild in child.walk_preorder():
                 sck: clang.cindex.CursorKind = subchild.kind
                 if sck.is_attribute():
-                    # print(subchild.displayname)
                     if 'CPP2C' in subchild.displayname:
                         result[child.displayname] = json.loads(
                             subchild.displayname)
+
+    # Change back to original directory
+    os.chdir(temp)
+
     return result
 
 
 def map_macro_hashes_to_unique_transformed_invocations(
-        filepath: str,
+        cc: CompileCommand,
         transformed_decl_names_to_macro_hashes: Dict[str, str],
         canonical_transformed_decl_names: Set[str]) -> Dict[str, int]:
     '''
@@ -37,9 +52,17 @@ def map_macro_hashes_to_unique_transformed_invocations(
     unique transformed invocations found for them in the given
     source file
     '''
+    # Change to file directory
+    temp = os.getcwd()
+    os.chdir(cc.directory)
+
+    file = cc.file
+    # Omit the last argument since that is the file name
+    arguments = cc.arguments[:-1]
+
     result: Dict[str, int] = defaultdict(int)
     idx: clang.cindex.Index = clang.cindex.Index.create()
-    tu: clang.cindex.TranslationUnit = idx.parse(filepath)
+    tu: clang.cindex.TranslationUnit = idx.parse(file, arguments)
     cur: clang.cindex.Cursor = tu.cursor
 
     transformed_decl_names = transformed_decl_names_to_macro_hashes.keys()
@@ -64,4 +87,8 @@ def map_macro_hashes_to_unique_transformed_invocations(
                                 # Use `discard` because a canon def may contain multiple
                                 # transformed invocations
                                 canonical_transformed_decl_names.discard(name)
+
+    # Change back to original directory
+    os.chdir(temp)
+
     return result
