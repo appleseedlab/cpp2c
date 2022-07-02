@@ -18,8 +18,9 @@ namespace Utils
             clang::SourceManager &SM)
         {
             auto MacroType = MI->isObjectLike() ? "object-like" : "function-like";
-            auto DefinitionFileName = SM.getFilename(MI->getDefinitionLoc()).str();
-            return MacroName + ';' + MacroType + ';' + DefinitionFileName + ';' + std::to_string(DefinitionNumber);
+            std::string DefinitionFileRealPath =
+                Utils::fileRealPathOrEmpty(SM, SM.getFileLoc(MI->getDefinitionLoc()));
+            return MacroName + ';' + MacroType + ';' + DefinitionFileRealPath + ';' + std::to_string(DefinitionNumber);
         }
 
         void emitUntransformedMessage(
