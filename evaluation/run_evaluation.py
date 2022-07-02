@@ -146,6 +146,8 @@ def main():
             for cc in compile_commands:
                 cmd = compile_command.cpp2c_command_from_compile_command(
                     cc, ['tr', '-i', '-v'])
+                # Change to the command directory to run the command
+                os.chdir(cc.directory)
                 cp = subprocess.run(cmd, shell=True,
                                     capture_output=True, text=True)
 
@@ -167,15 +169,17 @@ def main():
         print(f'runs to reach a fixpoint: {num_runs_to_fixpoint}')
 
         # Deduplicate transformed macros in all files
-        for cc in compile_commands:
-            cmd = compile_command.cpp2c_command_from_compile_command(
-                cc, ['dd', '-i'])
-            cp = subprocess.run(cmd, shell=True,
-                                capture_output=True, text=True)
-            # Check that clang didn't crash...
-            if "PLEASE" in cp.stderr:
-                print(cp.stderr)
-                exit(1)
+        # for cc in compile_commands:
+        #     cmd = compile_command.cpp2c_command_from_compile_command(
+        #         cc, ['dd', '-i'])
+        #     # Change to the command directory to run the command
+        #     os.chdir(cc.directory)
+        #     cp = subprocess.run(cmd, shell=True,
+        #                         capture_output=True, text=True)
+        #     # Check that clang didn't crash...
+        #     if "PLEASE" in cp.stderr:
+        #         print(cp.stderr)
+        #         exit(1)
 
         # Count the number of unique transformed invocations
 
@@ -223,6 +227,9 @@ def main():
             for name, annotation in transformed_names_to_annotations.items()
         }
 
+        print(
+            f'transformed macros (based on annotations): {len(seen_macro_hashes)}')
+
         macro_hash_to_unique_transformed_invocations: Dict[str, int] = defaultdict(
             int)
         for cc in compile_commands:
@@ -234,7 +241,7 @@ def main():
                 macro_hash_to_unique_transformed_invocations[mhash] += count
 
         print(
-            f'transformed macros: {len(macro_hash_to_unique_transformed_invocations)}')
+            f'transformed macros (based on found transformed invocations): {len(macro_hash_to_unique_transformed_invocations)}')
 
         unique_transformed_invocations = list(
             macro_hash_to_unique_transformed_invocations.values())
