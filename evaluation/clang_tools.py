@@ -34,8 +34,9 @@ def collect_annotations_of_func_and_var_decls_emitted_by_cpp2c(cc: CompileComman
                 sck: clang.cindex.CursorKind = subchild.kind
                 if sck.is_attribute():
                     if 'CPP2C' in subchild.displayname:
-                        result[child.displayname] = json.loads(
-                            subchild.displayname)
+                        declname = child.mangled_name
+                        annotation = subchild.displayname
+                        result[declname] = json.loads(annotation)
 
     # Change back to original directory
     os.chdir(temp)
@@ -67,18 +68,22 @@ def map_macro_hashes_to_unique_transformed_invocations(
 
     transformed_decl_names = transformed_decl_names_to_macro_hashes.keys()
 
+    # Visit each top level construct in the translation unit
     for node in cur.walk_preorder():
-        # Visit each function definition and variable initialization
         k: clang.cindex.CursorKind = node.kind
-        if k.is_declaration():
+        # Only visit variable and function definitions
+        if k in [clang.cindex.CursorKind.VAR_DECL, clang.cindex.CursorKind.FUNCTION_DECL]:
+            # Only visit variable declarations and definitions
             if node.is_definition():
-                name = node.displayname
+                name = node.mangled_name
                 if (name not in transformed_decl_names or
-                        (name in transformed_decl_names and name in canonical_transformed_decl_names)):
+                        (name in transformed_decl_names and
+                         name in canonical_transformed_decl_names)):
                     for subchild in node.walk_preorder():
-                        if subchild.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
-                            referenced_name = subchild.displayname
-                            if referenced_name in transformed_decl_names:
+                        sck: clang.cindex.CursorKind = subchild.kind
+                        if sck == clang.cindex.CursorKind.DECL_REF_EXPR:
+                            referenced_name = subchild.referenced.mangled_name
+                            if referenced_name in transformed_decl_names_to_macro_hashes:
                                 mhash = transformed_decl_names_to_macro_hashes[referenced_name]
                                 result[mhash] += 1
                                 # Remove this name from the set of canonical names so we don't
