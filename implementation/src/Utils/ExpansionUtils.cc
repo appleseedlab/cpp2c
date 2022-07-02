@@ -702,4 +702,10 @@ namespace Utils
         return count;
     }
 
+    std::string fileRealPathOrEmpty(clang::SourceManager &SM, clang::SourceLocation L)
+    {
+        auto FI = SM.getFileEntryForID(SM.getFileID(L));
+        return FI ? FI->tryGetRealPathName().str() : "";
+    }
+
 } // namespace Utils

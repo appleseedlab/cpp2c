@@ -147,4 +147,6 @@ namespace Utils
     std::size_t countMacroDefinitions(clang::SourceManager &SM,
                                       const clang::MacroDirective &MD);
 
+    std::string fileRealPathOrEmpty(clang::SourceManager &SM, clang::SourceLocation L);
+
 } // namespace Utils
