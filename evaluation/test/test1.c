@@ -6,6 +6,8 @@ int x = 0;
 #define MIDDLE ((INNER) + (INNER))
 #define OUTER ((MIDDLE) + (MIDDLE) + (MIDDLE))
 
+// 3 unique macro definitions
+
 int main(int argc, char const *argv[])
 {
     // 6 unique transformed expansions
