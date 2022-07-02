@@ -43,6 +43,15 @@ class EvaluationProgram:
 
 
 EVALUATION_PROGRAMS = [
+
+    # EvaluationProgram(
+    #     r'test',
+    #     r'test.zip',
+    #     r'.',
+    #     r'bear make',
+    #     r''
+    # ),
+
     EvaluationProgram(
         r'bc-1.07',
         r'https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz',
@@ -95,12 +104,4 @@ EVALUATION_PROGRAMS = [
         ../lua-5.4.4/src/lua -e"_U=true" all.lua 1>/dev/null
         '''
     ),
-
-    # EvaluationProgram(
-    #     r'test',
-    #     r'test.zip',
-    #     r'.',
-    #     r'',
-    #     r''
-    # )
 ]
