@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import datetime
 from typing import Dict, Set
 from urllib.request import urlretrieve
 
@@ -20,8 +21,8 @@ TRANSFORMED_DEFINITION = 'Transformed Definition'
 TRANSFORMED_EXPANSION = 'Transformed Expansion'
 UNTRANSFORMED_EXPANSION = 'Untransformed Expansion'
 
-OBJECT_LIKE_PREFIX = 'ObjectLike'
-FUNCTION_LIKE_PREFIX = 'FunctionLike'
+OBJECT_LIKE = 'object-like'
+FUNCTION_LIKE = 'function-like'
 EXTRACTED_EVALUATION_PROGRAMS_DIR = r'extracted_evaluation_programs/'
 
 HYGIENE = 'Hygiene'
@@ -137,10 +138,20 @@ def main():
         print(
             f'unique macro definitions: {len(hashes_of_macros_defined_in_program)}')
         print(
+            f'    olms: {len([h for h in hashes_of_macros_defined_in_program if OBJECT_LIKE in h])}')
+        print(
+            f'    flms: {len([h for h in hashes_of_macros_defined_in_program if FUNCTION_LIKE in h])}')
+
+        print(
             f'unique expansions of source macros: {sum(len(vs) for vs in macro_hashes_to_expansion_spelling_locations.values())}')
+        print(
+            f'    olms: {sum(len(vs) for h, vs in macro_hashes_to_expansion_spelling_locations.items() if OBJECT_LIKE in h)}')
+        print(
+            f'    flms: {sum(len(vs) for h, vs in macro_hashes_to_expansion_spelling_locations.items() if FUNCTION_LIKE in h)}')
 
         # Transform the program to a fixpoint
         num_runs_to_fixpoint = 0
+        start_time = datetime.now()
         while True:
             emitted_a_transformation = False
             for cc in compile_commands:
@@ -165,6 +176,10 @@ def main():
                 break
             print(
                 f'finished run {num_runs_to_fixpoint} of {evaluation_program.name}', file=sys.stderr)
+        end_time = datetime.now()
+        elapsed = end_time - start_time
+        print(
+            f'time to reach a fixpoint: {elapsed.seconds}.{elapsed.seconds}s')
 
         print(f'runs to reach a fixpoint: {num_runs_to_fixpoint}')
 
@@ -229,6 +244,10 @@ def main():
 
         print(
             f'transformed macros (based on annotations): {len(seen_macro_hashes)}')
+        print(
+            f'    olms: {len([h for h in seen_macro_hashes if OBJECT_LIKE in h])}')
+        print(
+            f'    flms: {len([h for h in seen_macro_hashes if FUNCTION_LIKE in h])}')
 
         macro_hash_to_unique_transformed_invocations: Dict[str, int] = defaultdict(
             int)
@@ -242,22 +261,34 @@ def main():
 
         print(
             f'transformed macros (based on found transformed invocations): {len(macro_hash_to_unique_transformed_invocations)}')
+        print(
+            f'    olms: {len([h for h in macro_hash_to_unique_transformed_invocations if OBJECT_LIKE in h])}')
+        print(
+            f'    flms: {len([h for h in macro_hash_to_unique_transformed_invocations if FUNCTION_LIKE in h])}')
 
         unique_transformed_invocations = list(
             macro_hash_to_unique_transformed_invocations.values())
+        unique_transformed_invocations_olms = [
+            count for h, count in macro_hash_to_unique_transformed_invocations.items() if OBJECT_LIKE in h]
+        unique_transformed_invocations_flms = [
+            count for h, count in macro_hash_to_unique_transformed_invocations.items() if FUNCTION_LIKE in h]
 
-        num_unique_transformed_invocations = sum(
-            unique_transformed_invocations)
         print(
-            f'unique transformed invocations: {num_unique_transformed_invocations}')
+            f'unique transformed invocations: {sum(unique_transformed_invocations)}')
+        print(
+            f'    olms: {sum(unique_transformed_invocations_olms)}')
+        print(
+            f'    flms: {sum(unique_transformed_invocations_flms)}')
 
-        invocations_fivenum = five_num(unique_transformed_invocations)
         print(
-            f'five point of unique transformed invocations: {invocations_fivenum}')
+            f'five point of unique transformed invocations: {five_num(unique_transformed_invocations)}')
+        print(f'    olms: {five_num(unique_transformed_invocations_olms)}')
+        print(f'    flms: {five_num(unique_transformed_invocations_flms)}')
 
-        invocations_twentynum = twenty_num(unique_transformed_invocations)
         print(
-            f'twenty point of unique transformed invocations: {invocations_twentynum}')
+            f'twenty point of unique transformed invocations: {twenty_num(unique_transformed_invocations)}')
+        print(f'    olms: {twenty_num(unique_transformed_invocations_olms)}')
+        print(f'    flms: {twenty_num(unique_transformed_invocations_flms)}')
 
         top_five_most_transformed_macros = [
             (mhash.split(';')[0], count)
@@ -265,8 +296,26 @@ def main():
                 macro_hash_to_unique_transformed_invocations.items(),
                 reverse=True,
                 key=lambda pair: pair[1])[0:5]]
+
+        top_five_most_transformed_olms = [
+            (mhash.split(';')[0], count)
+            for mhash, count in sorted(
+                macro_hash_to_unique_transformed_invocations.items(),
+                reverse=True,
+                key=lambda pair: pair[1])[0:5]
+            if OBJECT_LIKE in mhash]
+        top_five_most_transformed_flms = [
+            (mhash.split(';')[0], count)
+            for mhash, count in sorted(
+                macro_hash_to_unique_transformed_invocations.items(),
+                reverse=True,
+                key=lambda pair: pair[1])[0:5]
+            if FUNCTION_LIKE in mhash]
+
         print(
             f'top five most transformed macros: {top_five_most_transformed_macros}')
+        print(f'    olms: {top_five_most_transformed_olms}')
+        print(f'    flms: {top_five_most_transformed_flms}')
 
         mhash_to_transformation_types: Dict[str, Set[str]] = defaultdict(set)
         for annotation in transformed_names_to_annotations.values():
@@ -276,12 +325,22 @@ def main():
 
         num_unique_types = [len(v)
                             for v in mhash_to_transformation_types.values()]
+        num_unique_types_olms = [len(v)
+                                 for h, v in mhash_to_transformation_types.items()
+                                 if OBJECT_LIKE in h]
+        num_unique_types_flms = [len(v)
+                                 for h, v in mhash_to_transformation_types.items()
+                                 if FUNCTION_LIKE in h]
 
-        types_fivenum = five_num(num_unique_types)
-        print(f'five point of unique transformed types: {types_fivenum}')
+        print(
+            f'five point of unique transformed types: {five_num(num_unique_types)}')
+        print(f'    olms: {five_num(num_unique_types_olms)}')
+        print(f'    flms: {five_num(num_unique_types_flms)}')
 
-        types_twentynum = twenty_num(num_unique_types)
-        print(f'twenty point of unique transformed types: {types_twentynum}')
+        print(
+            f'twenty point of unique transformed types: {twenty_num(num_unique_types)}')
+        print(f'    olms: {twenty_num(num_unique_types_olms)}')
+        print(f'    flms: {twenty_num(num_unique_types_flms)}')
 
         top_five_macros_with_most_unique_types = [
             (mhash.split(';')[0], len(types))
@@ -289,8 +348,27 @@ def main():
                 mhash_to_transformation_types.items(),
                 reverse=True,
                 key=lambda pair: len(pair[1]))[0:5]]
+
+        top_five_olms_with_most_unique_types = [
+            (mhash.split(';')[0], len(types))
+            for mhash, types in sorted(
+                [(h, ts) for h, ts in mhash_to_transformation_types.items()
+                 if OBJECT_LIKE in h],
+                reverse=True,
+                key=lambda pair: len(pair[1]))[0:5]]
+
+        top_five_flms_with_most_unique_types = [
+            (mhash.split(';')[0], len(types))
+            for mhash, types in sorted(
+                [(h, ts) for h, ts in mhash_to_transformation_types.items()
+                 if FUNCTION_LIKE in h],
+                reverse=True,
+                key=lambda pair: len(pair[1]))[0:5]]
+
         print(
             f'top five macros with most unique transformed types: {top_five_macros_with_most_unique_types}')
+        print(f'    olms: {top_five_olms_with_most_unique_types}')
+        print(f'    flms: {top_five_flms_with_most_unique_types}')
 
         sys.stdout.flush()
 
