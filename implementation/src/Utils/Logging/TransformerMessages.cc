@@ -35,7 +35,7 @@ namespace Utils
             OS << "CPP2C:"
                << "Untransformed Expansion,"
                << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << ","
-               << Expansion->getSpellingRange().getBegin().printToString(SM)
+               << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
                << Reason << "\n";
         }
 
