@@ -32,8 +32,7 @@ namespace Utils
         {
             SourceManager &SM = Ctx.getSourceManager();
 
-            OS << "CPP2C:"
-               << "Untransformed Expansion,"
+            OS << "CPP2C:Untransformed Expansion,"
                << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << ","
                << Expansion->getSpellingRange().getBegin().printToString(SM) << ","
                << Reason << "\n";
@@ -46,8 +45,7 @@ namespace Utils
             SourceManager &SM,
             const LangOptions &LO)
         {
-            OS << "CPP2C:"
-               << "Macro Definition,"
+            OS << "CPP2C:Macro Definition,"
                << hashMacro(MacroName, Utils::countMacroDefinitions(SM, *MD), MD->getMacroInfo(), SM) << ','
                << MD->getMacroInfo()->getDefinitionLoc().printToString(SM) << "\n";
         }
