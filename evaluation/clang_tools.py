@@ -1,4 +1,3 @@
-from ast import arguments
 import json
 from collections import defaultdict
 import os
@@ -26,15 +25,13 @@ def collect_annotations_of_func_and_var_decls_emitted_by_cpp2c(cc: CompileComman
     tu: clang.cindex.TranslationUnit = idx.parse(file, arguments)
     cur: clang.cindex.Cursor = tu.cursor
 
-    for child in cur.walk_preorder():
-        ck: clang.cindex.CursorKind = child.kind
-        # Only consider function declarations and variable declarations
-        if ck in [clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL]:
-            for subchild in child.walk_preorder():
-                sck: clang.cindex.CursorKind = subchild.kind
-                if sck.is_attribute():
-                    if 'CPP2C' in subchild.displayname:
-                        declname = child.mangled_name
+    for child in cur.get_children():
+        for subchild in child.get_children():
+            sck: clang.cindex.CursorKind = subchild.kind
+            if sck.is_attribute():
+                if 'emitted by CPP2C' in subchild.displayname:
+                    declname = child.mangled_name
+                    if declname.strip() != '':
                         annotation = subchild.displayname
                         result[declname] = json.loads(annotation)
 
