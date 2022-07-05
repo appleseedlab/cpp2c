@@ -200,7 +200,7 @@ namespace Transformer
             for (auto TopLevelExpansion : ExpansionRoots)
             {
                 auto MHash = TopLevelExpansion->getMacroHash();
-                debugMsg("CPP2C:Potentially Transformable Macro Expansion," + MHash);
+                debugMsg("CPP2C:Potentially Transformable Macro Expansion," + MHash + "\n");
             }
         }
 
@@ -456,7 +456,7 @@ namespace Transformer
                     TD->getInvocationReplacementRange(), StringRef(CallOrRef));
                 assert(!rewriteFailed);
 
-                debugMsg("CPP2C:Transformed Expansion," + MacroHash + "," + EmittedName);
+                debugMsg("CPP2C:Transformed Expansion," + MacroHash + "," + EmittedName + "\n");
             }
 
             // Emit transformed definition if the previously emitted transformed definition

@@ -80,7 +80,7 @@ namespace CppSig
         {
             llvm::errs() << "CPP2C:Raw Macro Expansion,"
                          << Expansion->MacroHash << ","
-                         << SpellingRange.getBegin().printToString(SM);
+                         << SpellingRange.getBegin().printToString(SM) << "\n";
         }
 
         // Record the raw text of the macro definition
