@@ -29,7 +29,7 @@ namespace CppSig
                       Expansions.end(),
                       [&SM, &OnlyCollectNotDefinedInStdHeaders](MacroExpansionNode *N)
                       {
-                          // Only look at expansions source files
+                          // Only look at expansions in source files
                           SourceLocation Loc = N->getSpellingRange().getBegin();
                           if (!SM.isInMainFile(Loc) || SM.isWrittenInScratchSpace(Loc))
                           {
