@@ -75,11 +75,10 @@ namespace CppSig
                                DefinitionFileRealPath + ';' +
                                std::to_string(Expansion->DefinitionNumber);
 
-        // TODO: Add a verbosity flag to control printing this
-        if (true) // Should be `if (Verbose)`
+        if (Verbose)
         {
-            llvm::errs() << "CPP2C:Raw Macro Expansion,"
-                         << Expansion->MacroHash << ","
+            llvm::errs() << "CPP2C:Raw Macro Expansion\t"
+                         << Expansion->MacroHash << "\t"
                          << SpellingRange.getBegin().printToString(SM) 
                          << "\n";
         }
