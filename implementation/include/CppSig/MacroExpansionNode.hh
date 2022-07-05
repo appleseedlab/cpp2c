@@ -77,6 +77,9 @@ namespace CppSig
         // in the unpreprocessed translation unit
         std::size_t DefinitionNumber;
 
+        // A unique hash of the definition this expansion refers to
+        std::string MacroHash;
+
     public:
         MacroExpansionNode *getRoot();
         MacroExpansionNode *getParent();
@@ -93,6 +96,7 @@ namespace CppSig
         std::set<const clang::Stmt *> getStmts();
         std::set<const clang::Stmt *> &getStmtsRef();
         std::size_t getDefinitionNumber();
+        std::string getMacroHash();
 
         // Dump information about the node and its argument
         void dump(clang::SourceManager &SM);

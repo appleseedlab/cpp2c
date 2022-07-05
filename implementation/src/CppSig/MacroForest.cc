@@ -67,6 +67,13 @@ namespace CppSig
         // up to this point
         Expansion->DefinitionNumber = Utils::countMacroDefinitions(SM, MD);
 
+        std::string MacroType = MI->isObjectLike() ? "object-like" : "function-like";
+        std::string DefinitionFileRealPath = Utils::fileRealPathOrEmpty(SM, DefinitionRange.getBegin());
+        Expansion->MacroHash = Expansion->Name + ';' +
+                               MacroType + ';' +
+                               DefinitionFileRealPath + ';' +
+                               std::to_string(Expansion->DefinitionNumber);
+
         // Record the raw text of the macro definition
         {
             Expansion->DefinitionText = "";

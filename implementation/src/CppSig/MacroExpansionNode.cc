@@ -128,4 +128,9 @@ namespace CppSig
         return DefinitionNumber;
     }
 
+    std::string MacroExpansionNode::getMacroHash()
+    {
+        return MacroHash;
+    }
+
 } // namespace CppSig
