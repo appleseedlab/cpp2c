@@ -67,12 +67,21 @@ namespace CppSig
         // up to this point
         Expansion->DefinitionNumber = Utils::countMacroDefinitions(SM, MD);
 
+        // Record this macro's hash
         std::string MacroType = MI->isObjectLike() ? "object-like" : "function-like";
         std::string DefinitionFileRealPath = Utils::fileRealPathOrEmpty(SM, DefinitionRange.getBegin());
         Expansion->MacroHash = Expansion->Name + ';' +
                                MacroType + ';' +
                                DefinitionFileRealPath + ';' +
                                std::to_string(Expansion->DefinitionNumber);
+
+        // TODO: Add a verbosity flag to control printing this
+        if (true) // Should be `if (Verbose)`
+        {
+            llvm::errs() << "CPP2C:Raw Macro Expansion,"
+                         << Expansion->MacroHash << ","
+                         << SpellingRange.getBegin().printToString(SM);
+        }
 
         // Record the raw text of the macro definition
         {
