@@ -29,5 +29,7 @@ namespace Transformer
         explicit TransformerConsumer(clang::CompilerInstance *CI, TransformerSettings TSettings);
 
         virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
+
+        void debugMsg(std::string s);
     };
 } // namespace Transformer

@@ -59,6 +59,14 @@ namespace Transformer
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
     }
 
+    void TransformerConsumer::debugMsg(std::string s)
+    {
+        if (TSettings.Verbose)
+        {
+            llvm::errs() << "s";
+        }
+    }
+
     void TransformerConsumer::HandleTranslationUnit(ASTContext &Ctx)
     {
         Rewriter RW;
@@ -79,7 +87,7 @@ namespace Transformer
         std::map<std::string, std::string> MHashPlusSigToName;
         std::map<std::string, std::set<std::string>> MHashPlusSigToDefRealPaths;
 
-        llvm::errs() << "Deserializing CPP2C annotations\n";
+        debugMsg("Deserializing CPP2C annotations\n");
         if (TSettings.DeduplicateWhileTransforming)
         {
             Visitors::CollectCpp2CAnnotatedDeclsVisitor CADV(Ctx);
@@ -132,7 +140,7 @@ namespace Transformer
                 }
             }
         }
-        llvm::errs() << "Done deserializing CPP2C annotations\n";
+        debugMsg("Done deserializing CPP2C annotations\n");
 
         // Collect the names of all the variables, functions, and macros
         // defined in the program
@@ -309,7 +317,7 @@ namespace Transformer
             std::string MacroHash = Utils::hashTDAOriginalMacro(TDA);
             std::string EmittedName = "";
 
-            llvm::errs() << "Trying to find an already-emitted name for " << MacroHash << "\n";
+            debugMsg("Trying to find an already-emitted name for " + MacroHash + "\n");
             bool foundPreviousDecl = false;
             bool previousDeclInSameFile = false;
             // Try to find an already-emitted name for this transformation
@@ -325,7 +333,7 @@ namespace Transformer
                     {
                         auto MHashPlusSig = MacroHash + Sig;
                         // We found a valid pre-existing transformed definition
-                        llvm::errs() << "Looking up name for " << MHashPlusSig << "\n";
+                        debugMsg("Looking up name for " + MHashPlusSig + "\n");
                         EmittedName = MHashPlusSigToName.at(MHashPlusSig);
                         foundPreviousDecl = true;
                         // Check if the realpath for this transformed decl
@@ -343,12 +351,12 @@ namespace Transformer
                     }
                 }
             }
-            llvm::errs() << "Done trying to find an emitted name for " << MacroHash << "\n";
+            debugMsg("Done trying to find an emitted name for " + MacroHash + "\n");
             // Generate a unique name for this transformed macro if we haven't found one yet,
             // and add it to the appropriate mappings
             if (EmittedName == "")
             {
-                llvm::errs() << "Generating a unique decl for " << MacroHash << "\n";
+                debugMsg("Generating a unique decl for " + MacroHash + "\n");
                 auto Sig = TDA.TransformedSignature;
                 auto MHashPlusSig = MacroHash + Sig;
                 EmittedName = getUniqueNameForExpansionTransformation(TopLevelExpansion, UsedSymbols, Ctx);
@@ -356,7 +364,7 @@ namespace Transformer
                 MHashPlusSigToName[MHashPlusSig] = EmittedName;
                 // Only 1 realpath at this point, so we do an unconditional dereference
                 MHashPlusSigToDefRealPaths[MHashPlusSig].insert(*TDA.TransformedDefinitionRealPaths.begin());
-                llvm::errs() << "Done generating a unique decl for " << MacroHash << "\n";
+                debugMsg("Done generating a unique decl for " + MacroHash + "\n");
             }
             UsedSymbols.insert(EmittedName);
             TD->EmittedName = EmittedName;
@@ -511,7 +519,7 @@ namespace Transformer
                         {
                             assert(UpdatedDefRealPaths.size() > OriginalDefRealPaths.size());
                             // Rewrite the corresponding decl with the new annotation
-                            llvm::errs() << "Looking up declaration for " << MHashPlusSig << "\n";
+                            debugMsg("Looking up declaration for " + MHashPlusSig + "\n");
                             auto D = MHashPlusSigToTransformedDecl.at(MHashPlusSig);
                             // We assign directly instead of unioning the two sets because
                             // at this point the updated set should be a strict superset
