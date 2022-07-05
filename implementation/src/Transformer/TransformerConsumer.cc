@@ -63,7 +63,7 @@ namespace Transformer
     {
         if (TSettings.Verbose)
         {
-            llvm::errs() << "s";
+            llvm::errs() << s;
         }
     }
 
