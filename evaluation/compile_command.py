@@ -34,6 +34,7 @@ def cpp2c_command_from_compile_command(cc: CompileCommand, cpp2c_commands: List[
             '-Xclang',
             cmd,
         ])
+    arguments.append('-fsyntax-only')
     arguments.append(file)
     # Join the arguments to create the command
     return ' '.join(arguments)
