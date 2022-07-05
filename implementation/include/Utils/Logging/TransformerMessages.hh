@@ -46,9 +46,7 @@ namespace Utils
 
         void emitMacroExpansionMessage(
             llvm::raw_fd_ostream &OS,
-            const std::string MacroName,
-            clang::SourceRange SpellingRange,
-            const clang::MacroDefinition &MD,
+            CppSig::MacroExpansionNode *Expansion,
             clang::SourceManager &SM,
             const clang::LangOptions &LO);
 
