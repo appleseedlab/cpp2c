@@ -82,11 +82,6 @@ namespace CppSig
             }
         }
 
-        if (Verbose)
-        {
-            Utils::Logging::emitMacroExpansionMessage(llvm::errs(), Expansion->getName(), SpellingRange, MD, SM, LO);
-        }
-
         // ATTENTION: If we are in a macro-argument expansion, we have to
         // store our expansion stack beforehand as we would pop too much here.
         // Hope that is correct?
