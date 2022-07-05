@@ -54,16 +54,14 @@ namespace Utils
 
         void emitMacroExpansionMessage(
             raw_fd_ostream &OS,
-            const std::string MacroName,
-            SourceRange SpellingRange,
-            const MacroDefinition &MD,
+            MacroExpansionNode *Expansion,
             SourceManager &SM,
             const LangOptions &LO)
         {
-            SourceLocation SpellingLoc = SpellingRange.getBegin();
+            SourceLocation SpellingLoc = Expansion->getSpellingRange().getBegin();
             OS << "CPP2C:"
                << "Macro Expansion,"
-               << hashMacro(MacroName, Utils::countMacroDefinitions(SM, MD), MD.getMacroInfo(), SM) << ","
+               << hashMacro(Expansion->getName(), Expansion->getDefinitionNumber(), Expansion->getMI(), SM) << ","
                << SpellingLoc.printToString(SM) << "\n";
         }
 
