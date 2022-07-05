@@ -7,8 +7,9 @@
 #include "clang/Basic/SourceManager.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
-#include <string>
 #include <stddef.h>
+#include <set>
+#include <string>
 
 namespace Utils
 {
@@ -31,9 +32,9 @@ namespace Utils
         // Definition number of the original macro
         std::size_t MacroDefinitionNumber;
 
-        // Real path to the file the transformed declaration's
-        // corresponding definition was emitted to
-        std::string TransformedDefinitionRealPath;
+        // Real paths to the files the transformed declaration's
+        // corresponding definitions were emitted to
+        std::set<std::string> TransformedDefinitionRealPaths;
 
         // The signature of the transformed delcaration, without
         // the name of the variable/function itself

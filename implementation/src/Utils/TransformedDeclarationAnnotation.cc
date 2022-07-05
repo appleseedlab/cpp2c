@@ -13,7 +13,7 @@ namespace Utils
             {"macro type", TDA.MacroType},
             {"macro definition realpath", TDA.MacroDefinitionRealPath},
             {"macro definition number", TDA.MacroDefinitionNumber},
-            {"transformed definition realpath", TDA.TransformedDefinitionRealPath},
+            {"transformed definition realpaths", TDA.TransformedDefinitionRealPaths},
             {"transformed signature", TDA.TransformedSignature}};
     }
 
@@ -25,7 +25,7 @@ namespace Utils
         j.at("macro type").get_to(TDA.MacroType);
         j.at("macro definition realpath").get_to(TDA.MacroDefinitionRealPath);
         j.at("macro definition number").get_to(TDA.MacroDefinitionNumber);
-        j.at("transformed definition realpath").get_to(TDA.TransformedDefinitionRealPath);
+        j.at("transformed definition realpaths").get_to(TDA.TransformedDefinitionRealPaths);
         j.at("transformed signature").get_to(TDA.TransformedSignature);
     }
 
@@ -72,7 +72,10 @@ namespace Utils
                TDA.MacroType + ";" +
                TDA.MacroDefinitionRealPath + ";" +
                std::to_string(TDA.MacroDefinitionNumber) + ';' +
-               TDA.TransformedDefinitionRealPath + ';' +
+            //    TODO: This is broken.
+            //    If we dedudplicate during transformation, however,
+            //    then I'm not sure it's worth fixing
+            //    TDA.TransformedDefinitionRealPaths + ';' +
                TDA.TransformedSignature;
     }
 

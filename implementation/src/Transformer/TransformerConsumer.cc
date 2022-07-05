@@ -72,9 +72,14 @@ namespace Transformer
         // If we are deduplicating, then map the hashes of all macros
         // transformed in a prior run to their transformed
         // signatures
-        std::map<std::string, std::set<std::string>> MHashToTransformedSigs;
-        std::map<std::string, std::string> SigToName;
-        std::map<std::string, std::string> SigToDefRealPath;
+        std::map<std::string, std::set<std::string>> MHashToOriginalTransformedSigs;
+        std::map<std::string, std::set<std::string>> MHashToAllTransformedSigs;
+        std::map<std::string, clang::NamedDecl *> MHashPlusSigToTransformedDecl;
+        std::map<std::string, Utils::TransformedDeclarationAnnotation> MHashPlusSigToTransformedDeclTDA;
+        std::map<std::string, std::string> MHashPlusSigToName;
+        std::map<std::string, std::set<std::string>> MHashPlusSigToDefRealPaths;
+
+        llvm::errs() << "Deserializing CPP2C annotations\n";
         if (TSettings.DeduplicateWhileTransforming)
         {
             Visitors::CollectCpp2CAnnotatedDeclsVisitor CADV(Ctx);
@@ -87,11 +92,15 @@ namespace Transformer
                 // variables, not definitions/initializations
                 if (auto FD = clang::dyn_cast_or_null<clang::FunctionDecl>(D))
                 {
-                    isTransformedDecl = FD->getDefinition() != FD && (!FD->isThisDeclarationADefinition());
+                    isTransformedDecl = !FD->isThisDeclarationADefinition();
                 }
                 else if (auto VD = clang::dyn_cast_or_null<clang::VarDecl>(D))
                 {
-                    isTransformedDecl = VD->getInitializingDeclaration() != D;
+                    isTransformedDecl = VD->getInit() == nullptr;
+                    if (VD->getInit() != nullptr)
+                    {
+                        VD->getInit()->dumpColor();
+                    }
                 }
                 if (isTransformedDecl)
                 {
@@ -108,15 +117,22 @@ namespace Transformer
 
                     // Add this sig to the map of transformed sigs for this macro
                     auto Sig = TDA.TransformedSignature;
-                    MHashToTransformedSigs[MacroHash].insert(Sig);
+                    MHashToOriginalTransformedSigs[MacroHash].insert(Sig);
+                    MHashToAllTransformedSigs[MacroHash].insert(Sig);
+
+                    auto MHashPlusSig = MacroHash + Sig;
+                    // Map this sig to the decl we found
+                    MHashPlusSigToTransformedDecl[MHashPlusSig] = D;
+                    // Map this sig to its decl's original TDA
+                    MHashPlusSigToTransformedDeclTDA[MHashPlusSig] = TDA;
                     // Map this sig to the name of the decl we found
-                    SigToName[Sig] = D->getName().str();
-                    // Map this sig to the real path to the file it is *defined* in,
-                    // not the one it is declared in
-                    SigToDefRealPath[Sig] = TDA.TransformedDefinitionRealPath;
+                    MHashPlusSigToName[MHashPlusSig] = D->getName().str();
+                    // Map this sig to the def real paths in the decl we found
+                    MHashPlusSigToDefRealPaths[MHashPlusSig] = TDA.TransformedDefinitionRealPaths;
                 }
             }
         }
+        llvm::errs() << "Done deserializing CPP2C annotations\n";
 
         // Collect the names of all the variables, functions, and macros
         // defined in the program
@@ -278,44 +294,69 @@ namespace Transformer
             //      of the function in which the original macro was called
 
             // Create the annotation and convert it to json
+            std::set<std::string> realPaths;
+            realPaths.insert(Utils::fileRealPathOrEmpty(SM, TD->getTransformedDefinitionLocation(Ctx)));
             TransformedDeclarationAnnotation TDA = {
                 .NameOfOriginalMacro = TD->getExpansion()->getName(),
                 .MacroType = TD->getExpansion()->getMI()->isObjectLike() ? "object-like" : "function-like",
                 .MacroDefinitionRealPath = Utils::fileRealPathOrEmpty(SM, SM.getFileLoc(TD->getExpansion()->getMI()->getDefinitionLoc())),
                 .MacroDefinitionNumber = TD->getExpansion()->getDefinitionNumber(),
-                .TransformedDefinitionRealPath = Utils::fileRealPathOrEmpty(SM, TD->getTransformedDefinitionLocation(Ctx)),
+                .TransformedDefinitionRealPaths = realPaths,
                 .TransformedSignature = TD->getExpansionSignatureOrDeclaration(Ctx, false),
             };
-            nlohmann::json j = TDA;
+            nlohmann::json j;
+            Utils::to_json(j, TDA);
             std::string MacroHash = Utils::hashTDAOriginalMacro(TDA);
             std::string EmittedName = "";
 
+            llvm::errs() << "Trying to find an already-emitted name for " << MacroHash << "\n";
             bool foundPreviousDecl = false;
             bool previousDeclInSameFile = false;
             // Try to find an already-emitted name for this transformation
             if (TSettings.DeduplicateWhileTransforming)
             {
-                if (MHashToTransformedSigs.find(MacroHash) != MHashToTransformedSigs.end())
+                if (MHashToAllTransformedSigs.find(MacroHash) !=
+                    MHashToAllTransformedSigs.end())
                 {
+                    auto AllTransformedSigsForThisMacro = MHashToAllTransformedSigs.at(MacroHash);
                     auto Sig = TDA.TransformedSignature;
-                    if (MHashToTransformedSigs[MacroHash].find(Sig) !=
-                        MHashToTransformedSigs[MacroHash].end())
+                    if (AllTransformedSigsForThisMacro.find(Sig) !=
+                        AllTransformedSigsForThisMacro.end())
                     {
+                        auto MHashPlusSig = MacroHash + Sig;
                         // We found a valid pre-existing transformed definition
-                        EmittedName = SigToName.at(Sig);
+                        llvm::errs() << "Looking up name for " << MHashPlusSig << "\n";
+                        EmittedName = MHashPlusSigToName.at(MHashPlusSig);
                         foundPreviousDecl = true;
-                        previousDeclInSameFile = SigToDefRealPath.at(Sig) == TDA.TransformedDefinitionRealPath;
+                        // Check if the realpath for this transformed decl
+                        // (only 1 at this point) is in the list of realpaths for this
+                        // transformed decl
+                        if (MHashPlusSigToDefRealPaths.find(MHashPlusSig) !=
+                            MHashPlusSigToDefRealPaths.end())
+                        {
+                            if (MHashPlusSigToDefRealPaths.at(MHashPlusSig).find(*TDA.TransformedDefinitionRealPaths.begin()) !=
+                                MHashPlusSigToDefRealPaths.at(MHashPlusSig).end())
+                            {
+                                previousDeclInSameFile = true;
+                            }
+                        }
                     }
                 }
             }
+            llvm::errs() << "Done trying to find an emitted name for " << MacroHash << "\n";
             // Generate a unique name for this transformed macro if we haven't found one yet,
             // and add it to the appropriate mappings
             if (EmittedName == "")
             {
+                llvm::errs() << "Generating a unique decl for " << MacroHash << "\n";
+                auto Sig = TDA.TransformedSignature;
+                auto MHashPlusSig = MacroHash + Sig;
                 EmittedName = getUniqueNameForExpansionTransformation(TopLevelExpansion, UsedSymbols, Ctx);
-                MHashToTransformedSigs[MacroHash].insert(TDA.TransformedSignature);
-                SigToName[TDA.TransformedSignature] = EmittedName;
-                SigToDefRealPath[TDA.TransformedSignature] = TDA.TransformedDefinitionRealPath;
+                MHashToAllTransformedSigs[MacroHash].insert(TDA.TransformedSignature);
+                MHashPlusSigToName[MHashPlusSig] = EmittedName;
+                // Only 1 realpath at this point, so we do an unconditional dereference
+                MHashPlusSigToDefRealPaths[MHashPlusSig].insert(*TDA.TransformedDefinitionRealPaths.begin());
+                llvm::errs() << "Done generating a unique decl for " << MacroHash << "\n";
             }
             UsedSymbols.insert(EmittedName);
             TD->EmittedName = EmittedName;
@@ -415,7 +456,7 @@ namespace Transformer
             }
 
             // Emit transformed definition if the previously emitted transformed definition
-            // for this macro (if any) is in the same file as the one we are currently in
+            // for this macro (if any) is not in the same file as the one we are currently in
             if (!foundPreviousDecl || !previousDeclInSameFile)
             {
                 // Emit each transformed definition before the
@@ -435,10 +476,62 @@ namespace Transformer
                 {
                     emitTransformedDefinitionMessage(errs(), TD, Ctx, SM, LO);
                 }
+                if (TSettings.DeduplicateWhileTransforming)
+                {
+                    auto MHashPlusSig = MacroHash + TDA.TransformedSignature;
+                    MHashPlusSigToDefRealPaths[MHashPlusSig].insert(*TDA.TransformedDefinitionRealPaths.begin());
+                };
             }
 
             // Free the TransformedDefinition object since it is no longer needed at this point
             delete TD;
+        }
+
+        // Finally, update any declarations which had new definition realpaths added to them
+        if (TSettings.DeduplicateWhileTransforming)
+        {
+            for (auto &&it : MHashToOriginalTransformedSigs)
+            {
+                auto MacroHash = it.first;
+                auto OriginalSigs = it.second;
+                for (auto &&Sig : OriginalSigs)
+                {
+                    auto MHashPlusSig = MacroHash + Sig;
+                    // Check if the set of transformed definition realpaths we now have recorded
+                    // for this signature is the same as the set of transformed definition
+                    // realpaths it was annotated with originally
+                    auto OriginalDefRealPaths = MHashPlusSigToTransformedDeclTDA.at(MHashPlusSig).TransformedDefinitionRealPaths;
+                    // Check that we emitted any definitions for this macro at all
+                    if (MHashPlusSigToDefRealPaths.find(MHashPlusSig) !=
+                        MHashPlusSigToDefRealPaths.end())
+                    {
+                        auto UpdatedDefRealPaths = MHashPlusSigToDefRealPaths.at(MHashPlusSig);
+                        assert(UpdatedDefRealPaths.size() >= OriginalDefRealPaths.size());
+                        if (OriginalDefRealPaths != UpdatedDefRealPaths)
+                        {
+                            assert(UpdatedDefRealPaths.size() > OriginalDefRealPaths.size());
+                            // Rewrite the corresponding decl with the new annotation
+                            llvm::errs() << "Looking up declaration for " << MHashPlusSig << "\n";
+                            auto D = MHashPlusSigToTransformedDecl.at(MHashPlusSig);
+                            // We assign directly instead of unioning the two sets because
+                            // at this point the updated set should be a strict superset
+                            // of the original set
+                            auto NewTDA = MHashPlusSigToTransformedDeclTDA.at(MHashPlusSig);
+                            NewTDA.TransformedDefinitionRealPaths = UpdatedDefRealPaths;
+
+                            auto Attr = clang::dyn_cast<clang::AnnotateAttr>(*D->attrs().begin());
+
+                            nlohmann::json j;
+                            Utils::to_json(j, NewTDA);
+                            auto newAnnotationString = "annotate(\"" + Utils::escape_json(j.dump()) + "\")";
+
+                            // Replace the old annotation with the new one
+                            auto failed = RW.ReplaceText(Attr->getRange(), llvm::StringRef(newAnnotationString));
+                            assert(!failed);
+                        }
+                    }
+                }
+            }
         }
 
         if (TSettings.OverwriteFiles)
