@@ -96,6 +96,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'bear make',
         f'''
+        make clean                  &&
         make                        &&
         if [[ -e {LUA_TESTS_DIR} ]]; then rm -fr {LUA_TESTS_DIR}; fi    &&
         cd ../                      &&
