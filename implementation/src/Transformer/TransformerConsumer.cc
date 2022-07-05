@@ -120,6 +120,14 @@ namespace Transformer
         }
         matchArguments(Ctx, ExpansionRoots);
 
+        if (TSettings.Verbose)
+        {
+            for (auto TopLevelExpansion : ExpansionRoots)
+            {
+                emitMacroExpansionMessage(llvm::errs(), TopLevelExpansion, SM, LO);
+            }
+        }
+
         // Step 4: Transform macros that satisfy these requirements:
         // 1) Syntactic well-formedness
         // 2) No environment capture
