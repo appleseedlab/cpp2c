@@ -8,7 +8,7 @@ argv=("$@")
 
 # Usage info string
 # FIXME: This has tight coupling with the variable USAGE_STRING in Cpp2CAction.cc
-USAGE_STRING="USAGE: cpp2c (transform|tr [((-i|--in-place)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(print_annotations|pa)|(remove_annotations|ra [-i|--in-place]) FILE_NAME"
+USAGE_STRING="USAGE: cpp2c (transform|tr [((-i|--in-place)|(-d|--deduplicate)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(print_annotations|pa)|(remove_annotations|ra [-i|--in-place]) FILE_NAME"
 
 # Helper method for printing errors messages
 function exit_with_error() {
@@ -61,6 +61,8 @@ for (( j=0; j<argc; j++ )); do
     # Arguments
     elif [[ $arg = "-i" || $arg = "--in-place" ]]; then
         clang_arg -i
+    elif [[ $arg = "-dd" || $arg = "--deduplicate" ]]; then
+        clang_arg -dd
     elif [[ $arg = "-v" || $arg = "--verbose" ]]; then
         clang_arg -v
     elif [[ $arg = "-shm" || $arg = "--standard-header-macros" ]]; then

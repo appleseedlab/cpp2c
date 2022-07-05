@@ -10,6 +10,7 @@
 #include "CppSig/CppSigUtils.hh"
 #include "Visitors/CollectDeclNamesVisitor.hh"
 #include "Visitors/DeanonymizerVisitor.hh"
+#include "Visitors/CollectCpp2CAnnotatedDeclsVisitor.hh"
 
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Rewrite/Core/Rewriter.h"
@@ -68,6 +69,55 @@ namespace Transformer
 
         TranslationUnitDecl *TUD = Ctx.getTranslationUnitDecl();
 
+        // If we are deduplicating, then map the hashes of all macros
+        // transformed in a prior run to their transformed
+        // signatures
+        std::map<std::string, std::set<std::string>> MHashToTransformedSigs;
+        std::map<std::string, std::string> SigToName;
+        std::map<std::string, std::string> SigToDefRealPath;
+        if (TSettings.DeduplicateWhileTransforming)
+        {
+            Visitors::CollectCpp2CAnnotatedDeclsVisitor CADV(Ctx);
+            CADV.TraverseTranslationUnitDecl(TUD);
+            auto &TransformedDecls = CADV.getDeclsRef();
+            for (auto &&D : TransformedDecls)
+            {
+                bool isTransformedDecl = false;
+                // Only consider transformed *declarations* of functions and
+                // variables, not definitions/initializations
+                if (auto FD = clang::dyn_cast_or_null<clang::FunctionDecl>(D))
+                {
+                    isTransformedDecl = FD->getDefinition() != FD && (!FD->isThisDeclarationADefinition());
+                }
+                else if (auto VD = clang::dyn_cast_or_null<clang::VarDecl>(D))
+                {
+                    isTransformedDecl = VD->getInitializingDeclaration() != D;
+                }
+                if (isTransformedDecl)
+                {
+                    // Get this decl's first annotation
+                    std::string annotation = Utils::getFirstAnnotationOrEmpty(D);
+                    nlohmann::json j = Utils::annotationStringToJson(annotation);
+
+                    // Create the unique macro hash based on data in
+                    // the JSON object
+                    Utils::TransformedDeclarationAnnotation TDA;
+                    Utils::from_json(j, TDA);
+                    std::string MacroHash = Utils::hashTDAOriginalMacro(TDA);
+                    std::string TDAHash = Utils::hashTDA(TDA);
+
+                    // Add this sig to the map of transformed sigs for this macro
+                    auto Sig = TDA.TransformedSignature;
+                    MHashToTransformedSigs[MacroHash].insert(Sig);
+                    // Map this sig to the name of the decl we found
+                    SigToName[Sig] = D->getName().str();
+                    // Map this sig to the real path to the file it is *defined* in,
+                    // not the one it is declared in
+                    SigToDefRealPath[Sig] = TDA.TransformedDefinitionRealPath;
+                }
+            }
+        }
+
         // Collect the names of all the variables, functions, and macros
         // defined in the program
         set<string> UsedSymbols;
@@ -120,6 +170,9 @@ namespace Transformer
         }
         matchArguments(Ctx, ExpansionRoots);
 
+        // Emit possibly transformable expansions
+        // TODO: Make it clear in the message that this is only possibly transformable expansions,
+        // and add another message for emitting all expansions
         if (TSettings.Verbose)
         {
             for (auto TopLevelExpansion : ExpansionRoots)
@@ -224,30 +277,60 @@ namespace Transformer
             // 4.   Emit the transformed definition before the definition
             //      of the function in which the original macro was called
 
-            // Generate a unique name for this transformed macro
+            // Create the annotation and convert it to json
+            TransformedDeclarationAnnotation TDA = {
+                .NameOfOriginalMacro = TD->getExpansion()->getName(),
+                .MacroType = TD->getExpansion()->getMI()->isObjectLike() ? "object-like" : "function-like",
+                .MacroDefinitionRealPath = Utils::fileRealPathOrEmpty(SM, SM.getFileLoc(TD->getExpansion()->getMI()->getDefinitionLoc())),
+                .MacroDefinitionNumber = TD->getExpansion()->getDefinitionNumber(),
+                .TransformedDefinitionRealPath = Utils::fileRealPathOrEmpty(SM, TD->getTransformedDefinitionLocation(Ctx)),
+                .TransformedSignature = TD->getExpansionSignatureOrDeclaration(Ctx, false),
+            };
+            nlohmann::json j = TDA;
+            std::string MacroHash = Utils::hashTDAOriginalMacro(TDA);
+            std::string EmittedName = "";
+
+            bool foundPreviousDecl = false;
+            bool previousDeclInSameFile = false;
+            // Try to find an already-emitted name for this transformation
+            if (TSettings.DeduplicateWhileTransforming)
             {
-                string EmittedName = getUniqueNameForExpansionTransformation(TopLevelExpansion, UsedSymbols, Ctx);
-                UsedSymbols.insert(EmittedName);
-                TD->EmittedName = EmittedName;
+                if (MHashToTransformedSigs.find(MacroHash) != MHashToTransformedSigs.end())
+                {
+                    auto Sig = TDA.TransformedSignature;
+                    if (MHashToTransformedSigs[MacroHash].find(Sig) !=
+                        MHashToTransformedSigs[MacroHash].end())
+                    {
+                        // We found a valid pre-existing transformed definition
+                        EmittedName = SigToName.at(Sig);
+                        foundPreviousDecl = true;
+                        previousDeclInSameFile = SigToDefRealPath.at(Sig) == TDA.TransformedDefinitionRealPath;
+                    }
+                }
             }
-
-            // Emit declaration
+            // Generate a unique name for this transformed macro if we haven't found one yet,
+            // and add it to the appropriate mappings
+            if (EmittedName == "")
             {
+                EmittedName = getUniqueNameForExpansionTransformation(TopLevelExpansion, UsedSymbols, Ctx);
+                MHashToTransformedSigs[MacroHash].insert(TDA.TransformedSignature);
+                SigToName[TDA.TransformedSignature] = EmittedName;
+                SigToDefRealPath[TDA.TransformedSignature] = TDA.TransformedDefinitionRealPath;
+            }
+            UsedSymbols.insert(EmittedName);
+            TD->EmittedName = EmittedName;
 
-                // Create the annotation and convert it to json
-                TransformedDeclarationAnnotation TDA = {
-                    .NameOfOriginalMacro = TD->getExpansion()->getName(),
-                    .MacroType = TD->getExpansion()->getMI()->isObjectLike() ? "object-like" : "function-like",
-                    .MacroDefinitionRealPath = Utils::fileRealPathOrEmpty(SM, SM.getFileLoc(TD->getExpansion()->getMI()->getDefinitionLoc())),
-                    .MacroDefinitionNumber = TD->getExpansion()->getDefinitionNumber(),
-                    .TransformedDefinitionRealPath = Utils::fileRealPathOrEmpty(SM, TD->getTransformedDefinitionLocation(Ctx)),
-                    .TransformedSignature = TD->getExpansionSignatureOrDeclaration(Ctx, false),
-                };
-                nlohmann::json j = TDA;
-
+            // Emit declaration if we did not find a decl for this transformation yet
+            if (!foundPreviousDecl)
+            {
                 // Create the full declaration
+                // Add the static keyword to the start of the declaration
+                // This is to handle the edge case where we emit the same transformed definition
+                // to different files that first compiled, and *then* linked later
+                // Write the new decl
                 std::ostringstream transformedDefinition;
                 transformedDefinition
+                    << "static "
                     << TD->getExpansionSignatureOrDeclaration(Ctx, true)
                     << "\n"
                     << "    __attribute__((annotate(\""
@@ -284,7 +367,7 @@ namespace Transformer
                     size_t prefixLoc = typeString.find(prefix);
                     if (prefixLoc != string::npos)
                     {
-                        // If the struct or union keyword is present, then we have
+                        // If the struct/union/enum keyword is present, then we have
                         // to emit the annotation after it
                         annotatedFwdDecl = typeString.insert(prefixLoc + prefixLength, annotation);
                     }
@@ -294,9 +377,10 @@ namespace Transformer
                         // it as well at the start of the forward declaration
                         annotatedFwdDecl = typeString.insert(0, prefix + annotation);
                     }
-                    RW.InsertTextBefore(
+                    auto failed = RW.InsertTextBefore(
                         SM.getLocForStartOfFile(SM.getFileID(TransformedDeclarationLoc)),
                         StringRef(annotatedFwdDecl + ";\n\n"));
+                    assert(!failed);
                 }
             }
 
@@ -330,15 +414,17 @@ namespace Transformer
                 }
             }
 
-            // Emit transformed definition
+            // Emit transformed definition if the previously emitted transformed definition
+            // for this macro (if any) is in the same file as the one we are currently in
+            if (!foundPreviousDecl || !previousDeclInSameFile)
             {
                 // Emit each transformed definition before the
                 // definition of the function in which it is called.
                 string TransformedSignature = TD->getExpansionSignatureOrDeclaration(Ctx, true);
-                string FullTransformationDefinition = TransformedSignature + TD->InitializerOrDefinition;
+                string FullTransformationDefinition = "static " + TransformedSignature + TD->InitializerOrDefinition;
 
                 // NOTE: This has some coupling with an earlier check
-                // that the spelling location of the start fo the function decl
+                // that the spelling location of the start of the function decl
                 // is rewritable
                 bool rewriteFailed = RW.InsertTextBefore(
                     TD->getTransformedDefinitionLocation(Ctx),

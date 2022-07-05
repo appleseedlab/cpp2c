@@ -8,5 +8,6 @@ namespace Transformer
         bool Verbose = false;
         bool OnlyCollectNotDefinedInStdHeaders = true;
         bool TransformConditionalEvaluation = false;
+        bool DeduplicateWhileTransforming = false;
     };
 } // namespace Transformer

@@ -9,7 +9,7 @@ namespace Cpp2C
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c (transform|tr [((-i|--in-place)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(print_annotations|pa)|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
+    string USAGE_STRING = "USAGE: cpp2c (transform|tr [((-i|--in-place)|(-d|--deduplicate)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(print_annotations|pa)|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
@@ -81,6 +81,10 @@ namespace Cpp2C
                 if (arg == "-i" || arg == "--in-place")
                 {
                     TSettings.OverwriteFiles = true;
+                }
+                else if (arg == "-dd" || arg == "--deduplicate")
+                {
+                    TSettings.DeduplicateWhileTransforming = true;
                 }
                 else if (arg == "-v" || arg == "--verbose")
                 {
