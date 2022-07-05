@@ -194,14 +194,13 @@ namespace Transformer
         }
         matchArguments(Ctx, ExpansionRoots);
 
-        // Emit possibly transformable expansions
-        // TODO: Make it clear in the message that this is only possibly transformable expansions,
-        // and add another message for emitting all expansions
+        // Emit potentially transformable expansions
         if (TSettings.Verbose)
         {
             for (auto TopLevelExpansion : ExpansionRoots)
             {
-                emitMacroExpansionMessage(llvm::errs(), TopLevelExpansion, SM, LO);
+                auto MHash = TopLevelExpansion->getMacroHash();
+                debugMsg("CPP2C:Potentially Transformable Macro Expansion," + MHash);
             }
         }
 
@@ -456,11 +455,8 @@ namespace Transformer
                 bool rewriteFailed = RW.ReplaceText(
                     TD->getInvocationReplacementRange(), StringRef(CallOrRef));
                 assert(!rewriteFailed);
-                // TODO: Only emit transformed expansion if verbose
-                if (TSettings.Verbose)
-                {
-                    emitTransformedExpansionMessage(errs(), TopLevelExpansion, Ctx, SM, LO);
-                }
+
+                debugMsg("CPP2C:Transformed Expansion," + MacroHash + "," + EmittedName);
             }
 
             // Emit transformed definition if the previously emitted transformed definition
