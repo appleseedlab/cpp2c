@@ -32,6 +32,7 @@ namespace Callbacks
             }
             if (Verbose)
             {
+                // TODO: Inline this instead of calling a separate function
                 Utils::Logging::emitMacroDefinitionMessage(llvm::errs(), MacroName, MD, SM, LO);
             }
         }
