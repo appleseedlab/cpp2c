@@ -5,7 +5,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from operator import itemgetter
-from typing import DefaultDict, Dict, List, Set
+from typing import Any, DefaultDict, Dict, List, Set, Sized
 from urllib.request import urlretrieve
 
 import numpy as np
@@ -20,8 +20,8 @@ TRANSFORMED_DEFINITION_PREFIX = 'CPP2C:Transformed Definition'
 TRANSFORMED_EXPANSION_PREFIX = 'CPP2C:Transformed Expansion'
 UNTRANSFORMED_EXPANSION_PREFIX = 'CPP2C:Untransformed Expansion'
 
-OBJECT_LIKE_TAG = 'object-like'
-FUNCTION_LIKE_TAG = 'function-like'
+OLM_TAG = 'object-like'
+FLM_TAG = 'function-like'
 EXTRACTED_EVALUATION_PROGRAMS_DIR = r'/home/bpappas/cpp2c/evaluation/'
 
 CATEGORIES_NOT_TRANSFORMED = [
@@ -44,6 +44,38 @@ def is_system_header_path(path: str) -> bool:
                 '/usr/include' in path,
                 '/usr/lib' in path,
                 '<scratch space>' in path))
+
+
+def mhash_dict_len_stat(stat: str, d: Dict[str, Any]):
+    print(f'{stat}: {len(d)}')
+    print(f'    olms: {len([h for h in d if OLM_TAG in h])}')
+    print(f'    flms: {len([h for h in d if FLM_TAG in h])}')
+
+
+def mhash_dict_sum_values_lens_stat(stat: str, d: Dict[str, Sized]):
+    print(f'{stat}: {sum([len(vs) for _, vs in d.items()])}')
+    print(f'    olms: {sum([len(vs) for h, vs in d.items() if OLM_TAG in h])}')
+    print(f'    flms: {sum([len(vs) for h, vs in d.items() if FLM_TAG in h])}')
+
+
+def mhash_dict_sum_values_stat(stat: str, d: Dict[str, int]):
+    print(f'{stat}: {sum([v for _, v in d.items()])}')
+    print(f'    olms: {sum([v for h, v in d.items() if OLM_TAG in h])}')
+    print(f'    flms: {sum([v for h, v in d.items() if FLM_TAG in h])}')
+
+
+def mhash_set_len_stat(stat: str, s: Set[str]):
+    print(f'{stat}: {len(s)}')
+    print(f'    olms: {len([h for h in s if OLM_TAG in h])}')
+    print(f'    flms: {len([h for h in s if FLM_TAG in h])}')
+
+
+def num_stat(stat: str, i: int):
+    print(f'{stat}: {i}')
+
+
+def str_stat(stat: str, s: str):
+    print(f'{stat}: {s}')
 
 
 def main():
@@ -118,8 +150,8 @@ def main():
                     if not is_system_header_path(mdefpath):
                         mhash_to_raw_expansion_spelling_locations[mhash].add(sloc)
 
-        print(f'source macro definitions: {len(source_macro_definitions)}')
-        print(f'expanded source macro definitions: {len(mhash_to_raw_expansion_spelling_locations)}')
+        mhash_dict_len_stat(f'source macro definitions', source_macro_definitions)
+        mhash_dict_len_stat(f'expanded source macro definitions', mhash_to_raw_expansion_spelling_locations)
 
         # Compute the number of unique raw invocations this way because
         # (I think) two invocations can have the same spelling location
@@ -127,7 +159,7 @@ def main():
         unique_raw_source_macro_expansions = sum([
             len(vs) for _, vs in
             mhash_to_raw_expansion_spelling_locations.items()])
-        print(f'unique raw source macro invocations: {unique_raw_source_macro_expansions}')
+        num_stat('unique_raw_source_macro_expansions', unique_raw_source_macro_expansions)
 
         # Loop 2:
         # - Measure time needed to transform program to a fixed point
@@ -288,7 +320,7 @@ def main():
 
         # Only consider expansions of macros Cpp2C said
         # it could potentially transform
-        mhash_to_potentially_transformable_expansions: Dict[str, int] = {
+        mhash_to_potentially_transformable_expansions: Dict[str, set] = {
             mhash: vs for mhash, vs in
             mhash_to_raw_expansion_spelling_locations.items()
             if mhash in potentially_transformable_macros
@@ -296,17 +328,35 @@ def main():
 
         end_time = datetime.now()
         elapsed = end_time - start_time
-        print(f'time to reach a fixed point: {elapsed.seconds}.{elapsed.seconds}s')
-        print(f'runs to reach a fixed point: {runs_to_fixed_point}')
-        print(f'potentially transformable macro definitions: {len(potentially_transformable_macros)}')
-        print(f'transformed macro definitions: {len(transformed_macros)}')
-        potentially_transformable_invocations = sum([
-            len(vs) for _, vs in
-            mhash_to_potentially_transformable_expansions.items()
-        ])
-        print(f'untransformed potentially transformable macro definitions: {len(pt_mhash_to_cats_not_transformed)}')
+        str_stat('time to reach a fixed point (s.ms)', f'{elapsed.seconds}.{elapsed.microseconds}')
+        num_stat('runs to reach a fixed point', runs_to_fixed_point)
 
-        print(f'potentially transformable invocations: {potentially_transformable_invocations}')
+        mhash_set_len_stat('potentially transformable macro definitions', potentially_transformable_macros)
+        mhash_set_len_stat('transformed macro definitions', transformed_macros)
+        mhash_dict_len_stat('untransformed potentially transformable macro definitions',
+                            pt_mhash_to_cats_not_transformed)
+
+        # For each category, check if the set of categories of reasons
+        # a macro was not transformed is a singleton list containing
+        # only that category.
+        # Also count macros that were not transformed for multiple categories.
+        print(f'categories of reasons not transformed:')
+        multiple_cats_count = 0
+        for i, cat in enumerate(CATEGORIES_NOT_TRANSFORMED):
+            count = 0
+            for cats in pt_mhash_to_cats_not_transformed.values():
+                if cats == {cat}:
+                    count += 1
+
+                # Only check for multiple cats on the first pass
+                elif i == 0 and len(cats) > 1:
+                    multiple_cats_count += 1
+
+            print(f'    {cat.lower()}: {count}')
+        print(f'    multiple categories: {multiple_cats_count}')
+
+        mhash_dict_sum_values_lens_stat(f'potentially transformable invocations',
+                                        mhash_to_potentially_transformable_expansions)
 
         mhash_to_unique_transformed_invocations: DefaultDict[str, int] = defaultdict(int)
         # Count the number of transformed invocations in source func definitions
@@ -318,7 +368,7 @@ def main():
                     for mhash in mhashes:
                         mhash_to_unique_transformed_invocations[mhash] += 1
 
-        print(f'unique transformed invocations in source definitions: {unique_source_transformed_invocations}')
+        num_stat('unique transformed invocations in source definitions', unique_source_transformed_invocations)
 
         # Count the number of transformed invocations in transformed definitions.
         # We only consider one file's definition of each canonical def
@@ -339,14 +389,19 @@ def main():
                         for mhash in mhashes:
                             mhash_to_unique_transformed_invocations[mhash] += 1
 
-        print(
-            f'unique transformed invocations in transformed definitions: {unique_transformed_def_transformed_invocations}')
+        num_stat('unique transformed invocations in transformed definitions',
+                 unique_transformed_def_transformed_invocations)
 
         total_transformed_invocations = (unique_source_transformed_invocations +
                                          unique_transformed_def_transformed_invocations)
 
-        print(f'total unique transformed invocations: {total_transformed_invocations}')
+        # num_stat('total unique transformed invocations', total_transformed_invocations)
+        mhash_dict_sum_values_stat('total unique transformed invocations', mhash_to_unique_transformed_invocations)
 
+        potentially_transformable_invocations = sum([
+            len(vs) for _, vs in
+            mhash_to_potentially_transformable_expansions.items()
+        ])
         untransformed_potentially_transformable_invocations = (potentially_transformable_invocations -
                                                                total_transformed_invocations)
         print(
@@ -358,26 +413,7 @@ def main():
             if len(tys) > 1
         }
 
-        # For each category, check if the set of categories of reasons
-        # a macro was not transformed is a singleton list containing
-        # only that category.
-        # Also count macros that were not transformed for multiple categories.
-        print(f'categories of reasons not transformed:')
-        multiple_cats_count = 0
-        for i, cat in enumerate(CATEGORIES_NOT_TRANSFORMED):
-            count = 0
-            for cats in pt_mhash_to_cats_not_transformed.values():
-                if cats == {cat}:
-                    count += 1
-
-                # Only check for multiple cats on the first pass
-                elif i == 0 and len(cats) > 1:
-                    multiple_cats_count += 1
-
-            print(f'    {cat}: {count}')
-        print(f'    multiple categories: {multiple_cats_count}')
-
-        print(f'potentially transformable polymorphic macros: {len(potentially_transformable_poly_macros)}')
+        mhash_set_len_stat('potentially transformable polymorphic macros', potentially_transformable_poly_macros)
 
         transformed_poly_macros = {
             mhash for mhash, tys in
@@ -385,7 +421,7 @@ def main():
             if len(tys) > 1
         }
 
-        print(f'transformed polymorphic macros: {transformed_poly_macros}')
+        mhash_set_len_stat('transformed polymorphic macros', transformed_poly_macros)
 
         # For fun: Which macros had the most uniquely typed transformations?
         top_five_poly_macros = sorted(
