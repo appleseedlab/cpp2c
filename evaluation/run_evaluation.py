@@ -33,14 +33,6 @@ CATEGORIES_NOT_TRANSFORMED = [
 ]
 
 
-def macro_hash_from_annotation(annotation: Dict) -> str:
-    '''Given a Cpp2C annotation, returns its macro hash'''
-    return (annotation['macro name'] + ";" +
-            annotation['macro type'] + ";" +
-            annotation['macro definition realpath'] + ";" +
-            str(annotation['macro definition number']))
-
-
 def is_system_header_path(path: str) -> bool:
     '''
     Returns true if this path is:
