@@ -136,4 +136,67 @@ namespace CppSig
         }
     }
 
+    std::string getType(clang::ASTContext &Ctx, const Stmt *ST)
+    {
+        // Taken from Dietrich
+        if (const auto E = clang::dyn_cast<clang::Expr>(ST))
+        {
+            clang::QualType T = E->getType();
+            return T.getDesugaredType(Ctx).getCanonicalType().getAsString();
+        }
+        return "@stmt";
+    }
+
+    std::string formatExpansionSignature(
+        clang::ASTContext &Ctx,
+        MacroExpansionNode *Expansion)
+    {
+        // Taken from Dietrich
+        // NOTE: Also see TransformedDefinition::getExpansionSignatureOrDeclaration.
+
+        // Format return type (if any)
+        std::stringstream ss;
+        auto &Stmts = Expansion->getStmtsRef();
+
+        if (Stmts.size() == 1)
+        {
+            ss << getType(Ctx, *Stmts.begin());
+        }
+        else if (Stmts.size() > 1)
+        {
+            ss << "@stmt";
+        }
+        else
+        {
+            ss << "?";
+        }
+
+        ss << " " << Expansion->getName();
+
+        // Format arguments
+
+        if (Expansion->getMI()->isFunctionLike())
+        {
+            std::string spacer = "";
+            ss << "(";
+            for (auto &Arg : Expansion->getArgumentsRef())
+            {
+                ss << spacer;
+                spacer = ", ";
+                std::set<std::string> ArgTypes;
+                for (const auto *ST : Arg.getStmtsRef())
+                {
+                    ArgTypes.insert(getType(Ctx, ST));
+                }
+                if (ArgTypes.size() != 1)
+                    ss << "?";
+                else
+                    ss << *ArgTypes.begin();
+                ss << " " << Arg.getName();
+            }
+            ss << ")";
+        }
+        return ss.str();
+    }
+
 } // namespace CppSig

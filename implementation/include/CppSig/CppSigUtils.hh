@@ -37,4 +37,14 @@ namespace CppSig
         clang::ASTContext &Ctx,
         CppSig::MacroForest::Roots &ExpansionRoots);
 
+    // If ST is an Expr, then returns its desugared canonical type.
+    // Otherwise, returns "@stmt"
+    std::string getType(clang::ASTContext &Ctx, const clang::Stmt *ST);
+
+    // Formats a macro expansion which has at least one statement,
+    // but is not guaranteed to be transformable
+    std::string formatExpansionSignature(
+        clang::ASTContext &Ctx,
+        CppSig::MacroExpansionNode *Expansion);
+
 } // namespace CppSig
