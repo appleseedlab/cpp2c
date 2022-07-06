@@ -199,8 +199,9 @@ namespace Transformer
         {
             for (auto TopLevelExpansion : ExpansionRoots)
             {
-                auto MHash = TopLevelExpansion->getMacroHash();
-                debugMsg("CPP2C:Potentially Transformable Macro Expansion\t" + MHash + "\n");
+                std::string RawSig = formatExpansionSignature(Ctx, TopLevelExpansion);
+                std::string MHash = TopLevelExpansion->getMacroHash();
+                debugMsg("CPP2C:Potentially Transformable Macro Expansion\t" + MHash + '\t' + RawSig + "\n");
             }
         }
 
@@ -458,7 +459,11 @@ namespace Transformer
 
                 auto FD = Utils::getTopLevelNamedDeclStmtExpandedIn(Ctx, (*TopLevelExpansion->getStmtsRef().begin()));
                 assert(FD != nullptr);
-                debugMsg("CPP2C:Transformed Expansion\t" + MacroHash + "\t" + EmittedName + "\t" + FD->getName().str() + "\n");
+                debugMsg("CPP2C:Transformed Expansion\t" +
+                         MacroHash + "\t" +
+                         EmittedName + "\t" +
+                         FD->getName().str() + "\t" +
+                         TDA.TransformedSignature + "\n");
             }
 
             // Emit transformed definition if the previously emitted transformed definition
@@ -477,7 +482,6 @@ namespace Transformer
                     TD->getTransformedDefinitionLocation(Ctx),
                     StringRef(FullTransformationDefinition + "\n\n"));
                 assert(!rewriteFailed);
-                // TODO: Only emit transformed definition if verbose
                 if (TSettings.Verbose)
                 {
                     emitTransformedDefinitionMessage(errs(), TD, Ctx, SM, LO);
