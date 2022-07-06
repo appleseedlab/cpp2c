@@ -11,6 +11,7 @@ from urllib.request import urlretrieve
 import numpy as np
 
 import compile_command
+import summaries
 from evaluation_programs import EVALUATION_PROGRAMS
 
 MACRO_DEFINITION_PREFIX = 'CPP2C:Macro Definition'
@@ -76,6 +77,30 @@ def num_stat(stat: str, i: int):
 
 def str_stat(stat: str, s: str):
     print(f'{stat}: {s}')
+
+
+def top_five_macros_by_val_len(d: Dict[str, Sized]):
+    return sorted(
+        [
+            (mhash.split(';')[0],  # macro name
+             len(vs))  # number of values
+            for mhash, vs in d.items()
+        ],
+        key=itemgetter(1),  # number of values
+        reverse=True  # sort in descending order
+    )[:5]  # select the top five
+
+
+def top_five_macros_by_val(d: Dict[str, int]):
+    return sorted(
+        [
+            (mhash.split(';')[0],  # macro name
+             v)  # value
+            for mhash, v in d.items()
+        ],
+        key=itemgetter(1),  # value
+        reverse=True  # sort in descending order
+    )[:5]  # select the top five
 
 
 def main():
@@ -159,7 +184,7 @@ def main():
         unique_raw_source_macro_expansions = sum([
             len(vs) for _, vs in
             mhash_to_raw_expansion_spelling_locations.items()])
-        num_stat('unique_raw_source_macro_expansions', unique_raw_source_macro_expansions)
+        num_stat('unique source macro expansions', unique_raw_source_macro_expansions)
 
         # Loop 2:
         # - Measure time needed to transform program to a fixed point
@@ -398,6 +423,10 @@ def main():
         # num_stat('total unique transformed invocations', total_transformed_invocations)
         mhash_dict_sum_values_stat('total unique transformed invocations', mhash_to_unique_transformed_invocations)
 
+        # Which macros had the most transformed invocations?
+        top_five_most_transformed_macros = top_five_macros_by_val(mhash_to_unique_transformed_invocations)
+        print(f'top five most transformed macros: {top_five_most_transformed_macros}')
+
         potentially_transformable_invocations = sum([
             len(vs) for _, vs in
             mhash_to_potentially_transformable_expansions.items()
@@ -423,17 +452,12 @@ def main():
 
         mhash_set_len_stat('transformed polymorphic macros', transformed_poly_macros)
 
-        # For fun: Which macros had the most uniquely typed transformations?
-        top_five_poly_macros = sorted(
-            [
-                (mhash.split(';')[0],  # macro name
-                 len(tys))  # number of transformed types
-                for mhash, tys in mhash_to_transformed_types.items()
-            ],
-            key=itemgetter(1),  # number of transformed types
-            reverse=True  # sort in descending order
-        )[:5]  # select the top five
+        transformed_tys_twenty_num = summaries.twenty_num([len(tys) for (tys) in mhash_to_transformed_types.values()])
 
+        print(f'twenty pt summary of transformed types: {transformed_tys_twenty_num}')
+
+        # For fun: Which macros had the most uniquely typed transformations?
+        top_five_poly_macros = top_five_macros_by_val_len(mhash_to_transformed_types)
         print(f'macros with most transformed types: {top_five_poly_macros}')
 
         # Flush to see evaluation results of this program before moving on to next one
