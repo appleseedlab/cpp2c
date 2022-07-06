@@ -1,6 +1,0 @@
-Time to transform bc-1.07:          2s 230873ms
-Time to transform gzip-1.10:        37s 273159ms
-Time to transform remind-03.04.02:  12s 502224ms
-Time to transform lua-5.4.4:        101s 53841ms
-Average time to transform a file:   0.05481120584652863s
-Max time to transform a file:       5s
