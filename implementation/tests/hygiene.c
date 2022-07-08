@@ -60,6 +60,9 @@ int main()
     SQUARE(5 + 0);
 
     // Should not transform
+    SQUARE(2*2);
+
+    // Should not transform
     DOUBLE(1 + 1);
 
     // Should transform
