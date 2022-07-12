@@ -7,9 +7,14 @@ is the source code pre and post transformation)
 Build Cpp2C:
 1. Navigate to the `implementation` directory
 2. Run the script `build.sh`
+3. Install `pipenv`:
+```bash
+    $ python3 -m pip install pipenv
+```
 
 ## Running the Evaluation
-Run `python3 run_evaluation.py`
+1. Run `pipenv shell`
+2. Run `python3 run_evaluation.py`
 
 ## bc v1.07
 Downloaded on 2022-03-20
