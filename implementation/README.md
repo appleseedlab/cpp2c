@@ -26,7 +26,7 @@ and test the plugin:
 
 -  Start the Docker container
   ```console
-  # ./docker-container.sh
+  $ ./docker-container.sh
   ```
 - Run `build.sh` to build the plugin and the wrapper
   ```console
@@ -37,7 +37,5 @@ and test the plugin:
 
 - From within the Docker container, run the wrapper script
   ```console
-  $ ./build/bin/cpp2c -fsyntax-only ./tests/object_like_macro_body_literal_1.c
+  $ ./build/bin/cpp2c tr ./tests/hygiene.c
   ```
-
-`-fsyntax-only` tells Clang not to compile the target file(s).
