@@ -2,7 +2,6 @@
 
 #include "Cpp2C/Cpp2CCommand.hh"
 #include "Transformer/TransformerSettings.hh"
-#include "Deduplicator/DeduplicatorSettings.hh"
 #include "AnnotationRemover/AnnotationRemoverSettings.hh"
 
 #include "clang/Frontend/CompilerInstance.h"
@@ -34,7 +33,6 @@ namespace Cpp2C
     private:
         Cpp2CCommand Command = HELP;
         Transformer::TransformerSettings TSettings;
-        Deduplicator::DeduplicatorSettings DDSettings;
         AnnotationRemover::AnnotationRemoverSettings ARSettings;
     };
 

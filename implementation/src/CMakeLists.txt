@@ -33,7 +33,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
 add_library(Cpp2C SHARED
   AnnotationPrinter/AnnotationPrinterConsumer.cc
   AnnotationRemover/AnnotationRemoverConsumer.cc
-  Deduplicator/DeduplicatorConsumer.cc
   Callbacks/ForestCollector.cc
   Callbacks/MacroNameCollector.cc
   Cpp2C.cc
@@ -41,6 +40,7 @@ add_library(Cpp2C SHARED
 
   # This should probably have a better name or be moved...
   CppSig/CppSigUtils.cc
+
   CppSig/MacroArgument.cc
   CppSig/MacroExpansionNode.cc
   CppSig/MacroForest.cc

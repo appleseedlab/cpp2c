@@ -1,6 +1,5 @@
 #include "Cpp2C/Cpp2CAction.hh"
 #include "Transformer/TransformerConsumer.hh"
-#include "Deduplicator/DeduplicatorConsumer.hh"
 #include "AnnotationRemover/AnnotationRemoverConsumer.hh"
 #include "AnnotationPrinter/AnnotationPrinterConsumer.hh"
 
@@ -9,7 +8,7 @@ namespace Cpp2C
     using namespace std;
     using namespace clang;
 
-    string USAGE_STRING = "USAGE: cpp2c (transform|tr [((-i|--in-place)|(-d|--deduplicate)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(deduplicate|dd [-i|--in-place])|(print_annotations|pa)|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
+    string USAGE_STRING = "USAGE: cpp2c (transform|tr [((-i|--in-place)|(-d|--deduplicate)|(-v|--verbose)|(-shm|--standard-header-macros)|(-tce|--transform-conditional-evaluation))*])|(print_annotations|pa)|(remove_annotations|ra [-i|--in-place]) FILE_NAME";
 
     unique_ptr<ASTConsumer>
     Cpp2CAction::CreateASTConsumer(
@@ -40,11 +39,6 @@ namespace Cpp2C
         {
             auto AP = make_unique<AnnotationPrinter::AnnotationPrinterConsumer>();
             return AP;
-        }
-        else if (Command == DEDUPLICATE)
-        {
-            auto DD = make_unique<Deduplicator::DeduplicatorConsumer>(DDSettings);
-            return DD;
         }
         llvm::errs() << "No command passed\n";
         exit(1);
@@ -101,29 +95,6 @@ namespace Cpp2C
                 else
                 {
                     llvm::errs() << "Unknown transformer argument: " << arg << '\n';
-                    exit(1);
-                }
-            }
-        }
-
-        // Dedpuplicate
-        else if (command == "dd" || command == "deduplicate")
-        {
-            Command = DEDUPLICATE;
-            for (auto it = optionalArgs; it != args.end(); ++it)
-            {
-                std::string arg = *it;
-                if (arg == "-i" || arg == "--in-place")
-                {
-                    DDSettings.OverwriteFiles = true;
-                }
-                else if (arg == "-v" || arg == "--verbose")
-                {
-                    DDSettings.Verbose = true;
-                }
-                else
-                {
-                    llvm::errs() << "Unknown annotation remover argument: " << arg << '\n';
                     exit(1);
                 }
             }
