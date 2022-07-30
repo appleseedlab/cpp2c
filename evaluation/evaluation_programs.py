@@ -48,7 +48,7 @@ EVALUATION_PROGRAMS = [
     #     r'test',
     #     r'test.zip',
     #     r'.',
-    #     r'bear -- make',
+    #     r'bear make',
     #     r''
     # ),
 
@@ -57,7 +57,7 @@ EVALUATION_PROGRAMS = [
         r'gzip-1.12',
         r'https://mirrors.tripadvisor.com/gnu/gzip/gzip-1.12.tar.gz',
         r'.',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean  &&
         make        &&
@@ -70,7 +70,7 @@ EVALUATION_PROGRAMS = [
         r'remind-04.00.01',
         r'https://dianne.skoll.ca/projects/remind/download/remind-04.00.01.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean      &&
         make            &&
@@ -82,7 +82,7 @@ EVALUATION_PROGRAMS = [
         r'perl-5.36.0',
         r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
         r'.',
-        r'bash Configure && bear -- make',
+        r'bash Configure && bear make',
         r'''
         bash Configure 	&&
         make check
@@ -94,7 +94,7 @@ EVALUATION_PROGRAMS = [
         r'bc-1.07.1',
         r'https://gnu.mirror.constant.com/bc/bc-1.07.1.tar.gz',
         r'bc',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -117,7 +117,7 @@ EVALUATION_PROGRAMS = [
         r'bash-5.2-rc1',
         r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
         r'.',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -129,7 +129,7 @@ EVALUATION_PROGRAMS = [
         r'gnuchess-6.2.9',
         r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -141,7 +141,7 @@ EVALUATION_PROGRAMS = [
         r'gnuchess-6.2.9',
         r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -153,7 +153,7 @@ EVALUATION_PROGRAMS = [
         r'ghostscript-9.56.1',
         r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
         r'',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -165,7 +165,7 @@ EVALUATION_PROGRAMS = [
         r'gnuplot-5.4.3',
         r'https://sourceforge.net/projects/gnuplot/files/gnuplot/5.4.3/gnuplot-5.4.3.tar.gz/download',
         r'src/win',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -177,7 +177,7 @@ EVALUATION_PROGRAMS = [
         r'gawk-5.1.1',
         r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
         r'.',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -189,7 +189,7 @@ EVALUATION_PROGRAMS = [
         r'emacs-28.1',
         r'https://ftp.snt.utwente.nl/pub/software/gnu/emacs/emacs-28.1.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -201,7 +201,7 @@ EVALUATION_PROGRAMS = [
         r'rcs-5.10.1',
         r'https://mirror.koddos.net/gnu/rcs/rcs-5.10.1.tar.lz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -213,7 +213,7 @@ EVALUATION_PROGRAMS = [
         r'm4-1.4.19',
         r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -225,7 +225,7 @@ EVALUATION_PROGRAMS = [
         r'flex-2.6.4',
         r'https://github.com/westes/flex/files/981163/flex-2.6.4.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -246,7 +246,7 @@ EVALUATION_PROGRAMS = [
         r'cvs-1.11.21',
         r'https://sourceforge.net/projects/ccvs/files/latest/download',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -258,7 +258,7 @@ EVALUATION_PROGRAMS = [
         r'fvwm-2.6.9',
         r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
         r'fvwm',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -271,7 +271,7 @@ EVALUATION_PROGRAMS = [
         r'zsh-5.9',
         r'https://sourceforge.net/projects/zsh/files/latest/download',
         r'Src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -283,7 +283,7 @@ EVALUATION_PROGRAMS = [
         r'gv-3.7.4',
         r'https://mirrors.sarata.com/gnu/gv/gv-3.7.4.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         '''
     ),
@@ -292,7 +292,7 @@ EVALUATION_PROGRAMS = [
         r'gcc-12.1.0',
         r'https://bigsearcher.com/mirrors/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.gz',
         r'gcc',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -304,7 +304,7 @@ EVALUATION_PROGRAMS = [
         r'bison-3.8.2',
         r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
         r'src',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
@@ -316,7 +316,7 @@ EVALUATION_PROGRAMS = [
         r'xfig-3.2.8a',
         r'https://sourceforge.net/projects/mcj/files/latest/download',
         r'fig2dev',
-        r'bash configure && bear -- make',
+        r'bash configure && bear make',
         r'''
         make clean                  &&
         make                        &&
