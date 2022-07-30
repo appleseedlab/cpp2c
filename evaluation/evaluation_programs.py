@@ -123,16 +123,16 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    EvaluationProgram(
-        r'perl-5.36.0',
-        r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
-        r'.',
-        r'bash Configure && bear make',
-        r'''
-        bash Configure 	&&
-        make check
-        '''
-    ),
+    # EvaluationProgram(
+    #     r'perl-5.36.0',
+    #     r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
+    #     r'.',
+    #     r'bash Configure && bear make',
+    #     r'''
+    #     bash Configure 	&&
+    #     make check
+    #     '''
+    # ),
 
     # EvaluationProgram(
     #     r'zephyr-main',
@@ -143,31 +143,17 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    EvaluationProgram(
-        r'bash-5.2-rc1',
-        r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
-        r'.',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
-
-
-
-    EvaluationProgram(
-        r'gnuchess-6.2.9',
-        r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
-        r'src',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
+    # EvaluationProgram(
+    #     r'bash-5.2-rc1',
+    #     r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
+    #     r'.',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
 
     EvaluationProgram(
         r'ghostscript-9.56.1',
