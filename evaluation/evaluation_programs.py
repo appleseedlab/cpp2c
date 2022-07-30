@@ -52,6 +52,7 @@ EVALUATION_PROGRAMS = [
     #     r''
     # ),
 
+    # works
     EvaluationProgram(
         r'gzip-1.12',
         r'https://mirrors.tripadvisor.com/gnu/gzip/gzip-1.12.tar.gz',
@@ -64,6 +65,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
+    # works
     EvaluationProgram(
         r'remind-04.00.01',
         r'https://dianne.skoll.ca/projects/remind/download/remind-04.00.01.tar.gz',
@@ -87,6 +89,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
+    # works
     EvaluationProgram(
         r'bc-1.07.1',
         r'https://gnu.mirror.constant.com/bc/bc-1.07.1.tar.gz',
@@ -321,6 +324,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
+    # works
     EvaluationProgram(
         r'lua-5.4.4',
         r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
