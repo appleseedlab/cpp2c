@@ -104,14 +104,14 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    EvaluationProgram(
-        r'zephyr-main',
-        r'https://github.com/zephyrproject-rtos/zephyr/archive/refs/heads/main.zip',
-        r'',
-        r'',
-        f'''
-        '''
-    ),
+    # EvaluationProgram(
+    #     r'zephyr-main',
+    #     r'https://github.com/zephyrproject-rtos/zephyr/archive/refs/heads/main.zip',
+    #     r'',
+    #     r'',
+    #     f'''
+    #     '''
+    # ),
 
     EvaluationProgram(
         r'bash-5.2-rc1',
@@ -234,14 +234,14 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    EvaluationProgram(
-        r'rasmol-2.7.5.2',
-        r'https://www.rasmol.org/software/RasMol_Latest.tar.gz',
-        r'src',
-        r'',
-        r'''
-        '''
-    ),
+    # EvaluationProgram(
+    #     r'rasmol-2.7.5.2',
+    #     r'https://www.rasmol.org/software/RasMol_Latest.tar.gz',
+    #     r'src',
+    #     r'',
+    #     r'''
+    #     '''
+    # ),
 
     EvaluationProgram(
         r'cvs-1.11.21',
