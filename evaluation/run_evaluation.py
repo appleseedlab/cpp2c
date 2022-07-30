@@ -117,6 +117,8 @@ def main():
             # Download the program's archive
             urlretrieve(evaluation_program.link_to_archive_file, evaluation_program.archive_file)
 
+            print(f'Finished downloading {evaluation_program.name}')
+
         # Delete the old extracted archive
         shutil.rmtree(evaluation_program.extracted_archive_path, ignore_errors=True)
 
