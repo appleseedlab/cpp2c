@@ -78,17 +78,6 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    EvaluationProgram(
-        r'perl-5.36.0',
-        r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
-        r'.',
-        r'bash Configure && bear make',
-        r'''
-        bash Configure 	&&
-        make check
-        '''
-    ),
-
     # works
     EvaluationProgram(
         r'bc-1.07.1',
@@ -101,6 +90,47 @@ EVALUATION_PROGRAMS = [
         make check                  &&
         cd Test                     &&
         bash timetest 1>/dev/null
+        '''
+    ),
+
+    # works
+    EvaluationProgram(
+        r'lua-5.4.4',
+        r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
+        r'src',
+        r'bear make',
+        f'''
+        make clean                  &&
+        make                        &&
+        if [[ -e {LUA_TESTS_DIR} ]]; then rm -fr {LUA_TESTS_DIR}; fi    &&
+        cd ../                      &&
+        tar -xvf ../{LUA_TESTS_ZIP} &&
+        cd {LUA_TESTS_DIR}          &&
+        ../lua-5.4.4/src/lua -e"_U=true" all.lua 1>/dev/null
+        '''
+    ),
+
+    # works
+    EvaluationProgram(
+        r'gnuchess-6.2.9',
+        r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
+    EvaluationProgram(
+        r'perl-5.36.0',
+        r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
+        r'.',
+        r'bash Configure && bear make',
+        r'''
+        bash Configure 	&&
+        make check
         '''
     ),
 
@@ -125,18 +155,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
-    EvaluationProgram(
-        r'gnuchess-6.2.9',
-        r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
-        r'src',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
+
 
     EvaluationProgram(
         r'gnuchess-6.2.9',
@@ -324,21 +343,4 @@ EVALUATION_PROGRAMS = [
         make check
         '''
     ),
-
-    # works
-    EvaluationProgram(
-        r'lua-5.4.4',
-        r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
-        r'src',
-        r'bear make',
-        f'''
-        make clean                  &&
-        make                        &&
-        if [[ -e {LUA_TESTS_DIR} ]]; then rm -fr {LUA_TESTS_DIR}; fi    &&
-        cd ../                      &&
-        tar -xvf ../{LUA_TESTS_ZIP} &&
-        cd {LUA_TESTS_DIR}          &&
-        ../lua-5.4.4/src/lua -e"_U=true" all.lua 1>/dev/null
-        '''
-    )
 ]
