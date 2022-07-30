@@ -52,7 +52,7 @@ EVALUATION_PROGRAMS = [
     #     r''
     # ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'gzip-1.12',
         r'https://mirrors.tripadvisor.com/gnu/gzip/gzip-1.12.tar.gz',
         r'.',
@@ -64,7 +64,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'remind-04.00.01',
         r'https://dianne.skoll.ca/projects/remind/download/remind-04.00.01.tar.gz',
         r'src',
@@ -76,16 +76,16 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
-		r'perl-5.36.0',
-		r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
-		r'.',
-		r'bash Configure && bear -- make',
-		r'''
-		bash Configure 	&&
-		make check
-		'''
-	),
+    EvaluationProgram(
+        r'perl-5.36.0',
+        r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
+        r'.',
+        r'bash Configure && bear -- make',
+        r'''
+        bash Configure 	&&
+        make check
+        '''
+    ),
 
     EvaluationProgram(
         r'bc-1.07.1',
@@ -146,7 +146,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'ghostscript-9.56.1',
         r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
         r'',
@@ -158,7 +158,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'gnuplot-5.4.3',
         r'https://sourceforge.net/projects/gnuplot/files/gnuplot/5.4.3/gnuplot-5.4.3.tar.gz/download',
         r'src/win',
@@ -170,7 +170,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'gawk-5.1.1',
         r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
         r'.',
@@ -182,7 +182,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'emacs-28.1',
         r'https://ftp.snt.utwente.nl/pub/software/gnu/emacs/emacs-28.1.tar.gz',
         r'src',
@@ -194,7 +194,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'rcs-5.10.1',
         r'https://mirror.koddos.net/gnu/rcs/rcs-5.10.1.tar.lz',
         r'src',
@@ -206,7 +206,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'm4-1.4.19',
         r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
         r'src',
@@ -218,7 +218,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'flex-2.6.4',
         r'https://github.com/westes/flex/files/981163/flex-2.6.4.tar.gz',
         r'src',
@@ -230,7 +230,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'rasmol-2.7.5.2',
         r'https://www.rasmol.org/software/RasMol_Latest.tar.gz',
         r'src',
@@ -239,7 +239,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'cvs-1.11.21',
         r'https://sourceforge.net/projects/ccvs/files/latest/download',
         r'src',
@@ -251,7 +251,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'fvwm-2.6.9',
         r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
         r'fvwm',
@@ -264,7 +264,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'zsh-5.9',
         r'https://sourceforge.net/projects/zsh/files/latest/download',
         r'Src',
@@ -276,7 +276,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'gv-3.7.4',
         r'https://mirrors.sarata.com/gnu/gv/gv-3.7.4.tar.gz',
         r'src',
@@ -285,7 +285,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'gcc-12.1.0',
         r'https://bigsearcher.com/mirrors/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.gz',
         r'gcc',
@@ -297,7 +297,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'bison-3.8.2',
         r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
         r'src',
@@ -309,7 +309,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-	EvaluationProgram(
+    EvaluationProgram(
         r'xfig-3.2.8a',
         r'https://sourceforge.net/projects/mcj/files/latest/download',
         r'fig2dev',
