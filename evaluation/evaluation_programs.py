@@ -177,15 +177,6 @@ EVALUATION_PROGRAMS = [
     # ),
 
     # EvaluationProgram(
-    #     r'zephyr-main',
-    #     r'https://github.com/zephyrproject-rtos/zephyr/archive/refs/heads/main.zip',
-    #     r'',
-    #     r'',
-    #     f'''
-    #     '''
-    # ),
-
-    # EvaluationProgram(
     #     r'bash-5.2-rc1',
     #     r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
     #     r'.',
@@ -244,15 +235,6 @@ EVALUATION_PROGRAMS = [
     #     make check
     #     '''
     # ),
-
-    # # EvaluationProgram(
-    # #     r'rasmol-2.7.5.2',
-    # #     r'https://www.rasmol.org/software/RasMol_Latest.tar.gz',
-    # #     r'src',
-    # #     r'',
-    # #     r'''
-    # #     '''
-    # # ),
 
     # EvaluationProgram(
     #     r'cvs-1.11.21',
@@ -333,6 +315,24 @@ EVALUATION_PROGRAMS = [
     #     make clean                  &&
     #     make                        &&
     #     make check
+    #     '''
+    # ),
+
+    # EvaluationProgram(
+    #     r'rasmol-2.7.5.2',
+    #     r'https://www.rasmol.org/software/RasMol_Latest.tar.gz',
+    #     r'src',
+    #     r'',
+    #     r'''
+    #     '''
+    # ),
+
+    # EvaluationProgram(
+    #     r'zephyr-main',
+    #     r'https://github.com/zephyrproject-rtos/zephyr/archive/refs/heads/main.zip',
+    #     r'',
+    #     r'',
+    #     f'''
     #     '''
     # ),
 ]
