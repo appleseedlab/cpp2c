@@ -152,7 +152,7 @@ def main():
         for cc in compile_commands:
             cmd = compile_command.cpp2c_command_from_compile_command(cc, ['tr', '-v'])
             os.chdir(cc.directory)
-            cp = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            cp = subprocess.run(cmd, shell=True, capture_output=True, text=True, errors='ignore')
 
             for line in cp.stderr.splitlines():
 
