@@ -136,6 +136,35 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
+    # NOTE: There is a more up to date version available,
+    # but it's in a tar.lz file.
+    # TODO: Automate extraction of tar.lz files
+    # works
+    EvaluationProgram(
+        r'rcs-5.8',
+        r'https://mirror.koddos.net/gnu/rcs/rcs-5.8.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
+    # works
+    EvaluationProgram(
+        r'm4-1.4.19',
+        r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
     # EvaluationProgram(
     #     r'perl-5.36.0',
     #     r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
@@ -195,30 +224,6 @@ EVALUATION_PROGRAMS = [
     # EvaluationProgram(
     #     r'emacs-28.1',
     #     r'https://ftp.snt.utwente.nl/pub/software/gnu/emacs/emacs-28.1.tar.gz',
-    #     r'src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # EvaluationProgram(
-    #     r'rcs-5.10.1',
-    #     r'https://mirror.koddos.net/gnu/rcs/rcs-5.10.1.tar.lz',
-    #     r'src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # EvaluationProgram(
-    #     r'm4-1.4.19',
-    #     r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
     #     r'src',
     #     r'bash configure && bear make',
     #     r'''
