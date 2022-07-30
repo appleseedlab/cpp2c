@@ -125,6 +125,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
+    # works
     EvaluationProgram(
         r'gnuchess-6.2.9',
         r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
