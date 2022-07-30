@@ -1,9 +1,3 @@
-bc-1.07.tar.gz
-gzip-1.10.tar.gz
-remind-03.04.02.tar.gz
-lua-5.4.4.tar.gz
-lua-5.4.4-tests.tar.gz
+*.tar.gz
 
 extracted_evaluation_programs
-!/extracted_evaluation_programs/*
-stats
