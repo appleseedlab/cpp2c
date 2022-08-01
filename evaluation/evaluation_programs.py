@@ -52,7 +52,9 @@ EVALUATION_PROGRAMS = [
     #     r''
     # ),
 
-    # works
+    # transforms
+    # takes 75 sec
+    # passes tests
     EvaluationProgram(
         r'gzip-1.12',
         r'https://mirrors.tripadvisor.com/gnu/gzip/gzip-1.12.tar.gz',
@@ -65,7 +67,9 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
+    # transforms
+    # takes 7 sec
+    # passes tests
     EvaluationProgram(
         r'remind-04.00.01',
         r'https://dianne.skoll.ca/projects/remind/download/remind-04.00.01.tar.gz',
@@ -78,7 +82,9 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
+    # transforms
+    # takes 5 sec
+    # passes tests
     EvaluationProgram(
         r'bc-1.07.1',
         r'https://gnu.mirror.constant.com/bc/bc-1.07.1.tar.gz',
@@ -93,7 +99,9 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
+    # transforms
+    # takes ...
+    # passes tests
     EvaluationProgram(
         r'lua-5.4.4',
         r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
@@ -110,50 +118,11 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
-    EvaluationProgram(
-        r'gnuchess-6.2.9',
-        r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
-        r'src',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
-
-    # works
-    EvaluationProgram(
-        r'gawk-5.1.1',
-        r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
-        r'.',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
-
-    # NOTE: There is a more up to date version available,
-    # but it's in a tar.lz file.
-    # TODO: Automate extraction of tar.lz files
-
-    # works
-    EvaluationProgram(
-        r'rcs-5.8',
-        r'https://mirror.koddos.net/gnu/rcs/rcs-5.8.tar.gz',
-        r'src',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
-
-    # works
+    # transforms
+    # takes 7 min
+    # passes all expected tests
+    # fails some tests, but only the ones it failed before transforming
+    # requires help2man
     EvaluationProgram(
         r'm4-1.4.19',
         r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
@@ -166,7 +135,9 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
+    # transforms
+    # takes 1 min
+    # passes tests
     EvaluationProgram(
         r'bash-5.2-rc1',
         r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
@@ -179,7 +150,9 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
+    # transforms
+    # takes 11 sec
+    # passes tests
     EvaluationProgram(
         r'flex-2.6.4',
         r'https://github.com/westes/flex/files/981163/flex-2.6.4.tar.gz',
@@ -192,71 +165,139 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # works
-    EvaluationProgram(
-        r'fvwm-2.6.9',
-        r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
-        r'fvwm',
-        r'bash configure --disable-png && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        cd  tests                   &&
-        bash test_options
-        '''
-    ),
+    # transforms
+    # takes less than a second
+    # fails tests due to definition location heuristic
+    # TODO: fix definition location heuristic
+    # EvaluationProgram(
+    #     r'cvs-1.11.21',
+    #     r'https://cfhcable.dl.sourceforge.net/project/ccvs/CVS%20Stable%20Source%20Release/1.11.21/cvs-1.11.21.tar.gz',
+    #     r'src',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
 
-    # works
-    EvaluationProgram(
-        r'bison-3.8.2',
-        r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
-        r'src',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
+    # transforms
+    # # takes 70 sec
+    # # fails tests because in term.c, term.h is included *inside* the
+    # # definition of the struct term_tbl
+    # # TODO: Maybe we can fix with smarter definition locations?
+    # EvaluationProgram(
+    #     r'gnuplot-5.4.4',
+    #     r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
+    #     r'src/win',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
 
-    # works
-    EvaluationProgram(
-        r'zsh-5.9',
-        r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
-        r'Src',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
+    # # transforms
+    # # takes 70 sec
+    # # fails tests due to definition location heuristic
+    # # TODO: fix definition location heuristic
+    # EvaluationProgram(
+    #     r'zsh-5.9',
+    #     r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
+    #     r'Src',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
 
-    # works
-    EvaluationProgram(
-        r'gnuplot-5.4.4',
-        r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
-        r'src/win',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
+    # # transforms
+    # # takes 2 min
+    # # fails tests because of deanonymizer breaking on nested typedefs
+    # # TODO: fix deanonymizer to work with nested typedefs
+    # EvaluationProgram(
+    #     r'fvwm-2.6.9',
+    #     r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
+    #     r'fvwm',
+    #     r'bash configure --disable-png && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     cd  tests                   &&
+    #     bash test_options
+    #     '''
+    # ),
 
-    # works
-    EvaluationProgram(
-        r'cvs-1.11.21',
-        r'https://cfhcable.dl.sourceforge.net/project/ccvs/CVS%20Stable%20Source%20Release/1.11.21/cvs-1.11.21.tar.gz',
-        r'src',
-        r'bash configure && bear make',
-        r'''
-        make clean                  &&
-        make                        &&
-        make check
-        '''
-    ),
+    # # transforms
+    # # takes a few mins
+    # # fails tests due to definition location heuristic
+    # # TODO: fix definition location heuristic
+    # EvaluationProgram(
+    #     r'bison-3.8.2',
+    #     r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
+    #     r'src',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
+
+    # # NOTE: There is a more up to date version of rcs available,
+    # # but it's in a tar.lz file.
+    # # TODO: Automate extraction of tar.lz files
+
+    # # TODO: design a correct way of finding a definition location
+    # # transforms
+    # # does not pass tests because definition location heuristic does not work
+    # # takes 1 sec
+    # EvaluationProgram(
+    #     r'rcs-5.8',
+    #     r'https://mirror.koddos.net/gnu/rcs/rcs-5.8.tar.gz',
+    #     r'src',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
+
+    # # TODO: design a correct way of finding a definition location
+    # # transforms
+    # # does not pass tests because definition location heuristic does not work
+    # # takes 7 min
+    # EvaluationProgram(
+    #     r'gawk-5.1.1',
+    #     r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
+    #     r'.',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
+
+    # # TODO: either remove or fix issue with .cc files
+    # # transforms
+    # # does not pass tests because of .cc files
+    # # takes 26 sec
+    # EvaluationProgram(
+    #     r'gnuchess-6.2.9',
+    #     r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
+    #     r'src',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
 
     # # TODO: install Xaw3d for this to work (I think)
     # EvaluationProgram(
