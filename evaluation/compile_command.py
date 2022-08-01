@@ -20,6 +20,10 @@ def load_compile_commands_from_file(file: str) -> List[CompileCommand]:
 def cpp2c_command_from_compile_command(cc: CompileCommand, cpp2c_commands: List[str]) -> str:
     # Shallow copy arguments (shallow is fine since they're strings)
     arguments = cc.arguments[:]
+    # Replace '-flto=auto' argument with '-flto=full'
+    # This is because Clang does not support this flag
+    # This specifically fixes an issue with building remind 4.00.01
+    arguments = ['-flto=full' if a == '-flto=auto' else a for a in arguments]
     # Replace first command (compiler) with clang-11
     arguments[0] = 'clang-11'
     # Add Cpp2C plugin path
