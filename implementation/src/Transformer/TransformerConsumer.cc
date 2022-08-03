@@ -463,7 +463,8 @@ namespace Transformer
                          MacroHash + "\t" +
                          EmittedName + "\t" +
                          FD->getName().str() + "\t" +
-                         TDA.TransformedSignature + "\n");
+                         TDA.TransformedSignature + "\t" +
+                         (TD->IsVar ? "var" : "func") + "\n");
             }
 
             // Emit transformed definition if the previously emitted transformed definition

@@ -284,6 +284,8 @@ def main():
 
         mhash_to_transformed_types: DefaultDict[str, Set[str]] = defaultdict(set)
 
+        macros_transformed_to_vars: Set[str] = set()
+
         while True:
             emitted_a_transformation = False
             for cc in compile_commands:
@@ -307,7 +309,7 @@ def main():
                     elif line.startswith(TRANSFORMED_EXPANSION_PREFIX):
                         #  Record that we transformed an expansion this run
                         emitted_a_transformation = True
-                        _, mhash, transformed_name, containing_function_name, ty = line.split('\t')
+                        _, mhash, transformed_name, containing_function_name, ty, ast_ty = line.split('\t')
 
                         # If we haven't seen a transformed definition for this macro before,
                         # then mark the transformed definition this transformed expansion
@@ -327,6 +329,9 @@ def main():
                         # Append this macro hash to the list of hashes of transformed expansions found in
                         # this definition of this function in this file
                         fp_to_fdecl_to_unique_invocation_mhashes[file_realpath][containing_function_name] += [mhash]
+
+                        # Count the number of macro definitions transformed to variables
+                        macros_transformed_to_vars |= {mhash} if ast_ty == "var" else set()
 
                     elif line.startswith(UNTRANSFORMED_EXPANSION_PREFIX):
                         _, mhash, category, reason = line.split('\t')
@@ -363,11 +368,16 @@ def main():
         mhash_dict_len_stat('untransformed potentially transformable macro definitions',
                             pt_mhash_to_cats_not_transformed)
 
+        num_stat("number of macros transformed to vars", len(macros_transformed_to_vars))
+        str_stat("percentage increase in transformed macros with our approach",
+                 (str((len(transformed_macros) / len(macros_transformed_to_vars)) * 100) + '%')
+                 if len(macros_transformed_to_vars) > 0 else 'N/A')
+
         # For each category, check if the set of categories of reasons
         # a macro was not transformed is a singleton list containing
         # only that category.
         # Also count macros that were not transformed for multiple categories.
-        print(f'categories of reasons not transformed:')
+        print('categories of reasons not transformed:')
         multiple_cats_count = 0
         for i, cat in enumerate(CATEGORIES_NOT_TRANSFORMED):
             count = 0
