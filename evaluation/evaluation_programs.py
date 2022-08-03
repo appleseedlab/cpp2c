@@ -165,7 +165,79 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
+    # requires xaw3dg-dev
     # transforms
+    # takes 17 sec
+    # passes tests
+    EvaluationProgram(
+        r'gv-3.7.4',
+        r'https://mirrors.sarata.com/gnu/gv/gv-3.7.4.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean  &&
+        make        &&
+        make check
+        '''
+    ),
+
+    # note: this is genscript from the ernst study
+    # the g stands for GNU
+    # transforms
+    # takes 10 sec
+    # passes tests
+    EvaluationProgram(
+        r'enscript-1.6.6',
+        r'https://ftp.gnu.org/gnu/enscript/enscript-1.6.6.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean      &&
+        make            &&
+        make check
+        ''',
+    ),
+
+    # found it!
+    # do you know how hard it is to find something on the Internet
+    # with such a generic name as "plan" ? :-)
+
+    # requires libmotif-dev
+    # transforms
+    # takes 23 sec
+    # no tests - but manually ran the program after
+    # transforming and it seems to work
+    EvaluationProgram(
+        r'plan-1.12',
+        r'ftp://ftp.bitrot.de/pub/plan/plan-1.12.tar.gz',
+        r'src',
+        '''
+        cd src                          &&
+        echo "\\n" | bash configure     &&
+        bear make linux64               &&
+        mv compile_commands.json ..     &&
+        cd ..
+        ''',
+        r''
+    ),
+
+    # mosaic
+    # requires  build-essential libmotif-dev libjpeg62-dev
+    #           libxmu-headers libxpm-dev libxmu-dev
+    # transforms
+    # takes 34 sec
+    # TODO: fails tests - definition heuristic
+    # no tests - but ran the program manually after transforming
+    # and it seems to work
+    EvaluationProgram(
+        r'ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e',
+        r'https://github.com/alandipert/ncsa-mosaic/archive/af1c9aaaa299da3540faa16dcab82eb681cf624e.zip',
+        r'src',
+        r'bear make linux',
+        r''
+    ),
+
+    # # transforms
     # takes less than a second
     # fails tests due to definition location heuristic
     # TODO: fix definition location heuristic
@@ -181,7 +253,7 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # transforms
+    # # transforms
     # # takes 70 sec
     # # fails tests because in term.c, term.h is included *inside* the
     # # definition of the struct term_tbl
@@ -299,9 +371,12 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # # TODO: install Xaw3d for this to work (I think)
+    # # requires xaw3dg-dev
+    # # transforms
+    # # takes 50 sec
+    # # TODO: fails tests because of deanonymizer issue
     # EvaluationProgram(
-    #     r'xfig-3.2.8a',
+    #     r'xfig-3.2.8b',
     #     r'https://cytranet.dl.sourceforge.net/project/mcj/xfig%2Bfig2dev-3.2.8b.tar.xz',
     #     r'fig2dev',
     #     r'bash configure && bear make',
@@ -311,6 +386,8 @@ EVALUATION_PROGRAMS = [
     #     make check
     #     '''
     # ),
+
+
 
     # # TODO: Takes more than an hour to run (or more)
     # EvaluationProgram(
@@ -338,6 +415,7 @@ EVALUATION_PROGRAMS = [
     # ),
 
     # # TODO: install GMP 4.2+, MPFR 3.1.0+ and MPC 0.8.0+
+    # # May take 4 hr
     # EvaluationProgram(
     #     r'gcc-12.1.0',
     #     r'https://bigsearcher.com/mirrors/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.gz',
@@ -352,6 +430,7 @@ EVALUATION_PROGRAMS = [
 
     # # TODO: install GTK+ libXpm libjpeg libpng libgif/libungif libtiff gnutls
     # # for emacs to configure and build
+    # # May take about 20 min
     # EvaluationProgram(
     #     r'emacs-28.1',
     #     r'https://ftp.snt.utwente.nl/pub/software/gnu/emacs/emacs-28.1.tar.gz',
@@ -361,16 +440,6 @@ EVALUATION_PROGRAMS = [
     #     make clean                  &&
     #     make                        &&
     #     make check
-    #     '''
-    # ),
-
-    # # TODO: install Xaw3d lib for gv to build
-    # EvaluationProgram(
-    #     r'gv-3.7.4',
-    #     r'https://mirrors.sarata.com/gnu/gv/gv-3.7.4.tar.gz',
-    #     r'src',
-    #     r'bash configure && bear make',
-    #     r'''
     #     '''
     # ),
 
@@ -393,5 +462,19 @@ EVALUATION_PROGRAMS = [
     #     r'',
     #     f'''
     #     '''
+    # ),
+
+    # can't get to work
+    # this was made for sun solaris systems, not for linux, and I cannot
+    # install one of the packages its requires (xview)
+    # transforms?
+    # takes ...
+    # passes tests?
+    # EvaluationProgram(
+    #     r'workman-1.3.4',
+    #     r'https://web.mit.edu/kolya/.f/root/net.mit.edu/sipb/user/zacheiss/workman-1.3.4.tar.gz',
+    #     r'',
+    #     r'',
+    #     r''
     # ),
 ]
