@@ -115,7 +115,13 @@ def main():
             print(f'Downloading {evaluation_program.name} from {evaluation_program.link_to_archive_file}')
 
             # Download the program's archive
-            urlretrieve(evaluation_program.link_to_archive_file, evaluation_program.archive_file)
+            if evaluation_program.link_to_archive_file.startswith('http'):
+                # http(s) download
+                urlretrieve(evaluation_program.link_to_archive_file, evaluation_program.archive_file)
+            elif evaluation_program.link_to_archive_file.startswith('ftp'):
+                # ftp download
+                # TODO: Use ftp lib instead of relying on wget
+                subprocess.run(f'wget --no-passive {evaluation_program.link_to_archive_file}', shell=True)
 
             print(f'Finished downloading {evaluation_program.name}')
 
