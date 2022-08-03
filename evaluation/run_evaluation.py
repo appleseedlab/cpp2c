@@ -370,7 +370,13 @@ def main():
 
         num_stat("number of macros transformed to vars", len(macros_transformed_to_vars))
         str_stat("percentage increase in transformed macros with our approach",
-                 (str((len(transformed_macros) / len(macros_transformed_to_vars)) * 100) + '%')
+                 (str(
+                     ((
+                         len(transformed_macros)
+                         - len(macros_transformed_to_vars))
+                      / len(macros_transformed_to_vars))
+                     * 100)
+                  + '%')
                  if len(macros_transformed_to_vars) > 0 else 'N/A')
 
         # For each category, check if the set of categories of reasons
