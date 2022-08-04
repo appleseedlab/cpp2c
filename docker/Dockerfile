@@ -3,6 +3,8 @@ RUN apt-get -y update && \
     DEBIAN_FRONTEND="noninteractive" apt-get -y install \
     # for cpp2c
     llvm-11 clang-11 libclang-11-dev build-essential cmake \
+    # for zsh
+    autoconf \
     # for m4
     help2man \
     # for xfig
