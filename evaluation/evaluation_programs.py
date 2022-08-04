@@ -226,7 +226,6 @@ EVALUATION_PROGRAMS = [
     #           libxmu-headers libxpm-dev libxmu-dev
     # transforms
     # takes 34 sec
-    # TODO: fails tests - definition heuristic
     # no tests - but ran the program manually after transforming
     # and it seems to work
     EvaluationProgram(
@@ -237,76 +236,98 @@ EVALUATION_PROGRAMS = [
         r''
     ),
 
-    # # transforms
+    # transforms
     # takes less than a second
+    # failed tests.
+    # problem:  stdio's getline is redeclared in lib/getline.c and
+    #           redefined in lib/getline.h.
+    #           this is actually a problem with cvs itself and not cpp2c.
+    # fix:      i changed the name of cvs's getline function to getline_cvs
+    #           i was then able to build cvs and run its tests.
+    #           it still failed one test, basicb-21.
+    #           i ran this test on the untransformed code and it failed
+    #           as well.
+    #           since it fails in both the untransformed and transformed
+    #           program, i consider the transformation working as expected.
+    EvaluationProgram(
+        r'cvs-1.11.21',
+        r'https://cfhcable.dl.sourceforge.net/project/ccvs/CVS%20Stable%20Source%20Release/1.11.21/cvs-1.11.21.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
+    # # transforms
+    # # takes 70 sec
+    # # fails tests.
+    # # problem:  in term.c, some headers were included inside of a struct
+    # #           definition.
+    # #           after transforming, some transformed decls were emitted to
+    # #           the top of these header files.
+    # #           this ultimately meant that in the transformed code,
+    # #           after preprocessing some decls were being placed
+    # #           inside the struct definition, which of course is invalid C.
+    # # fix:      move the problematic decls outside of the struct definition.
+    # #           gnuplot then passed all tests.
+    EvaluationProgram(
+        r'gnuplot-5.4.4',
+        r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
+    # transforms
+    # takes 2 min
+    # fails tests.
+    # problem:  in Fft.h, there is an anonymous struct typedef'd to
+    #           the name XftPatternElt.
+    #           XftPatternElt is then typedef'd to FftPatternElt.
+    #           this causes the deanonymizer to emit both names before the
+    #           struct definition for some reason, which is invalid C code.
+    # fix:      remove the XftPatternElt part of the struct name emitted by
+    #           the deanonymizer.
+    # problem:  in FSMlib.h, the enum IceCloseStatus is typedef'd to
+    #           FIceCloseStatus.
+    #           cpp2c uses the base enum name,
+    #           not the typedef, in transformed decl at the top of the
+    #           file and the def in another file.
+    # fix:      replace the enum with the typedef in the decl and def,
+    #           and move the decl after the the typedef.
+    # problem:  ditto IceProcessMessagesStatus/FIceProcessMessagesStatus
+    # problem:  ditto IceConnectStatus/FIceConnectStatus;
+    # problem:  some macros returned anonymous nested structs.
+    #           the deanonymizer did not deanonymize these, and clang
+    #           emitted a name for them that was invalid c.
+    #           e.g. MenuRootDynamic::(anonymous at ./menuroot.h:143:2)
+    # fix:      manually deanonymize these nested structs and use these
+    #           names in the transformed function signatures.
+    # problem:  nested typedefs issue
+    EvaluationProgram(
+        r'fvwm-2.6.9',
+        r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
+        r'fvwm',
+        r'bash configure --disable-png && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        cd  tests                   &&
+        bash test_options
+        '''
+    ),
+
+    # transforms
+    # takes a few mins
     # fails tests due to definition location heuristic
     # TODO: fix definition location heuristic
-    # EvaluationProgram(
-    #     r'cvs-1.11.21',
-    #     r'https://cfhcable.dl.sourceforge.net/project/ccvs/CVS%20Stable%20Source%20Release/1.11.21/cvs-1.11.21.tar.gz',
-    #     r'src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # transforms
-    # # takes 70 sec
-    # # fails tests because in term.c, term.h is included *inside* the
-    # # definition of the struct term_tbl
-    # # TODO: Maybe we can fix with smarter definition locations?
-    # EvaluationProgram(
-    #     r'gnuplot-5.4.4',
-    #     r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
-    #     r'src/win',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # transforms
-    # # takes 70 sec
-    # # fails tests due to definition location heuristic
-    # # TODO: fix definition location heuristic
-    # EvaluationProgram(
-    #     r'zsh-5.9',
-    #     r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
-    #     r'Src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # transforms
-    # # takes 2 min
-    # # fails tests because of deanonymizer breaking on nested typedefs
-    # # TODO: fix deanonymizer to work with nested typedefs
-    # EvaluationProgram(
-    #     r'fvwm-2.6.9',
-    #     r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
-    #     r'fvwm',
-    #     r'bash configure --disable-png && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     cd  tests                   &&
-    #     bash test_options
-    #     '''
-    # ),
-
-    # # transforms
-    # # takes a few mins
-    # # fails tests due to definition location heuristic
-    # # TODO: fix definition location heuristic
     # EvaluationProgram(
     #     r'bison-3.8.2',
     #     r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
@@ -387,7 +408,46 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-
+    # transforms
+    # takes 70 sec
+    # fails tests.
+    # requires: autoconf
+    # problem:  definition heuristic emitted a function that returned an
+    #           anonymous typedef'd struct, __sigset_t.
+    #           normally the deanonymizer would fix this by making the struct
+    #           not anonymous, but since the struct is defined in a standard
+    #           header, the deanonymizer wasn't able to rewrite it.
+    # fix:      change all the functions that returned this type to
+    #           the typedef instead of the struct
+    # problem:  in the original code, some part of the build system
+    #           generates .pro files with function forward declarations.
+    #           after transforming, thes .pro files aren't generated
+    #           correctly, and lacks some of these declarations.
+    #           consequently, man files have undeclared reference errors.
+    # fix:      add the required decls back to the .pro files.
+    #           there are 85 of these files though, so in the interest of
+    #           time i may skip fixing zsh.
+    #           TODO: finish fixing these
+    # problem:  a series of macros defined in pattern.c, patinstart through
+    #           globdots, are defined to expand to struct fields of the
+    #           same name.
+    #           the transformed definitions use the names as struct fields,
+    #           however they are emitted after the macro definitions, so
+    #           the preprocessor thinks they are referring to the macro
+    #           definitions, and expand them.
+    #           this expands to incorrect code.
+    # fix:      comment out these macro definitions.
+    # EvaluationProgram(
+    #     r'zsh-5.9',
+    #     r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
+    #     r'Src',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
 
     # # TODO: Takes more than an hour to run (or more)
     # EvaluationProgram(
