@@ -249,6 +249,7 @@ EVALUATION_PROGRAMS = [
     #           as well.
     #           since it fails in both the untransformed and transformed
     #           program, i consider the transformation working as expected.
+    # now passes tests.
     EvaluationProgram(
         r'cvs-1.11.21',
         r'https://cfhcable.dl.sourceforge.net/project/ccvs/CVS%20Stable%20Source%20Release/1.11.21/cvs-1.11.21.tar.gz',
@@ -261,18 +262,19 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # # transforms
-    # # takes 70 sec
-    # # fails tests.
-    # # problem:  in term.c, some headers were included inside of a struct
-    # #           definition.
-    # #           after transforming, some transformed decls were emitted to
-    # #           the top of these header files.
-    # #           this ultimately meant that in the transformed code,
-    # #           after preprocessing some decls were being placed
-    # #           inside the struct definition, which of course is invalid C.
-    # # fix:      move the problematic decls outside of the struct definition.
-    # #           gnuplot then passed all tests.
+    # transforms
+    # takes 70 sec
+    # failed tests.
+    # problem:  in term.c, some headers were included inside of a struct
+    #           definition.
+    #           after transforming, some transformed decls were emitted to
+    #           the top of these header files.
+    #           this ultimately meant that in the transformed code,
+    #           after preprocessing some decls were being placed
+    #           inside the struct definition, which of course is invalid C.
+    # fix:      move the problematic decls outside of the struct definition.
+    #           gnuplot then passed all tests.
+    # now passes tests.
     EvaluationProgram(
         r'gnuplot-5.4.4',
         r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
@@ -326,117 +328,141 @@ EVALUATION_PROGRAMS = [
 
     # transforms
     # takes a few mins
-    # fails tests due to definition location heuristic
-    # TODO: fix definition location heuristic
-    # EvaluationProgram(
-    #     r'bison-3.8.2',
-    #     r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
-    #     r'src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # failed tests.
+    # problem:  for some reason, a series of function names were emitted
+    #           before the invocation of ARGMATCH_DEFINE_GROUP in
+    #           complain.c.
+    # fix:      commented out the extra type names.
+    # problem:  ditto in getargs.c, except for multiple invocations of
+    #           ARGMATCH_DEFINE_GROUP, not just one.
+    # problem:  an invocation of YY_INITIAL_VALUE in parse-gram.c
+    #           was not transformed correctly.
+    # fix:      manually fixed the invocation.
+    # problem:  ditto PACIFY_CC in tables.c
+    # now passes tests.
+    EvaluationProgram(
+        r'bison-3.8.2',
+        r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # NOTE: There is a more up to date version of rcs available,
-    # # but it's in a tar.lz file.
-    # # TODO: Automate extraction of tar.lz files
-
-    # # TODO: design a correct way of finding a definition location
-    # # transforms
-    # # does not pass tests because definition location heuristic does not work
-    # # takes 1 sec
-    # EvaluationProgram(
-    #     r'rcs-5.8',
-    #     r'https://mirror.koddos.net/gnu/rcs/rcs-5.8.tar.gz',
-    #     r'src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # TODO: design a correct way of finding a definition location
-    # # transforms
-    # # does not pass tests because definition location heuristic does not work
-    # # takes 7 min
-    # EvaluationProgram(
-    #     r'gawk-5.1.1',
-    #     r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
-    #     r'.',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # TODO: either remove or fix issue with .cc files
-    # # transforms
-    # # does not pass tests because of .cc files
-    # # takes 26 sec
-    # EvaluationProgram(
-    #     r'gnuchess-6.2.9',
-    #     r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
-    #     r'src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # requires xaw3dg-dev
-    # # transforms
-    # # takes 50 sec
-    # # TODO: fails tests because of deanonymizer issue
-    # EvaluationProgram(
-    #     r'xfig-3.2.8b',
-    #     r'https://cytranet.dl.sourceforge.net/project/mcj/xfig%2Bfig2dev-3.2.8b.tar.xz',
-    #     r'fig2dev',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # NOTE: There is a more up to date version of rcs available,
+    # but it's in a tar.lz file.
+    # TODO: Automate extraction of tar.lz files
 
     # transforms
-    # takes 70 sec
-    # fails tests.
-    # requires: autoconf
-    # problem:  definition heuristic emitted a function that returned an
-    #           anonymous typedef'd struct, __sigset_t.
-    #           normally the deanonymizer would fix this by making the struct
-    #           not anonymous, but since the struct is defined in a standard
-    #           header, the deanonymizer wasn't able to rewrite it.
-    # fix:      change all the functions that returned this type to
-    #           the typedef instead of the struct
-    # problem:  in the original code, some part of the build system
-    #           generates .pro files with function forward declarations.
-    #           after transforming, thes .pro files aren't generated
-    #           correctly, and lacks some of these declarations.
-    #           consequently, man files have undeclared reference errors.
-    # fix:      add the required decls back to the .pro files.
-    #           there are 85 of these files though, so in the interest of
-    #           time i may skip fixing zsh.
-    #           TODO: finish fixing these
-    # problem:  a series of macros defined in pattern.c, patinstart through
-    #           globdots, are defined to expand to struct fields of the
-    #           same name.
-    #           the transformed definitions use the names as struct fields,
-    #           however they are emitted after the macro definitions, so
-    #           the preprocessor thinks they are referring to the macro
-    #           definitions, and expand them.
-    #           this expands to incorrect code.
-    # fix:      comment out these macro definitions.
+    # takes 1 sec
+    # failed tests.
+    # problem:  gets is used where fgets should be used instead.
+    #           this is a problem with rcs itself.
+    # fix:      followed this solution:
+    #           https://www.fatalerrors.org/a/gets-undeclared-here-not-in-a-function.html
+    # problem:  program tests failed after fixing compilation issues.
+    # fix:      ran make clean, make distclean, ./configure, and make again.
+    #           finally ran make check again; all tests passed.
+    # now passes tests.
+    EvaluationProgram(
+        r'rcs-5.8',
+        r'https://mirror.koddos.net/gnu/rcs/rcs-5.8.tar.gz',
+        r'src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
+    # transforms
+    # takes 7 min
+    # failed tests.
+    # problem:  in builtin.c, the macro INITIAL_OUT_SIZE was used in
+    #           a transformed definition of GIVE_BACK_SIZE before
+    #           INITIAL_OUT_SIZE was defined.
+    # fix:      moved the transformed def of GIVE_BACK_SIZE after the
+    #           definition of the macro INITIAL_OUT_SIZE.
+    # problem:  in testext.c, some transformed function parameters were
+    #           named scalar_cookie, which was the name of a macro defined in
+    #           gawkapi.h.
+    # fix:      changed the name of the function parameter to a fresh name.
+    # now passes tests.
+    EvaluationProgram(
+        r'gawk-5.1.1',
+        r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
+        r'.',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
+    # requires xaw3dg-dev
+    # transforms
+    # takes 50 sec
+    # failed tests.
+    # problem:  nested typedefs and anonymous structs issue.
+    #           in resources.h, PR_SIZE and RECT.
+    # fix:      fix emitted deanonymized names.
+    # problem:  in some files, the transformed definition of max_char_height
+    #           referenced the anonymous, typedef'd struct XFontStruct
+    #           before it was defined.
+    #           the deanonymizer didn't catch this because it's defined
+    #           in a system header (X11), which we don't emit rewrites to.
+    # fix:      remove the struct keyword from function definitions and use
+    #           the typedef instead.
+    # NOTE:     we could automatically handle these cases by not deanonymizing
+    #           system header structs/unions/enums, and using their typedefs
+    #           instead.
+    # now passes tests.
+    EvaluationProgram(
+        r'xfig-3.2.8b',
+        r'https://cytranet.dl.sourceforge.net/project/mcj/xfig%2Bfig2dev-3.2.8b.tar.xz',
+        r'fig2dev',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
+
+    # # transforms
+    # # takes 70 sec
+    # # fails tests.
+    # # requires: autoconf
+    # # problem:  definition heuristic emitted a function that returned an
+    # #           anonymous typedef'd struct, __sigset_t.
+    # #           normally the deanonymizer would fix this by making the struct
+    # #           not anonymous, but since the struct is defined in a standard
+    # #           header, the deanonymizer wasn't able to rewrite it.
+    # # fix:      change all the functions that returned this type to
+    # #           the typedef instead of the struct
+    # # problem:  in the original code, some part of the build system
+    # #           generates .pro files with function forward declarations.
+    # #           after transforming, thes .pro files aren't generated
+    # #           correctly, and lacks some of these declarations.
+    # #           consequently, man files have undeclared reference errors.
+    # # fix:      add the required decls back to the .pro files.
+    # #           there are 85 of these files though, so in the interest of
+    # #           time i may skip fixing zsh.
+    # #           TODO: finish fixing these
+    # # problem:  a series of macros defined in pattern.c, patinstart through
+    # #           globdots, are defined to expand to struct fields of the
+    # #           same name.
+    # #           the transformed definitions use the names as struct fields,
+    # #           however they are emitted after the macro definitions, so
+    # #           the preprocessor thinks they are referring to the macro
+    # #           definitions, and expand them.
+    # #           this expands to incorrect code.
+    # # fix:      comment out these macro definitions.
     # EvaluationProgram(
     #     r'zsh-5.9',
     #     r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
@@ -461,7 +487,7 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # TODO: Will take a very long time to run
+    # # TODO: Will take a very long time to run
     # EvaluationProgram(
     #     r'ghostscript-9.56.1',
     #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
@@ -503,7 +529,7 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # TODO: remove? has manual install instructions...
+    # # TODO: remove? has manual install instructions...
     # EvaluationProgram(
     #     r'rasmol-2.7.5.2',
     #     r'https://www.rasmol.org/software/RasMol_Latest.tar.gz',
@@ -513,8 +539,8 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # TODO: remove? has lengthy instructions and not easy to intercept
-    #       its build system
+    # # TODO: remove? has lengthy instructions and not easy to intercept
+    # #       its build system
     # EvaluationProgram(
     #     r'zephyr-main',
     #     r'https://github.com/zephyrproject-rtos/zephyr/archive/refs/heads/main.zip',
@@ -524,12 +550,12 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # can't get to work
-    # this was made for sun solaris systems, not for linux, and I cannot
-    # install one of the packages its requires (xview)
-    # transforms?
-    # takes ...
-    # passes tests?
+    # # can't get to work
+    # # this was made for sun solaris systems, not for linux, and I cannot
+    # # install one of the packages its requires (xview)
+    # # transforms?
+    # # takes ...
+    # # passes tests?
     # EvaluationProgram(
     #     r'workman-1.3.4',
     #     r'https://web.mit.edu/kolya/.f/root/net.mit.edu/sipb/user/zacheiss/workman-1.3.4.tar.gz',
@@ -537,4 +563,22 @@ EVALUATION_PROGRAMS = [
     #     r'',
     #     r''
     # ),
+
+    # # transforms
+    # # takes 26 sec
+    # # failed tests.
+    # # problem:  GNU chess is written in a mix of c and c++ code.
+    # #           we don't support transforming c++ code.
+    # EvaluationProgram(
+    #     r'gnuchess-6.2.9',
+    #     r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
+    #     r'src',
+    #     r'bash configure && bear make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
+
 ]
