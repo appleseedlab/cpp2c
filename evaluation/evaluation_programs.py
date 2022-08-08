@@ -532,7 +532,7 @@ EVALUATION_PROGRAMS = [
     # # TODO: remove? has manual install instructions...
     # EvaluationProgram(
     #     r'rasmol-2.7.5.2',
-    #     r'https://www.rasmol.org/software/RasMol_Latest.tar.gz',
+    #     r'http://www.rasmol.org/software/RasMol_Latest.tar.gz',
     #     r'src',
     #     r'',
     #     r'''
