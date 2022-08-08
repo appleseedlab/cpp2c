@@ -434,46 +434,58 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # # transforms
-    # # takes 70 sec
-    # # fails tests.
-    # # requires: autoconf
-    # # problem:  definition heuristic emitted a function that returned an
-    # #           anonymous typedef'd struct, __sigset_t.
-    # #           normally the deanonymizer would fix this by making the struct
-    # #           not anonymous, but since the struct is defined in a standard
-    # #           header, the deanonymizer wasn't able to rewrite it.
-    # # fix:      change all the functions that returned this type to
-    # #           the typedef instead of the struct
-    # # problem:  in the original code, some part of the build system
-    # #           generates .pro files with function forward declarations.
-    # #           after transforming, thes .pro files aren't generated
-    # #           correctly, and lacks some of these declarations.
-    # #           consequently, man files have undeclared reference errors.
-    # # fix:      add the required decls back to the .pro files.
-    # #           there are 85 of these files though, so in the interest of
-    # #           time i may skip fixing zsh.
-    # #           TODO: finish fixing these
-    # # problem:  a series of macros defined in pattern.c, patinstart through
-    # #           globdots, are defined to expand to struct fields of the
-    # #           same name.
-    # #           the transformed definitions use the names as struct fields,
-    # #           however they are emitted after the macro definitions, so
-    # #           the preprocessor thinks they are referring to the macro
-    # #           definitions, and expand them.
-    # #           this expands to incorrect code.
-    # # fix:      comment out these macro definitions.
-    # EvaluationProgram(
-    #     r'zsh-5.9',
-    #     r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
-    #     r'Src',
-    #     r'bash configure && bear make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # transforms
+    # takes 70 sec
+    # fails tests.
+    # requires: autoconf
+    # problem:  definition heuristic emitted a function that returned an
+    #           anonymous typedef'd struct, __sigset_t.
+    #           normally the deanonymizer would fix this by making the struct
+    #           not anonymous, but since the struct is defined in a standard
+    #           header, the deanonymizer wasn't able to rewrite it.
+    # fix:      change all the functions that returned this type to
+    #           the typedef instead of the struct
+    # problem:  in the original code, some part of the build system
+    #           generates .pro files with function forward declarations.
+    #           after transforming, thes .pro files aren't generated
+    #           correctly, and lacks some of these declarations.
+    #           consequently, man files have undeclared reference errors.
+    # fix:      add the required decls back to the .pro files.
+    #           there are 80+ of these files, so to speed this process up
+    #           i first built zsh before transforming it, and committed
+    #           the result to a fresh git repo.
+    #           then i ran the transformer, built again, and reverted all
+    #           the .epro and .pro to their contents prior transformation.
+    #           as i modified source files to fix other problems, make would
+    #           regenerate these .epro and .pro files, but i would always
+    #           revert them back to their prior-transformation state.
+    # problem:  a series of macros defined in pattern.c, patinstart through
+    #           globdots, are defined to expand to struct fields of the
+    #           same name.
+    #           the transformed definitions use the names as struct fields,
+    #           however they are emitted after the macro definitions, so
+    #           the preprocessor thinks they are referring to the macro
+    #           definitions, and expand them.
+    #           this expands to incorrect code.
+    # fix:      comment out these macro definitions.
+    # problem:  after fixing the last problem, invocation of these macros
+    #           broke.
+    # fix:      inline broken macro invocations.
+    # problem:  macro ZF_BUFSIZE undeclared before use in zftp.c
+    # fix:      move macro definition above first use
+    #           (trivial since it was defined as an integer constant)
+    # now passes tests.
+    EvaluationProgram(
+        r'zsh-5.9',
+        r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
+        r'Src',
+        r'bash configure && bear make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
     # # TODO: Takes more than an hour to run (or more)
     # EvaluationProgram(
