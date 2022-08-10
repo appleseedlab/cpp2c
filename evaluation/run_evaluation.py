@@ -141,10 +141,12 @@ def main():
         subprocess.run(evaluation_program.configure_compile_commands_script, shell=True, capture_output=True)
         print(f'Finished building {evaluation_program.name}', file=sys.stderr)
 
-
-
         # Collect compile commands from compile_commands.json
         compile_commands = compile_command.load_compile_commands_from_file('compile_commands.json')
+        # Only transform .c and .h files
+        compile_commands = [ cc for cc in compile_commands
+                             if (cc.file.endswith('.c') or
+                                cc.file.endswith('.h')) ]
 
         print(f'# {evaluation_program.name}')
 
