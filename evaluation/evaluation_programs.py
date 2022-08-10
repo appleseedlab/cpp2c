@@ -487,6 +487,45 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
+    # # configured with --disable-multilib
+    # # i thought i would need to install GMP 4.2+, MPFR 3.1.0+ and MPC 0.8.0+
+    # # but i was able to build without these libraries.
+    # # also contains c++ code.
+    # # maybe just transform and ignore c++ files?
+    # # transforms?
+    # # takes ...?
+    # # passes tests?
+    # # May take 4 hr
+    # EvaluationProgram(
+    #     r'gcc-12.1.0',
+    #     r'https://bigsearcher.com/mirrors/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.gz',
+    #     r'gcc',
+    #     r'bash configure && intercept-build make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
+
+    # # has some c++ code, even in the base dir.
+    # # we don't support c++ code, so we may not be able to
+    # # transform gs
+    # # transforms?
+    # # takes ...?
+    # # passes tests?
+    # EvaluationProgram(
+    #     r'ghostscript-9.56.1',
+    #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
+    #     r'',
+    #     r'bash configure && intercept-build make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
+
     # # TODO: Will take a long time to run
     # # transforms?
     # # takes ...?
@@ -502,21 +541,7 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # # TODO: install GMP 4.2+, MPFR 3.1.0+ and MPC 0.8.0+
-    # # May take 4 hr
-    # EvaluationProgram(
-    #     r'gcc-12.1.0',
-    #     r'https://bigsearcher.com/mirrors/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.gz',
-    #     r'gcc',
-    #     r'bash configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # TODO: install GTK+ libXpm libjpeg libpng libgif/libungif libtiff gnutls
+    # # TODO: install gnutls
     # # for emacs to configure and build
     # # May take about 20 min
     # EvaluationProgram(
@@ -575,24 +600,6 @@ EVALUATION_PROGRAMS = [
     #     r'gnuchess-6.2.9',
     #     r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
     #     r'src',
-    #     r'bash configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
-    # # has some c++ code, even in the base dir.
-    # # we don't support c++ code, so we may not be able to
-    # # transform gs
-    # # transforms?
-    # # takes ...?
-    # # passes tests?
-    # EvaluationProgram(
-    #     r'ghostscript-9.56.1',
-    #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
-    #     r'',
     #     r'bash configure && intercept-build make',
     #     r'''
     #     make clean                  &&
