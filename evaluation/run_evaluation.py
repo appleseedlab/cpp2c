@@ -112,7 +112,7 @@ def main():
 
         # Download the program zip file if we do not already have it
         if not os.path.exists(evaluation_program.archive_file):
-            print(f'Downloading {evaluation_program.name} from {evaluation_program.link_to_archive_file}')
+            print(f'Downloading {evaluation_program.name} from {evaluation_program.link_to_archive_file}', file=sys.stderr)
 
             # Download the program's archive
             if evaluation_program.link_to_archive_file.startswith('http'):
@@ -123,7 +123,7 @@ def main():
                 # TODO: Use ftp lib instead of relying on wget
                 subprocess.run(f'wget --no-passive {evaluation_program.link_to_archive_file}', shell=True)
 
-            print(f'Finished downloading {evaluation_program.name}')
+            print(f'Finished downloading {evaluation_program.name}', file=sys.stderr)
 
         # Delete the old extracted archive
         shutil.rmtree(evaluation_program.extracted_archive_path, ignore_errors=True)
@@ -136,8 +136,12 @@ def main():
         evaluation_dir = os.getcwd()
 
         # Configure program and generate compile_commands.json
+        print(f'Building {evaluation_program.name}', file=sys.stderr)
         os.chdir(evaluation_program.extracted_archive_path)
         subprocess.run(evaluation_program.configure_compile_commands_script, shell=True, capture_output=True)
+        print(f'Finished building {evaluation_program.name}', file=sys.stderr)
+
+
 
         # Collect compile commands from compile_commands.json
         compile_commands = compile_command.load_compile_commands_from_file('compile_commands.json')
@@ -154,6 +158,8 @@ def main():
         # - We accomplish these goals by performing a dry run in which
         #   we don't make any changes to the program and instead just count
         #   the number of unique source definitions and invocations found.
+
+        print(f'Counting unique macro defs+invks in {evaluation_program.name}', file=sys.stderr)
 
         source_macro_definitions: Set[str] = set()
         mhash_to_raw_expansion_spelling_locations: DefaultDict[str, set(str)] = defaultdict(set)
@@ -182,6 +188,8 @@ def main():
                     # Only record expansions of macros defined in the source program
                     if not is_system_header_path(mdefpath):
                         mhash_to_raw_expansion_spelling_locations[mhash].add(sloc)
+
+        print(f'Finished counting unique macro defs+invks in {evaluation_program.name}', file=sys.stderr)
 
         mhash_dict_len_stat(f'source macro definitions', source_macro_definitions)
         mhash_dict_len_stat(f'expanded source macro definitions', mhash_to_raw_expansion_spelling_locations)
@@ -292,6 +300,8 @@ def main():
 
         macros_transformed_to_vars: Set[str] = set()
 
+        print(f'Transforming {evaluation_program.name}', file=sys.stderr)
+
         while True:
             emitted_a_transformation = False
             for cc in compile_commands:
@@ -348,6 +358,11 @@ def main():
             if not emitted_a_transformation:
                 break
 
+        end_time = datetime.now()
+        elapsed = end_time - start_time
+
+        print(f'Finished transforming {evaluation_program.name}', file=sys.stderr)
+
         # Only consider potentially transformable macros which were
         # never transformed
         pt_mhash_to_cats_not_transformed = {
@@ -364,8 +379,6 @@ def main():
             if mhash in potentially_transformable_macros
         }
 
-        end_time = datetime.now()
-        elapsed = end_time - start_time
         str_stat('time to reach a fixed point (s.ms)', f'{elapsed.seconds}.{elapsed.microseconds}')
         num_stat('runs to reach a fixed point', runs_to_fixed_point)
 
