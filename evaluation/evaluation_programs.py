@@ -487,7 +487,10 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # # TODO: Takes more than an hour to run (or more)
+    # # TODO: Will take a long time to run
+    # # transforms?
+    # # takes ...?
+    # # passes tests?
     # EvaluationProgram(
     #     r'perl-5.36.0',
     #     r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
@@ -495,19 +498,6 @@ EVALUATION_PROGRAMS = [
     #     r'bash Configure && intercept-build make',
     #     r'''
     #     bash Configure 	&&
-    #     make check
-    #     '''
-    # ),
-
-    # # TODO: Will take a very long time to run
-    # EvaluationProgram(
-    #     r'ghostscript-9.56.1',
-    #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
-    #     r'',
-    #     r'bash configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
     #     make check
     #     '''
     # ),
@@ -585,6 +575,24 @@ EVALUATION_PROGRAMS = [
     #     r'gnuchess-6.2.9',
     #     r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
     #     r'src',
+    #     r'bash configure && intercept-build make',
+    #     r'''
+    #     make clean                  &&
+    #     make                        &&
+    #     make check
+    #     '''
+    # ),
+
+    # # has some c++ code, even in the base dir.
+    # # we don't support c++ code, so we may not be able to
+    # # transform gs
+    # # transforms?
+    # # takes ...?
+    # # passes tests?
+    # EvaluationProgram(
+    #     r'ghostscript-9.56.1',
+    #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
+    #     r'',
     #     r'bash configure && intercept-build make',
     #     r'''
     #     make clean                  &&
