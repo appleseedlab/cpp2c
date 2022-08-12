@@ -5,6 +5,9 @@
 
 #include <vector>
 #include <set>
+#include <string>
+#include <algorithm>
+#include <cctype>
 
 namespace Transformer
 {
@@ -356,6 +359,21 @@ namespace Transformer
         if (isa_and_nonnull<clang::StringLiteral>(ST))
         {
             return "Expansion is a string literal";
+        }
+
+        // Don't transform variadic macros
+        {
+            for (auto &&Arg : TD->getExpansion()->getArgumentsRef())
+            {
+                std::string lower;
+                std::transform(Arg.getName().begin(),
+                               Arg.getName().end(),
+                               lower.begin(), std::towlower);
+                if (lower.find("__va") != std::string::npos)
+                {
+                    return "Variadic macro";
+                }
+            }
         }
 
         // Check that expansion is inside a function, because if it
