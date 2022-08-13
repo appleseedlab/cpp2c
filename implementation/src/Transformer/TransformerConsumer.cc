@@ -154,18 +154,23 @@ namespace Transformer
             UsedSymbols.insert(VarNames.begin(), VarNames.end());
             UsedSymbols.insert(MacroNames.begin(), MacroNames.end());
         }
+        debugMsg("Done collecting used symbol names\n");
 
-        // Make all anonymous structs/union behind typedefs not anonymous
+        debugMsg("Deanonymizing tag decls\n");
+        // Make all anonymous tag decls behind typedefs not anonymous
         {
             DeanonymizerVisitor DV(Ctx, RW);
             DV.TraverseTranslationUnitDecl(TUD);
         }
+        debugMsg("Done deanonymizing tag decls\n");
 
         // Step 0: Remove all Macro Roots that are not expanded
         // in the main file
         // (and maybe those that are defined in std headers)
+        debugMsg("Step 0: Remove macro roots not in main file\n");
         removeExpansionsNotInMainFile(
             ExpansionRoots, SM, TSettings.OnlyCollectNotDefinedInStdHeaders);
+        debugMsg("Finished step 0\n");
 
         // Step 1: Find Top-Level Macro Expansions
         if (TSettings.Verbose)
