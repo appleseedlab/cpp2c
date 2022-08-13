@@ -13,17 +13,15 @@ namespace Visitors
 
     bool CollectDeclNamesVisitor::VisitFunctionDecl(FunctionDecl *FDecl)
     {
-        string functionName = FDecl
-                                  ->getNameInfo()
-                                  .getName()
-                                  .getAsString();
+        llvm::errs() << "Collecting a FunctionDecl name\n";
+        string functionName = FDecl->getName().str();
         FunctionNames->insert(functionName);
-
         return true;
     }
 
     bool CollectDeclNamesVisitor::VisitVarDecl(VarDecl *VD)
     {
+        llvm::errs() << "Collecting a VarDecl name\n";
         string VarName = VD->getName().str();
         VarNames->insert(VarName);
         return true;
