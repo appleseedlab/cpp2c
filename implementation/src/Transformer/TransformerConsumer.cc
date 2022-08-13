@@ -161,6 +161,7 @@ namespace Transformer
         {
             DeanonymizerVisitor DV(Ctx, RW);
             DV.TraverseTranslationUnitDecl(TUD);
+            DV.Deanonymize();
         }
         debugMsg("Done deanonymizing tag decls\n");
 
