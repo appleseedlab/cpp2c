@@ -17,13 +17,20 @@ namespace Visitors
         clang::QualType QT = TD->getUnderlyingType();
         const clang::Type *T = QT.getTypePtr();
         if (T &&
-            (T->isStructureType() || T->isUnionType() || T->isEnumeralType()))
+            (T->isStructureType() ||
+            T->isUnionType() ||
+            T->isEnumeralType()))
         {
             llvm::errs() << "Found an typedef of a struct/union/enum " << TD->getName().str() << "\n";
             // Is this type an anonymous type?
             const clang::TagDecl *TaD = T->getAsTagDecl();
             if (TaD && TaD->getDeclName().isEmpty())
             {
+                if (TagDeclToName.find(TaD) != TagDeclToName.end()) {
+                    llvm::errs() << "Already deanonymized this tag decl\n";
+                    return true;
+                }
+
                 auto TDName = TD->getName();
                 llvm::errs() << "typedef'd struct/union/enum " << TDName.str() << " is anonymous\n";
 
@@ -48,16 +55,39 @@ namespace Visitors
                     if (!Utils::isInStdHeader(LBraceLoc, SM))
                     {
                         auto RWText = TDName.str() + " ";
-                        bool failed = RW.InsertTextBefore(LBraceLoc, RWText);
-                        if (failed)
-                        {
-                            llvm::errs() << "Failed to deanonymize struct/union/enum " << TDName.str() << "\n";
-                            assert(false);
-                        }
+                        TagDeclToName[TaD] = RWText;
                     }
                 }
             }
         }
         return true;
+    }
+
+    void DeanonymizerVisitor::Deanonymize() {
+        auto &SM = Ctx.getSourceManager();
+        for (auto &&it : TagDeclToName) {
+            auto TaD = it.first;
+            auto RWText = it.second;
+            auto Def = TaD->getDefinition();
+            if (Def != nullptr) {
+                auto LBraceLoc = Def->getBraceRange().getBegin();
+                LBraceLoc = SM.getExpansionLoc(LBraceLoc);
+                // Don't rewrite in standard headers
+                if (!Utils::isInStdHeader(LBraceLoc, SM))
+                {
+                    llvm::errs() << "Deanonymized struct to name "
+                                    << RWText
+                                    << '\n';
+                    bool failed = RW.InsertTextBefore(LBraceLoc, RWText);
+                    if (failed)
+                    {
+                        llvm::errs() << "Failed to deanonymize struct/union/enum "
+                                     << RWText << "\n";
+                        assert(false);
+                    }
+                }
+            }
+
+        }
     }
 } // namespace Visitors
