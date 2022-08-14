@@ -156,14 +156,14 @@ namespace Transformer
         }
         debugMsg("Done collecting used symbol names\n");
 
-        debugMsg("Deanonymizing tag decls\n");
-        // Make all anonymous tag decls behind typedefs not anonymous
-        {
-            DeanonymizerVisitor DV(Ctx, RW);
-            DV.TraverseTranslationUnitDecl(TUD);
-            DV.Deanonymize();
-        }
-        debugMsg("Done deanonymizing tag decls\n");
+        // debugMsg("Deanonymizing tag decls\n");
+        // // Make all anonymous tag decls behind typedefs not anonymous
+        // {
+        //     DeanonymizerVisitor DV(Ctx, RW);
+        //     DV.TraverseTranslationUnitDecl(TUD);
+        //     DV.Deanonymize();
+        // }
+        // debugMsg("Done deanonymizing tag decls\n");
 
         // Step 0: Remove all Macro Roots that are not expanded
         // in the main file
