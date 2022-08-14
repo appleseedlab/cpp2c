@@ -46,9 +46,12 @@ namespace Transformer
             clang::ASTContext &Ctx,
             bool includeEmittedName);
 
+        // gets all the types in the transformed definition's signature
+        std::vector<clang::QualType> getTypesInSignature();
+
         // Checks if the given predicate holds for any of the types
         // in the transformed definition's type signature.
-        bool inTypeSignature(std::function<bool(clang::QualType)> pred);
+        bool inTypeSignature(std::function<bool(const clang::Type *T)> pred);
 
         // Returns the full types of any structs/unions/enums in the
         // transformed definition's signature as a QualType vector

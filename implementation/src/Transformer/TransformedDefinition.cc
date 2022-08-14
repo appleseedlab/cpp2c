@@ -143,15 +143,32 @@ namespace Transformer
         return Signature;
     }
 
-    bool TransformedDefinition::inTypeSignature(
-        std::function<bool(clang::QualType)> pred)
+    std::vector<clang::QualType> TransformedDefinition::getTypesInSignature()
     {
-        if (pred(this->VarOrReturnType)) {
-            return true;
-        }
-        for (clang::QualType it : this->ArgTypes) {
-            if (pred(it)) {
-                return true;
+        std::vector<QualType> types;
+        types.push_back(this->VarOrReturnType);
+        types.insert(types.end(), this->ArgTypes.begin(), this->ArgTypes.end());
+        return types;
+    }
+
+    bool TransformedDefinition::inTypeSignature(
+        std::function<bool(const clang::Type *T)> pred)
+    {
+        std::vector<clang::QualType> SigTypes = this->getTypesInSignature();
+        for (clang::QualType QT : SigTypes)
+        {
+            const clang::Type *T = QT.getTypePtrOrNull();
+            while (T != nullptr)
+            {
+                // check the type
+                if (pred(T))
+                {
+                    return true;
+                }
+                // if pointer type, check pointee type
+                T = (T->isPointerType() || T->isArrayType())
+                    ? T->getPointeeOrArrayElementType()
+                    : nullptr;
             }
         }
         return false;
