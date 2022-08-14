@@ -347,6 +347,14 @@ namespace Transformer
             return "Transformed signature includes function or function pointer types";
         }
 
+        // Don't transform functions that contain embedded anonymous
+        // struct types
+        // TODO: still transform if the embedded type is not anonymous
+        if (TD->hasEmbeddedTagDeclTypes())
+        {
+            return "Transformed signature includes embedded type\n";
+        }
+
         auto ST = *TD->getExpansion()->getStmtsRef().begin();
         auto E = dyn_cast_or_null<Expr>(ST);
         assert(E != nullptr);

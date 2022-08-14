@@ -57,6 +57,11 @@ namespace Transformer
         // type or function pointer type
         bool hasFunctionTypes();
 
+        // Returns true if the transformed function signature contains a
+        // TagDecl type that that was declared inside another struct
+        // or union
+        bool hasEmbeddedTagDeclTypes();
+
         // Returns the full types of any structs/unions/enums in the
         // transformed definition's signature as a QualType vector
         std::vector<clang::QualType> getStructUnionEnumTypesInSignature();

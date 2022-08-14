@@ -189,6 +189,41 @@ namespace Transformer
         return false;
     }
 
+    bool TransformedDefinition::hasEmbeddedTagDeclTypes()
+    {
+        if (auto T = this->VarOrReturnType.getTypePtr())
+        {
+            if (T->isStructureType()    ||
+                T->isUnionType()        ||
+                T->isEnumeralType())
+            {
+                const clang::TagDecl *TaD = T->getAsTagDecl();
+                if (TaD && TaD->isEmbeddedInDeclarator())
+                {
+                    return true;
+                }
+            }
+        }
+
+        for (auto &&it : this->ArgTypes)
+        {
+            if (auto T = it.getTypePtr())
+            {
+                if (T->isStructureType()    ||
+                    T->isUnionType()        ||
+                    T->isEnumeralType())
+                {
+                    const clang::TagDecl *TaD = T->getAsTagDecl();
+                    if (TaD && TaD->isEmbeddedInDeclarator())
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     bool TransformedDefinition::hasFunctionTypes()
     {
         if (auto T = this->VarOrReturnType.getTypePtr())
