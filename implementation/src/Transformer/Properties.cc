@@ -350,9 +350,9 @@ namespace Transformer
         // Don't transform functions that contain embedded anonymous
         // struct types
         // TODO: still transform if the embedded type is not anonymous
-        if (TD->hasEmbeddedTagDeclTypes())
+        if (TD->hasAnonymousTypes())
         {
-            return "Transformed signature includes embedded type\n";
+            return "Transformed signature includes an anonymous type\n";
         }
 
         auto ST = *TD->getExpansion()->getStmtsRef().begin();

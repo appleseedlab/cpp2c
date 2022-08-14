@@ -189,36 +189,24 @@ namespace Transformer
         return false;
     }
 
-    bool TransformedDefinition::hasEmbeddedTagDeclTypes()
+    bool TransformedDefinition::hasAnonymousTypes()
     {
-        if (auto T = this->VarOrReturnType.getTypePtr())
+        // return type
         {
-            if (T->isStructureType()    ||
-                T->isUnionType()        ||
-                T->isEnumeralType())
-            {
-                const clang::TagDecl *TaD = T->getAsTagDecl();
-                if (TaD && TaD->isEmbeddedInDeclarator())
-                {
-                    return true;
-                }
+            clang::QualType CT = this->VarOrReturnType.getCanonicalType();
+            const clang::IdentifierInfo *II = CT.getBaseTypeIdentifier();
+            if ((II == nullptr) || II->getLength() == 0) {
+                return true;
             }
         }
 
+        // args
         for (auto &&it : this->ArgTypes)
         {
-            if (auto T = it.getTypePtr())
-            {
-                if (T->isStructureType()    ||
-                    T->isUnionType()        ||
-                    T->isEnumeralType())
-                {
-                    const clang::TagDecl *TaD = T->getAsTagDecl();
-                    if (TaD && TaD->isEmbeddedInDeclarator())
-                    {
-                        return true;
-                    }
-                }
+            clang::QualType CT = it.getCanonicalType();
+            const clang::IdentifierInfo *II = CT.getBaseTypeIdentifier();
+            if ((II == nullptr) || II->getLength() == 0) {
+                return true;
             }
         }
         return false;
