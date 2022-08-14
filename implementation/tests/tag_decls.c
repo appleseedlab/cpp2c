@@ -27,6 +27,8 @@ struct T {
     } u;
 };
 
+#define GET_S_PTR(u) u->s
+
 M f(M m) { return m; }
 #define CALL_F_WITH(N) f(N)
 
@@ -53,6 +55,9 @@ int main(int argc, char const *argv[])
     struct T t;
     // should not be transformed
     GET_S_STATIC(t.u);
+
+    // should not be transformed
+    GET_S_PTR((&(t.u)));
 
 #undef GET_X_PTR
 #define GET_X_PTR(su) su->x
