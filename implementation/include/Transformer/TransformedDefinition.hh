@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace Transformer
 {
@@ -45,21 +46,9 @@ namespace Transformer
             clang::ASTContext &Ctx,
             bool includeEmittedName);
 
-        // Returns true if the transformed function signature contains a
-        // user-defined type
-        bool hasNonBuiltinTypes();
-
-        // Returns true if the transformed function signature contains a
-        // an array type
-        bool hasArrayTypes();
-
-        // Returns true if the transformed function signature contains a function
-        // type or function pointer type
-        bool hasFunctionTypes();
-
-        // Returns true if the transformed function signature contains an
-        // anonymous TagDecl type.
-        bool hasAnonymousTypes();
+        // Checks if the given predicate holds for any of the types
+        // in the transformed definition's type signature.
+        bool inTypeSignature(std::function<bool(clang::QualType)> pred);
 
         // Returns the full types of any structs/unions/enums in the
         // transformed definition's signature as a QualType vector

@@ -143,93 +143,15 @@ namespace Transformer
         return Signature;
     }
 
-    bool TransformedDefinition::hasNonBuiltinTypes()
+    bool TransformedDefinition::inTypeSignature(
+        std::function<bool(clang::QualType)> pred)
     {
-        if (auto T = this->VarOrReturnType.getTypePtr())
-        {
-            if (!T->isBuiltinType())
-            {
+        if (pred(this->VarOrReturnType)) {
+            return true;
+        }
+        for (clang::QualType it : this->ArgTypes) {
+            if (pred(it)) {
                 return true;
-            }
-        }
-
-        for (auto &&it : this->ArgTypes)
-        {
-            if (auto T = it.getTypePtr())
-            {
-                if (!T->isBuiltinType())
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    bool TransformedDefinition::hasArrayTypes()
-    {
-        if (auto T = this->VarOrReturnType.getTypePtr())
-        {
-            if (T->isArrayType())
-            {
-                return true;
-            }
-        }
-
-        for (auto &&it : this->ArgTypes)
-        {
-            if (auto T = it.getTypePtr())
-            {
-                if (T->isArrayType())
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    bool TransformedDefinition::hasAnonymousTypes()
-    {
-        // return type
-        {
-            clang::QualType CT = this->VarOrReturnType.getCanonicalType();
-            const clang::IdentifierInfo *II = CT.getBaseTypeIdentifier();
-            if ((II == nullptr) || II->getLength() == 0) {
-                return true;
-            }
-        }
-
-        // args
-        for (auto &&it : this->ArgTypes)
-        {
-            clang::QualType CT = it.getCanonicalType();
-            const clang::IdentifierInfo *II = CT.getBaseTypeIdentifier();
-            if ((II == nullptr) || II->getLength() == 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool TransformedDefinition::hasFunctionTypes()
-    {
-        if (auto T = this->VarOrReturnType.getTypePtr())
-        {
-            if (T->isFunctionPointerType() || T->isFunctionType())
-            {
-                return true;
-            }
-        }
-
-        for (auto &&it : this->ArgTypes)
-        {
-            if (auto T = it.getTypePtr())
-            {
-                if (T->isFunctionPointerType() || T->isFunctionType())
-                {
-                    return true;
-                }
             }
         }
         return false;

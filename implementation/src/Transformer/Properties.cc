@@ -326,10 +326,21 @@ namespace Transformer
         clang::ASTContext &Ctx,
         Rewriter &RW)
     {
+
         // Don't transform definitions with signatures with array types
-        // TODO: We should be able to transform these so long as we
-        // properly transform array types to pointers
-        if (TD->hasArrayTypes())
+        // TODO:    Check if the type *contains* an array type, not just
+        //          if it is an array type.
+        // TODO:    We should be able to transform these so long as we
+        //          properly transform array types to pointers
+        auto isArrayType = [](clang::QualType QT)
+        {
+            if (auto T = QT.getTypePtr())
+            {
+                return T->isArrayType();
+            }
+            return false;
+        };
+        if (TD->inTypeSignature(isArrayType))
         {
             return "Transformed signature includes array types";
         }
@@ -342,7 +353,15 @@ namespace Transformer
         // TODO: We could allow function parameters if we could
         // emit the names of parameters correctly, and we could possibly
         // allow function return types if we cast them to pointers
-        if (TD->hasFunctionTypes())
+        auto isFunctionType = [](clang::QualType QT)
+        {
+            if (auto T = QT.getTypePtr())
+            {
+                return T->isFunctionPointerType() || T->isFunctionType();
+            }
+            return false;
+        };
+        if (TD->inTypeSignature(isFunctionType))
         {
             return "Transformed signature includes function or function pointer types";
         }
@@ -350,7 +369,18 @@ namespace Transformer
         // Don't transform functions that contain embedded anonymous
         // struct types
         // TODO: still transform if the embedded type is not anonymous
-        if (TD->hasAnonymousTypes())
+        auto isAnonymousType = [](clang::QualType QT)
+        {
+            if (const clang::Type *T = QT.getTypePtr())
+            {
+                if (clang::TagDecl *TaD = T->getAsTagDecl())
+                {
+                    return TaD->getDeclName().isEmpty();
+                }
+            }
+            return false;
+        };
+        if (TD->inTypeSignature(isAnonymousType))
         {
             return "Transformed signature includes an anonymous type\n";
         }
