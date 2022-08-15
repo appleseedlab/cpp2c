@@ -143,10 +143,28 @@ def main():
 
         # Collect compile commands from compile_commands.json
         compile_commands = compile_command.load_compile_commands_from_file('compile_commands.json')
-        # Only transform .c and .h files
+        # Only transform .c and .h files that were compiled with a C compiler.
+        # We can't transform files compiled with a C++ compiler because
+        # C++ handles global static variable slightly differently than
+        # C does.
+        # For instance, consider the following three files:
+        # header.h          |   a.c                 |   b.c
+        # static int X;         #include "header.h"     #include "header.h"
+        #                       static int X = 0;       static int X = 0;
+        # if we run `gcc a.c b.c`, the code will compile.
+        # however, if we run `g++ a.c b.c`, it will fail to compile with
+        # a redefinition error.
+        # we use the static keyword to easily transform entire c programs.
+        # we could do a more sophisticated approach using the extern keyword
+        # in header files instead, and this would work with c++, but this
+        # would require build system analysis, which i don't feel ready
+        # to tackle yet.
+        # so for now, we only transformed .c and .h files that are compiled
+        # by a c compiler.
         compile_commands = [ cc for cc in compile_commands
                              if (cc.file.endswith('.c') or
-                                cc.file.endswith('.h')) ]
+                                cc.file.endswith('.h')) and
+                                ('++' not in cc.args[0]) ]
 
         print(f'# {evaluation_program.name}')
 
