@@ -164,7 +164,7 @@ def main():
         compile_commands = [ cc for cc in compile_commands
                              if (cc.file.endswith('.c') or
                                 cc.file.endswith('.h')) and
-                                ('++' not in cc.args[0]) ]
+                                ('++' not in cc.arguments[0]) ]
 
         print(f'# {evaluation_program.name}')
 
