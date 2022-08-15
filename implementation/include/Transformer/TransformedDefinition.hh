@@ -68,5 +68,7 @@ namespace Transformer
         // Returns the range that the transformed invocation of this macro
         // should replace
         clang::SourceRange getInvocationReplacementRange();
+
+        std::vector<clang::QualType> getArgTypes();
     };
 }

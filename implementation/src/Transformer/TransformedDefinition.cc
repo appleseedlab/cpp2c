@@ -216,4 +216,9 @@ namespace Transformer
         return Expansion->getSpellingRange();
     }
 
+    std::vector<clang::QualType> TransformedDefinition::getArgTypes()
+    {
+        return this->ArgTypes;
+    }
+
 } // namespace Transformer
