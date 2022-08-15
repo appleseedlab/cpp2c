@@ -378,6 +378,23 @@ namespace Transformer
             return "Transformed signature includes an anonymous type\n";
         }
 
+        // Check that the none of the types in the transformed
+        // definition's argument list is void.
+        // We need this check because the void parameters cannot
+        // be named, and we need a name to create the transformed
+        // definition.
+        std::vector<clang::QualType> ArgTypes = TD->getArgTypes();
+        for (clang::QualType QT : ArgTypes)
+        {
+            if (const clang::Type *T = QT.getTypePtrOrNull())
+            {
+                if (T->isVoidType())
+                {
+                    return "Argument list contains void";
+                }
+            }
+        }
+
         auto ST = *TD->getExpansion()->getStmtsRef().begin();
         auto E = dyn_cast_or_null<Expr>(ST);
         assert(E != nullptr);
