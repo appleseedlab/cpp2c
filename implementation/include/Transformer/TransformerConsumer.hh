@@ -22,6 +22,7 @@ namespace Transformer
         CppSig::MacroForest::Roots ExpansionRoots;
         std::set<std::string> MacroNames;
         std::set<std::string> MultiplyDefinedMacros;
+        std::map<clang::SourceLocation, std::string> IncludeLocToFileRealPath;
 
         TransformerSettings TSettings;
 
