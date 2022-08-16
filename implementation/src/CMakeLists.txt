@@ -34,6 +34,7 @@ add_library(Cpp2C SHARED
   AnnotationPrinter/AnnotationPrinterConsumer.cc
   AnnotationRemover/AnnotationRemoverConsumer.cc
   Callbacks/ForestCollector.cc
+  Callbacks/IncludeCollector.cc
   Callbacks/MacroNameCollector.cc
   Cpp2C.cc
   Cpp2C/Cpp2CAction.cc
@@ -55,6 +56,7 @@ add_library(Cpp2C SHARED
   Visitors/CollectCpp2CAnnotatedDeclsVisitor.cc
   Visitors/CollectDeclNamesVisitor.cc
   Visitors/DeanonymizerVisitor.cc
+  Visitors/DeclRangeVisitor.cc
 )
 
 target_include_directories(Cpp2C PUBLIC "${PROJECT_SOURCE_DIR}/include")
