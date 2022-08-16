@@ -1,5 +1,6 @@
 #include "Transformer/Properties.hh"
 #include "Callbacks/MacroNameCollector.hh"
+#include "Callbacks/IncludeCollector.hh"
 #include "Utils/Logging/TransformerMessages.hh"
 #include "Transformer/TransformedDefinition.hh"
 #include "Transformer/TransformerConsumer.hh"
@@ -9,8 +10,9 @@
 #include "CppSig/MacroExpansionNode.hh"
 #include "CppSig/CppSigUtils.hh"
 #include "Visitors/CollectDeclNamesVisitor.hh"
-#include "Visitors/DeanonymizerVisitor.hh"
+// #include "Visitors/DeanonymizerVisitor.hh"
 #include "Visitors/CollectCpp2CAnnotatedDeclsVisitor.hh"
+#include "Visitors/DeclRangeVisitor.hh"
 
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Rewrite/Core/Rewriter.h"
@@ -55,8 +57,11 @@ namespace Transformer
         CppSig::MacroForest *MF = new MacroForest(*CI,
                                                   TSettings.Verbose,
                                                   ExpansionRoots);
+        Callbacks::IncludeCollector *IC =
+            new IncludeCollector(IncludeLocToFileRealPath);
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MNC));
         PP.addPPCallbacks(unique_ptr<PPCallbacks>(MF));
+        PP.addPPCallbacks(unique_ptr<PPCallbacks>(IC));
     }
 
     void TransformerConsumer::debugMsg(std::string s)
@@ -164,6 +169,48 @@ namespace Transformer
         //     DV.Deanonymize();
         // }
         // debugMsg("Done deanonymizing tag decls\n");
+
+        // Collect set of file IDs that are not #include'd in a declaration
+        std::set<std::string> AllowedMacroDefFileRealPaths;
+        {
+
+            // Collect decl ranges
+            debugMsg("Collecting decl ranges\n");
+            Visitors::DeclRangeVisitor DRV(Ctx);
+            DRV.TraverseTranslationUnitDecl(TUD);
+            auto &DeclRanges = DRV.getDeclRangesRef();
+            debugMsg("Done collecting decl ranges\n");
+
+            // Initially allow all files
+            for (auto &&it : IncludeLocToFileRealPath)
+            {
+                AllowedMacroDefFileRealPaths.insert(it.second);
+            }
+
+            // Remove files #include'd inside decls
+            for (auto &&it : IncludeLocToFileRealPath)
+            {
+                clang::SourceLocation Loc = it.first;
+                for (auto DeclRange : DeclRanges)
+                {
+                    auto B = DeclRange.getBegin();
+                    auto E = DeclRange.getEnd();
+                    if (B <= Loc && Loc <= E)
+                    {
+                        AllowedMacroDefFileRealPaths.erase(it.second);
+                    }
+                }
+            }
+
+            // Allow macros defined in main file
+            clang::FileID MainFID = SM.getMainFileID();
+            auto FE= SM.getFileEntryForID(MainFID);
+            if (FE)
+            {
+                auto MainFileRealPath = FE->tryGetRealPathName().str();
+                AllowedMacroDefFileRealPaths.insert(MainFileRealPath);
+            }
+        }
 
         // Step 0: Remove all Macro Roots that are not expanded
         // in the main file
@@ -281,7 +328,7 @@ namespace Transformer
             TransformedDefinition *TD = new TransformedDefinition(Ctx, TopLevelExpansion);
 
             // Unsupported constructs
-            errMsg = isUnsupportedConstruct(TD, Ctx, RW);
+            errMsg = isUnsupportedConstruct(TD, Ctx, RW, AllowedMacroDefFileRealPaths);
             if (errMsg != "")
             {
                 if (TSettings.Verbose)

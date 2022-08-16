@@ -324,9 +324,9 @@ namespace Transformer
     std::string isUnsupportedConstruct(
         Transformer::TransformedDefinition *TD,
         clang::ASTContext &Ctx,
-        Rewriter &RW)
+        Rewriter &RW,
+        std::set<std::string> AllowedMacroDefFileRealPaths)
     {
-
         // Don't transform definitions with signatures with array types
         // TODO:    Check if the type *contains* an array type, not just
         //          if it is an array type.
@@ -442,6 +442,25 @@ namespace Transformer
         }
 
         clang::SourceManager &SM = Ctx.getSourceManager();
+
+        // Check that the macro was defined in an allowed file
+        // TODO: get this working across compilation units
+        {
+            auto DefLoc = TD->getExpansion()->getMI()->getDefinitionLoc();
+            auto FID = SM.getFileID(DefLoc);
+            auto FE = SM.getFileEntryForID(FID);
+            if (!FE)
+            {
+                return "No file entry for macro definition";
+            }
+            auto FileRealPath = FE->tryGetRealPathName().str();
+            if (AllowedMacroDefFileRealPaths.find(FileRealPath) ==
+                AllowedMacroDefFileRealPaths.end())
+            {
+                return "Macro defined in a file that was #include'd"
+                        " at an invalid location";
+            }
+        }
 
         // Check that the transformed definition location is allowed
         {

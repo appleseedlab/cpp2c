@@ -56,6 +56,7 @@ namespace Transformer
     std::string isUnsupportedConstruct(
         Transformer::TransformedDefinition *TD,
         clang::ASTContext &Ctx,
-        clang::Rewriter &RW);
+        clang::Rewriter &RW,
+        std::set<std::string> AllowedMacroDefFileRealPaths);
 
 } // namespace Transformer
