@@ -91,7 +91,7 @@ def get_unique_decls_refd_in_function_definitions(
             ts = [t for t in ch.get_tokens()]
             # if the last token is a closing curly brace, then this must
             # be a def and not a decl
-            if ts[-1].spelling == '}':
+            if len(ts) > 0 and ts[-1].spelling == '}':
                 # print(' '.join([t.spelling for t in ts]))
                 result[ch.mangled_name] = get_unique_decls_refd(ch)
                 
@@ -102,7 +102,7 @@ def get_unique_decls_refd_in_function_definitions(
             ts = [t for t in ch.get_tokens()]
             # if the token list contains an assignment, then this must
             # be an init, and not a decl
-            if any(['=' == t.spelling for t in ts]):
+            if '=' in [t.spelling for t in ts]:
                 result[ch.mangled_name] = get_unique_decls_refd(ch)
     return result
 
