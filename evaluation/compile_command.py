@@ -23,10 +23,10 @@ def fix_args_for_clang(args: List[str]) -> List[str]:
     with ones that are
     '''
     return [
-        '-flto=full'
-            if a == '-flto=auto'
-        else "-DGX_COLOR_INDEX_TYPE=unsigned\\ long\\ long"
-            if a == "-DGX_COLOR_INDEX_TYPE=unsigned long long"
+        # fixes issue with remind
+        '-flto=full' if a == '-flto=auto'
+        # fixes issue with ghostscript
+        else "-DGX_COLOR_INDEX_TYPE=unsigned\\ long\\ long" if a == "-DGX_COLOR_INDEX_TYPE=unsigned long long"
         else a
         for a in args
     ]
