@@ -17,21 +17,23 @@ def load_compile_commands_from_file(file: str) -> List[CompileCommand]:
         return [CompileCommand(**cc) for cc in json.load(fp)]
 
 
+def fix_args_for_clang(args: List[str]) -> List[str]:
+    '''
+    Replaces compile command arguments that are clang-incompatible
+    with ones that are
+    '''
+    return [
+        '-flto=full'
+            if a == '-flto=auto'
+        else "-DGX_COLOR_INDEX_TYPE=unsigned\\ long\\ long"
+            if a == "-DGX_COLOR_INDEX_TYPE=unsigned long long"
+        else a
+        for a in args
+    ]
+
 def cpp2c_command_from_compile_command(cc: CompileCommand, cpp2c_commands: List[str]) -> str:
-    # Shallow copy arguments (shallow is fine since they're strings)
-    arguments = cc.arguments[:]
-    # Replace '-flto=auto' argument with '-flto=full'
-    # This is because Clang does not support this flag
-    # This specifically fixes an issue with building remind 4.00.01
-    arguments = ['-flto=full' if a == '-flto=auto' else a for a in arguments]
-    # Escape spaces in ghostscript's arguments
-    # This is because Clang will interpret an argument with spaces in it
-    # as multiple arguments
-    # This specifically fixes an issue with ghostscript 9.56.1
-    arguments = ["-DGX_COLOR_INDEX_TYPE=unsigned\\ long\\ long"
-                    if a == "-DGX_COLOR_INDEX_TYPE=unsigned long long"
-                    else a
-                    for a in arguments]
+    # Fix arguments for clang
+    arguments = fix_args_for_clang(cc.arguments)
     # Replace first command (compiler) with clang-11
     arguments[0] = 'clang-11'
     # Add Cpp2C plugin path
