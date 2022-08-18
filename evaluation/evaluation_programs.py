@@ -552,19 +552,81 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # # TODO: Will take a long time to run
-    # # transforms?
+    # # transform gs
+    # # transforms
     # # takes ...?
-    # # passes tests?
+    # # failed tests.
+    # # problem:  transformed def of LINESIZE used macro FNSIZE before
+    # #           it was declared.
+    # # fix:      moved FNSIZE definition above transformed def of LINESIZE.
+    # # problem:  transformed def of LINESIZESLOP used macro LINESIZE before
+    # #           it was defined.
+    # # fix:      moved LINESIZE definition above transformed def of
+    # #           LINESIZESLOP.
+    # # problem:  transformed def of MAX_HT_LEVELS used macro LOG2_MAX_HT_LEVELS
+    # #           before it was defined.
+    # # fix:      moved definition of LOG2_MAX_HT_LEVELS above transformed def
+    # #           of MAX_HT_LEVELS
+    # # problem:  transformed def of N used macro NN before it was defined.
+    # # fix:      move def of NN above transformed def of N.
+    # # problem:  transformed def of SCALE_TO_RANGE has a parameter named
+    # #           frac, which is the same name as a macro that the the original
+    # #           macro def of SCALE_TO_RANGE invokes.
+    # # fix:      change the name of the transformed parameter.
+    # # problem:  transformed def of fixed_message_ln used macro fixed_message
+    # #           before it was defined.
+    # # fix:      move macro def of fixed_message above transformed def of
+    # #           fixed_message_ln.
+    # # problem:  in definition of function opj_thread_pool_get_next_job,
+    # #           the return statement was missing.
+    # #           this seems to be missing in the original source code of
+    # #           gs as well.
+    # # fix:      add a NULL return after the while loop in the function body.
+    # # problem:  td of BUF_BYTES called BUF_LONGS before macro def.
+    # # fix:      move BUF_LONGS def.
+    # # problem:  td of SUFFIX_SIZE_1660588008750707553var called
+    # #           APPEND_TIF_TO_NAME before macro def.
+    # # fix:      move APPEND_TIF_TO_NAME macro def up.
+    # # problem:  some transformed variables in headers #include'd by cpp
+    # #           files were listed as redefined.
+    # # fix:      commented out header decls.
+    # # problem:  false_1660587628090174236var called before decl.
+    # # fix:      added decl back above function
+    # # problem:  some transformed vars in linked files were reported as
+    # #           redefined since decls in headers were commented out.
+    # # fix:      change storage class of transformed def in one of
+    # #           linked files to extern.
+    # # problem:  macro b_int used before it was declared.
+    # # fix:      move b_int def up.
+    # # NOTE: not finished. it may just be too much to manually fix.
+    # EvaluationProgram(
+    #     r'ghostscript-9.56.1',
+    #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
+    #     r'',
+    #     r'bash configure && intercept-build make -j64',
+    #     r'''
+    #     make clean -j64     &&
+    #     make -j64           &&
+    #     make check -j64
+    #     '''
+    # ),
+
+    # # configured with all default options
+    # # transforms
+    # # takes ...?
+    # # failed tests.
+    # # - file included inside struct, so some transformed decl inside struct.
+    # #   + moved decls outside of struct.
+    # # - for some reason, the transformed def of OPSLOT_HEADER was not emitted.
+    # #   clang's error messages are not very informative.
+    # #   perl must be doing a lot of metaprogramming or something.
+    # #   i have not seen these sort of issues with any other program.
     # EvaluationProgram(
     #     r'perl-5.36.0',
     #     r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
     #     r'.',
-    #     r'bash Configure && intercept-build make',
-    #     r'''
-    #     bash Configure 	&&
-    #     make check
-    #     '''
+    #     r'./Configure -d -e -s && intercept-build make -j64',
+    #     r'make clean -j64 && make check -j64'
     # ),
     
     # # configured with --disable-multilib
@@ -609,24 +671,6 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # # has some c++ code, even in the base dir.
-    # # we don't support c++ code, so we may not be able to
-    # # transform gs
-    # # transforms?
-    # # takes ...?
-    # # passes tests?
-    # EvaluationProgram(
-    #     r'ghostscript-9.56.1',
-    #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
-    #     r'',
-    #     r'bash configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
-
     # # TODO: remove? has manual install instructions...
     # EvaluationProgram(
     #     r'rasmol-2.7.5.2',
@@ -662,6 +706,7 @@ EVALUATION_PROGRAMS = [
     #     r''
     # ),
 
+    # # requires help2man to transform
     # # transforms
     # # takes 26 sec
     # # failed tests.
@@ -671,7 +716,7 @@ EVALUATION_PROGRAMS = [
     #     r'gnuchess-6.2.9',
     #     r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
     #     r'src',
-    #     r'bash configure && intercept-build make',
+    #     r'./configure && intercept-build make -j64',
     #     r'''
     #     make clean                  &&
     #     make                        &&
