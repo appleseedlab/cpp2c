@@ -7,9 +7,10 @@ from datetime import datetime
 from operator import itemgetter
 from typing import Any, DefaultDict, Dict, List, Set, Sized
 from urllib.request import urlretrieve
-
+import clang.cindex
 import numpy as np
 
+import abstractometer
 import compile_command
 import summaries
 from evaluation_programs import EVALUATION_PROGRAMS
@@ -165,10 +166,37 @@ def main():
                              if (cc.file.endswith('.c') or
                                 cc.file.endswith('.h')) and
                                 ('++' not in cc.arguments[0]) ]
-
         print(f'# {evaluation_program.name}')
 
-        # Loop 1:
+        # Loop 1: Pre-transformation abstraction factor
+        # TODO: Put this into a function so we don't have to repeat this
+        #       code at the end.
+
+        expr_depths: List[int] = []
+        func_var_names: Set[str] = set()
+        unique_syms: Dict[str, Set[str]] = {}
+        for cc in compile_commands:
+            os.chdir(cc.directory)
+            # remove the first and last arguments since they are the compiler
+            # name and the name of the file, and then fix the remaining
+            # arguments
+            args = compile_command.fix_args_for_clang(cc.arguments[1:-1])
+            idx = clang.cindex.Index.create()
+            tu: clang.cindex.TranslationUnit = idx.parse(cc.file, args)
+            c: clang.cindex.Cursor = tu.cursor
+            expr_depths += abstractometer.get_expr_depths(c)
+            func_var_names |= abstractometer.get_func_var_names(c)
+            unique_syms.update(abstractometer.get_unique_decls_refd_in_function_definitions(c))
+            # TODO: test this and check that it actually works
+
+        print('avg expr nesting depth after:', (sum(expr_depths) / len(expr_depths)) if len(expr_depths) > 0 else 0)
+        print('num function and global names:', len(func_var_names))
+        print('avg unique symbols per function:',
+          (sum([len(us) for us in unique_syms])
+           / len(unique_syms))
+          if len(unique_syms) > 0 else 0)
+
+        # Loop 2: Macro metrics
         # - Count the number of unique macro definitions that are
         #   defined in the source program itself.
         # - Count the number of unique invocations in the source program
@@ -222,8 +250,8 @@ def main():
             mhash_to_raw_expansion_spelling_locations.items()])
         num_stat('unique source macro expansions', unique_raw_source_macro_expansions)
 
-        # Loop 2:
-        # - Measure time needed to transform program to a fixed point
+        # Loop 3: Macro transformation metrics
+        # - Measure time needed to transform program to a fixed point.
         # - Count runs needed to transform program to a fixed point.
         # - Count potentially transformable definitions.
         #   + If a macro has a potentially transformable expansion,
@@ -516,6 +544,35 @@ def main():
         # For fun: Which macros had the most uniquely typed transformations?
         top_five_poly_macros = top_five_macros_by_val_len(mhash_to_transformed_types)
         print(f'macros with most transformed types: {top_five_poly_macros}')
+
+        # Loop 4: Post-transformation abstraction factor
+        # - Compute average depth of top-level expressions.
+        # - Count number of function and global variable names.
+        # - Compute the average number of unique symbols per function.
+
+        expr_depths: List[int] = []
+        func_var_names: Set[str] = set()
+        unique_syms: Dict[str, Set[str]] = {}
+        for cc in compile_commands:
+            os.chdir(cc.directory)
+            # remove the first and last arguments since they are the compiler
+            # name and the name of the file, and then fix the remaining
+            # arguments
+            args = compile_command.fix_args_for_clang(cc.arguments[1:-1])
+            idx = clang.cindex.Index.create()
+            tu: clang.cindex.TranslationUnit = idx.parse(cc.file, args)
+            c: clang.cindex.Cursor = tu.cursor
+            expr_depths += abstractometer.get_expr_depths(c)
+            func_var_names |= abstractometer.get_func_var_names(c)
+            unique_syms.update(abstractometer.get_unique_decls_refd_in_function_definitions(c))
+            # TODO: test this and check that it actually works
+
+        print('transformed avg expr nesting depth after:', (sum(expr_depths) / len(expr_depths)) if len(expr_depths) > 0 else 0)
+        print('transformed num function and global names:', len(func_var_names))
+        print('transformed avg unique symbols per function:',
+          (sum([len(us) for us in unique_syms])
+           / len(unique_syms))
+          if len(unique_syms) > 0 else 0)
 
         # Flush to see evaluation results of this program before moving on to next one
         sys.stdout.flush()
