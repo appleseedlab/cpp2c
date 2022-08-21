@@ -1,0 +1,53 @@
+# bc-1.07.1
+avg expr nesting depth after: 2.7296257432668765
+num function and global names: 922
+avg unique symbols per function: 10.320754716981131
+source macro definitions: 312
+    olms: 269
+    flms: 43
+expanded source macro definitions: 178
+    olms: 146
+    flms: 32
+unique source macro expansions: 1178
+time to reach a fixed point (s.ms): 3.943316
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 170
+    olms: 140
+    flms: 30
+transformed macro definitions: 44
+    olms: 37
+    flms: 7
+untransformed potentially transformable macro definitions: 126
+    olms: 103
+    flms: 23
+number of macros transformed to vars: 30
+percentage increase in transformed macros with our approach: 46.666666666666664%
+categories of reasons not transformed:
+    syntactic well-formedness: 50
+    environment capture: 2
+    parameter side-effects: 2
+    unsupported construct: 57
+    turned off construct: 3
+    multiple categories: 12
+potentially transformable invocations: 1170
+    olms: 880
+    flms: 290
+unique transformed invocations in source definitions: 232
+unique transformed invocations in transformed definitions: 2
+total unique transformed invocations: 234
+    olms: 178
+    flms: 56
+top five most transformed macros: [('EX_VOID', 36), ('CastNum', 27), ('CastNumPtr', 21), ('YY_CURRENT_BUFFER_LVALUE', 17), ('yytext_ptr', 13)]
+untransformed invocations: 936
+potentially transformable polymorphic macros: 18
+    olms: 11
+    flms: 7
+transformed polymorphic macros: 1
+    olms: 0
+    flms: 1
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('YYUSE', 2), ('CastNumPtr', 1), ('CastNum', 1), ('DEFAULT_LINE_MAX', 1), ('MUL_SMALL_DIGITS', 1)]
+transformed avg expr nesting depth after: 2.7273357600970707
+transformed num function and global names: 967
+transformed avg unique symbols per function: 14.1
+
