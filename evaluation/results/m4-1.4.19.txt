@@ -1,0 +1,53 @@
+# m4-1.4.19
+avg expr nesting depth after: 2.11595591758505
+num function and global names: 3423
+avg unique symbols per function: 15.182456140350878
+source macro definitions: 2008
+    olms: 1270
+    flms: 738
+expanded source macro definitions: 940
+    olms: 536
+    flms: 404
+unique source macro expansions: 9889
+time to reach a fixed point (s.ms): 154.318892
+runs to reach a fixed point: 2
+potentially transformable macro definitions: 848
+    olms: 514
+    flms: 334
+transformed macro definitions: 36
+    olms: 28
+    flms: 8
+untransformed potentially transformable macro definitions: 812
+    olms: 486
+    flms: 326
+number of macros transformed to vars: 25
+percentage increase in transformed macros with our approach: 44.0%
+categories of reasons not transformed:
+    syntactic well-formedness: 563
+    environment capture: 4
+    parameter side-effects: 14
+    unsupported construct: 131
+    turned off construct: 21
+    multiple categories: 79
+potentially transformable invocations: 9698
+    olms: 3925
+    flms: 5773
+unique transformed invocations in source definitions: 99
+unique transformed invocations in transformed definitions: 0
+total unique transformed invocations: 99
+    olms: 69
+    flms: 30
+top five most transformed macros: [('INDEX_TO_NODE', 14), ('CHAR_EOF', 10), ('NODE_TO_INDEX', 7), ('TCHARS_PER_DCHAR', 6), ('num_fatal_signals', 5)]
+untransformed invocations: 9599
+potentially transformable polymorphic macros: 152
+    olms: 82
+    flms: 70
+transformed polymorphic macros: 2
+    olms: 0
+    flms: 2
+twenty pt summary of transformed types: [1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.5 3. ]
+macros with most transformed types: [('INDEX_TO_NODE', 3), ('WRITE', 2), ('AUTHORS', 1), ('tmpbufsize', 1), ('SIZE_MAX', 1)]
+transformed avg expr nesting depth after: 2.1167728237791934
+transformed num function and global names: 3462
+transformed avg unique symbols per function: 15.986471251409245
+
