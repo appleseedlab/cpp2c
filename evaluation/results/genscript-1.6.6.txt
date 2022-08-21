@@ -1,0 +1,53 @@
+# enscript-1.6.6
+avg expr nesting depth after: 2.4020569620253163
+num function and global names: 2327
+avg unique symbols per function: 12.15
+source macro definitions: 630
+    olms: 446
+    flms: 184
+expanded source macro definitions: 394
+    olms: 235
+    flms: 159
+unique source macro expansions: 3629
+time to reach a fixed point (s.ms): 9.895788
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 354
+    olms: 218
+    flms: 136
+transformed macro definitions: 72
+    olms: 54
+    flms: 18
+untransformed potentially transformable macro definitions: 282
+    olms: 164
+    flms: 118
+number of macros transformed to vars: 46
+percentage increase in transformed macros with our approach: 56.52173913043478%
+categories of reasons not transformed:
+    syntactic well-formedness: 112
+    environment capture: 17
+    parameter side-effects: 2
+    unsupported construct: 106
+    turned off construct: 22
+    multiple categories: 23
+potentially transformable invocations: 3544
+    olms: 1895
+    flms: 1649
+unique transformed invocations in source definitions: 301
+unique transformed invocations in transformed definitions: 4
+total unique transformed invocations: 305
+    olms: 224
+    flms: 81
+top five most transformed macros: [('GET_TOKEN', 40), ('BYTEWIDTH', 25), ('false', 21), ('YY_CURRENT_BUFFER_LVALUE', 17), ('yytext_ptr', 14)]
+untransformed invocations: 3239
+potentially transformable polymorphic macros: 69
+    olms: 26
+    flms: 43
+transformed polymorphic macros: 2
+    olms: 0
+    flms: 2
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('bzero', 2), ('EXISTS', 2), ('Sword', 1), ('INIT_COMPILE_STACK_SIZE', 1), ('INIT_BUF_SIZE', 1)]
+transformed avg expr nesting depth after: 2.403820454366795
+transformed num function and global names: 2401
+transformed avg unique symbols per function: 16.44930875576037
+

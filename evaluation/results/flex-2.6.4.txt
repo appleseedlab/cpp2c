@@ -1,0 +1,53 @@
+# flex-2.6.4
+avg expr nesting depth after: 1.719781117281934
+num function and global names: 1481
+avg unique symbols per function: 10.785016286644952
+source macro definitions: 592
+    olms: 465
+    flms: 127
+expanded source macro definitions: 401
+    olms: 297
+    flms: 104
+unique source macro expansions: 3134
+time to reach a fixed point (s.ms): 16.782213
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 376
+    olms: 280
+    flms: 96
+transformed macro definitions: 123
+    olms: 109
+    flms: 14
+untransformed potentially transformable macro definitions: 253
+    olms: 171
+    flms: 82
+number of macros transformed to vars: 95
+percentage increase in transformed macros with our approach: 29.47368421052631%
+categories of reasons not transformed:
+    syntactic well-formedness: 104
+    environment capture: 2
+    parameter side-effects: 0
+    unsupported construct: 99
+    turned off construct: 15
+    multiple categories: 33
+potentially transformable invocations: 3077
+    olms: 2270
+    flms: 807
+unique transformed invocations in source definitions: 453
+unique transformed invocations in transformed definitions: 7
+total unique transformed invocations: 460
+    olms: 421
+    flms: 39
+top five most transformed macros: [('ACTION_ECHO', 32), ('ACTION_ECHO', 32), ('CCL', 28), ('CCL', 28), ('YY_CURRENT_BUFFER_LVALUE', 19)]
+untransformed invocations: 2617
+potentially transformable polymorphic macros: 84
+    olms: 69
+    flms: 15
+transformed polymorphic macros: 1
+    olms: 0
+    flms: 1
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('YYUSE', 2), ('TFLAGS_CLRDATA', 1), ('YYINITDEPTH', 1), ('YYEMPTY', 1), ('YYMAXDEPTH', 1)]
+transformed avg expr nesting depth after: 1.7225602336334875
+transformed num function and global names: 1605
+transformed avg unique symbols per function: 18.074245939675173
+

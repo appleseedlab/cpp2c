@@ -1,0 +1,53 @@
+# rcs-5.8
+avg expr nesting depth after: 2.3593959090040144
+num function and global names: 1327
+avg unique symbols per function: 10.156542056074766
+source macro definitions: 957
+    olms: 548
+    flms: 409
+expanded source macro definitions: 438
+    olms: 173
+    flms: 265
+unique source macro expansions: 3159
+time to reach a fixed point (s.ms): 8.791997
+runs to reach a fixed point: 2
+potentially transformable macro definitions: 389
+    olms: 155
+    flms: 234
+transformed macro definitions: 30
+    olms: 17
+    flms: 13
+untransformed potentially transformable macro definitions: 359
+    olms: 138
+    flms: 221
+number of macros transformed to vars: 15
+percentage increase in transformed macros with our approach: 100.0%
+categories of reasons not transformed:
+    syntactic well-formedness: 209
+    environment capture: 15
+    parameter side-effects: 9
+    unsupported construct: 70
+    turned off construct: 11
+    multiple categories: 45
+potentially transformable invocations: 3059
+    olms: 773
+    flms: 2286
+unique transformed invocations in source definitions: 79
+unique transformed invocations in transformed definitions: 0
+total unique transformed invocations: 79
+    olms: 42
+    flms: 37
+top five most transformed macros: [('TM_YEAR_ORIGIN', 9), ('XREP', 8), ('TCHARS_PER_DCHAR', 6), ('__set_errno', 6), ('lockname', 6)]
+untransformed invocations: 2980
+potentially transformable polymorphic macros: 107
+    olms: 37
+    flms: 70
+transformed polymorphic macros: 0
+    olms: 0
+    flms: 0
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
+macros with most transformed types: [('pad_ourselves', 1), ('prec_ourselves', 1), ('TCHARS_PER_DCHAR', 1), ('__set_errno', 1), ('MATCHING_INO', 1)]
+transformed avg expr nesting depth after: 2.3631014520261933
+transformed num function and global names: 1357
+transformed avg unique symbols per function: 11.833698030634574
+

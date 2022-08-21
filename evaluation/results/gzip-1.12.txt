@@ -1,0 +1,53 @@
+# gzip-1.12
+avg expr nesting depth after: 2.1872799812250645
+num function and global names: 2622
+avg unique symbols per function: 10.495145631067961
+source macro definitions: 1140
+    olms: 708
+    flms: 432
+expanded source macro definitions: 513
+    olms: 303
+    flms: 210
+unique source macro expansions: 4183
+time to reach a fixed point (s.ms): 114.513019
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 462
+    olms: 290
+    flms: 172
+transformed macro definitions: 62
+    olms: 53
+    flms: 9
+untransformed potentially transformable macro definitions: 400
+    olms: 237
+    flms: 163
+number of macros transformed to vars: 50
+percentage increase in transformed macros with our approach: 24.0%
+categories of reasons not transformed:
+    syntactic well-formedness: 302
+    environment capture: 1
+    parameter side-effects: 2
+    unsupported construct: 54
+    turned off construct: 7
+    multiple categories: 34
+potentially transformable invocations: 4073
+    olms: 1741
+    flms: 2332
+unique transformed invocations in source definitions: 136
+unique transformed invocations in transformed definitions: 1
+total unique transformed invocations: 137
+    olms: 121
+    flms: 16
+top five most transformed macros: [('BITBUFSIZ', 10), ('NC', 7), ('TCHARS_PER_DCHAR', 6), ('RSYNC_WIN', 6), ('NIL', 5)]
+untransformed invocations: 3936
+potentially transformable polymorphic macros: 94
+    olms: 70
+    flms: 24
+transformed polymorphic macros: 0
+    olms: 0
+    flms: 0
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
+macros with most transformed types: [('MIN_EXP', 1), ('Buf_size', 1), ('LOCHDR', 1), ('LOCSIG', 1), ('LOCHOW', 1)]
+transformed avg expr nesting depth after: 2.1714019562179785
+transformed num function and global names: 2684
+transformed avg unique symbols per function: 15.52434456928839
+
