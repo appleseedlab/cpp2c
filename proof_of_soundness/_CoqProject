@@ -1,6 +1,0 @@
--Q . Cpp2C
-ConfigVars.v
-Semantics.v
-MapLemmas.v
-Syntax.v
-Transformation.v
