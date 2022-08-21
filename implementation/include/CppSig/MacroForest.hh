@@ -19,7 +19,7 @@ namespace CppSig
     // macros or not) and nested macro invocations.
     // This class is actually more of a forest of forests, since it contains
     // all root expansions (and thus their forests) in a program.
-    // I (Brent Pappas), use the term "forest" to denote an arbitrary
+    // I use the term "forest" to denote an arbitrary
     // macro expansion forest. I use the term "MacroForest" to denote the forest
     // of all macro expansions in a program.
     class MacroForest : public clang::PPCallbacks

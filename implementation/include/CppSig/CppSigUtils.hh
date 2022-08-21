@@ -2,7 +2,7 @@
 
 // CppSigUtils.hh
 // Miscellaneous functionality related to CppSig
-// Originally taken from Dietrich and edited by Brent Pappas
+// Originally taken from Dietrich
 
 #include "CppSig/MacroForest.hh"
 

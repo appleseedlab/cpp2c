@@ -9,7 +9,7 @@ all: Makefile.coq
 clean: Makefile.coq
 	+make -f Makefile.coq clean
 	rm -f Makefile.coq
-	rm -f .[!.]*.aux # Added by Brent to clear aux files
+	rm -f .[!.]*.aux # Added by me to clear aux files
 	rm -f CoqMakefile.conf
 
 Makefile.coq: _CoqProject Makefile
