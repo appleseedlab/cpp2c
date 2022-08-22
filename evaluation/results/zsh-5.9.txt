@@ -1,0 +1,53 @@
+# zsh-5.9
+avg expr nesting depth after: 2.5666814307474586
+num function and global names: 6406
+avg unique symbols per function: 11.589584143023707
+source macro definitions: 2922
+    olms: 2554
+    flms: 368
+expanded source macro definitions: 2234
+    olms: 1881
+    flms: 353
+unique source macro expansions: 25320
+time to reach a fixed point (s.ms): 52.560539
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 2192
+    olms: 1849
+    flms: 343
+transformed macro definitions: 365
+    olms: 322
+    flms: 43
+untransformed potentially transformable macro definitions: 1827
+    olms: 1527
+    flms: 300
+number of macros transformed to vars: 286
+percentage increase in transformed macros with our approach: 27.62237762237762%
+categories of reasons not transformed:
+    syntactic well-formedness: 795
+    environment capture: 7
+    parameter side-effects: 14
+    unsupported construct: 646
+    turned off construct: 29
+    multiple categories: 336
+potentially transformable invocations: 25203
+    olms: 12982
+    flms: 12221
+unique transformed invocations in source definitions: 1301
+unique transformed invocations in transformed definitions: 12
+total unique transformed invocations: 1313
+    olms: 1046
+    flms: 267
+top five most transformed macros: [('patinput', 51), ('ecstr', 48), ('patinend', 35), ('patinstart', 32), ('P_OP', 25)]
+untransformed invocations: 23890
+potentially transformable polymorphic macros: 354
+    olms: 271
+    flms: 83
+transformed polymorphic macros: 5
+    olms: 0
+    flms: 5
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('mtmark', 2), ('mgmark', 2), ('mmarked', 2), ('P_OPERAND', 2), ('SELECT_ADD_COST', 2)]
+transformed avg expr nesting depth after: 2.556028872322802
+transformed num function and global names: 6776
+transformed avg unique symbols per function: 14.208432505950357
+
