@@ -19,7 +19,7 @@ RUN apt-get -y update && \
     # for plan and mosiac
     libmotif-dev \
     # for mosiac
-    libjpeg62-dev libxmu-headers libxpm-dev libxmu-dev \
+    libpng-dev libjpeg62-dev libxmu-headers libxpm-dev libxmu-dev \
     # for workman
     xview-clients \
     # for RasMol
