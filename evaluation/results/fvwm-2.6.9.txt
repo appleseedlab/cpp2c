@@ -1,0 +1,53 @@
+# fvwm-2.6.9
+avg expr nesting depth after: 1.4438738406670586
+num function and global names: 7330
+avg unique symbols per function: 16.259815636736086
+source macro definitions: 3416
+    olms: 1893
+    flms: 1523
+expanded source macro definitions: 2256
+    olms: 1121
+    flms: 1135
+unique source macro expansions: 14787
+time to reach a fixed point (s.ms): 83.304228
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 2226
+    olms: 1107
+    flms: 1119
+transformed macro definitions: 253
+    olms: 225
+    flms: 28
+untransformed potentially transformable macro definitions: 1973
+    olms: 882
+    flms: 1091
+number of macros transformed to vars: 215
+percentage increase in transformed macros with our approach: 17.674418604651162%
+categories of reasons not transformed:
+    syntactic well-formedness: 346
+    environment capture: 16
+    parameter side-effects: 288
+    unsupported construct: 831
+    turned off construct: 58
+    multiple categories: 434
+potentially transformable invocations: 14739
+    olms: 5983
+    flms: 8756
+unique transformed invocations in source definitions: 640
+unique transformed invocations in transformed definitions: 6
+total unique transformed invocations: 646
+    olms: 591
+    flms: 55
+top five most transformed macros: [('BdWidth', 27), ('CP_GET_NEXT_STEP', 22), ('YY_CURRENT_BUFFER_LVALUE', 14), ('MWM_FUNC_MINIMIZE', 12), ('MWM_FUNC_MAXIMIZE', 12)]
+untransformed invocations: 14093
+potentially transformable polymorphic macros: 403
+    olms: 108
+    flms: 295
+transformed polymorphic macros: 0
+    olms: 0
+    flms: 0
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
+macros with most transformed types: [('_XA_TARGETS', 1), ('MAX_TARGETS', 1), ('_XA_TIMESTAMP', 1), ('_XA_VERSION', 1), ('_XA_MULTIPLE', 1)]
+transformed avg expr nesting depth after: 1.4431677435721426
+transformed num function and global names: 7583
+transformed avg unique symbols per function: 17.992143306096793
+
