@@ -79,13 +79,12 @@ EVALUATION_PROGRAMS = [
     # ),
 
     # # requires makeinfo
-    # # manual fixes: ?
-    # # TODO: test
+    # # manual fixes: 0
     # EvaluationProgram(
     #     r'bc-1.07.1',
     #     r'https://gnu.mirror.constant.com/bc/bc-1.07.1.tar.gz',
     #     r'bc',
-    #     r'bash configure && intercept-build make -j',
+    #     r'./configure && intercept-build make -j',
     #     r'''
     #     make clean                  &&
     #     make                        &&
@@ -96,14 +95,13 @@ EVALUATION_PROGRAMS = [
     # ),
 
     # # requires help2man
-    # # failed same tests it failed before transforming
-    # # manual fixes: ?
-    # # TODO: transform and test
+    # # failed same test it failed before transforming: ./198.sysval:err
+    # # manual fixes: 0
     # EvaluationProgram(
     #     r'm4-1.4.19',
     #     r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
     #     r'src',
-    #     r'bash configure && intercept-build make -j',
+    #     r'./configure && intercept-build make -j',
     #     r'''
     #     make clean                  &&
     #     make                        &&
@@ -138,13 +136,23 @@ EVALUATION_PROGRAMS = [
     # ),
 
     # # requires xaw3dg-dev
+    # # intercept-build didn't initially work because some of the files in gv
+    # # had utf-8 characters, but were not utf-8 encoded.
+    # # i fixed this by changing the file encodings to utf-8.
+    # # i do not count theses as manual fixes because they are not directly
+    # # related to cpp2c.
     # # manual fixes: 0
-    # # TODO: transform and test
     # EvaluationProgram(
     #     r'gv-3.7.4',
     #     r'https://mirrors.sarata.com/gnu/gv/gv-3.7.4.tar.gz',
     #     r'src',
-    #     r'bash configure && intercept-build make -j',
+    #     r'''
+    #     iconv -f ISO-8859-1 -t UTF-8 src/Makefile.am -o tmp && mv -f tmp src/Makefile.am    &&
+    #     iconv -f ISO-8859-1 -t UTF-8 src/Makefile.in -o tmp && mv -f tmp src/Makefile.in    &&
+    #     for FN in src/gv_copyright.dat src/gv_font_res.dat src/gv_font_res-I18N_mb.dat src/gv_layout_res.dat src/gv_misc_res.dat src/gv_spartan.dat src/gv_user_res.dat src/gv_widgetless.dat; do iconv -f US-ASCII -t UTF-8 $FN -o tmp && mv -f tmp $FN; done  &&
+    #     ./configure                                                                         &&
+    #     intercept-build make -j
+    #     ''',
     #     r'''
     #     make clean  &&
     #     make        &&
@@ -172,35 +180,47 @@ EVALUATION_PROGRAMS = [
     # # with such a generic name as "plan" ? :-)
 
     # # requires libmotif-dev
-    # # no tests - but manually ran the program after
-    # # transforming and it seems to work
+    # # i had a hard time installing this one the remote machine.
+    # # my solution was to download it using wget --no-passive on my local
+    # # machine, then scp it over to the remote machine.
+    # # no tests - but manually ran the program after transforming it and
+    # # it seems to work.
+    # # i transformed the files on the remote machine, then copied them over
+    # # to my machine, then recompiled and ran the tests.
+    # # for some reason, when after configuring and making plan, i run into
+    # # a redefinition error. yylineno is redefined in lex.yy.c.
+    # # this occurs in the original, untransformed program.
+    # # i fixed this by changing the definition of int yylineno in holiday.c
+    # # to an extern int.
     # # manual fixes: 0
-    # # TODO: transform and test
     # EvaluationProgram(
     #     r'plan-1.12',
     #     r'ftp://ftp.bitrot.de/pub/plan/plan-1.12.tar.gz',
     #     r'src',
-    #     '''
-    #     cd src                          &&
-    #     echo "\\n" | bash configure     &&
-    #     intercept-build make linux64               &&
-    #     mv compile_commands.json ..     &&
+    #     r'''
+    #     cd src                                                  &&
+    #     sed -i 's/int yylineno/extern int yylineno/' holiday.c  &&
+    #     ./configure 4                                           &&
+    #     make clean                                              &&
+    #     intercept-build make linux64                            &&
+    #     mv compile_commands.json ..                             &&
     #     cd ..
     #     ''',
     #     r''
     # ),
 
     # # requires  build-essential libmotif-dev libjpeg62-dev
-    # #           libxmu-headers libxpm-dev libxmu-dev
+    # #           libxmu-headers libxpm-dev libxmu-dev libpng-dev
     # # no tests - but ran the program manually after transforming
     # # and it seems to work
+    # # won't compile with gcc-11.
+    # # need to use gcc-9 or gcc-10.
     # # manual fixes: 0
-    # # TODO: transform and test
     # EvaluationProgram(
     #     r'ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e',
     #     r'https://github.com/alandipert/ncsa-mosaic/archive/af1c9aaaa299da3540faa16dcab82eb681cf624e.zip',
     #     r'src',
-    #     r'intercept-build make linux',
+    #     r'intercept-build make CC=gcc-9 linux -j',
     #     r''
     # ),
 
@@ -244,19 +264,17 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # # requires X11 libraries
-    # # TODO: transform and test
-    # # manual fixes: ?
+    # # requires X11 libraries (i think libx11-dev)
+    # # manual fixes: 0
     # EvaluationProgram(
     #     r'fvwm-2.6.9',
     #     r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
     #     r'fvwm',
-    #     r'bash configure --disable-png && intercept-build make',
+    #     r'./configure && intercept-build make -j',
     #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     cd  tests                   &&
-    #     bash test_options
+    #     make clean      &&
+    #     make            &&
+    #     make check
     #     '''
     # ),
 
@@ -328,46 +346,13 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # # requires cqrlib
-    # TODO: transform on local machine, just point it out in evaluation
-    EvaluationProgram(
-        r'RasMol-2.7.5.2',
-        r'http://www.rasmol.org/software/RasMol_Latest.tar.gz',
-        r'src',
-        r'''
-        cd src                      &&
-        ./rasmol_build_options.sh   &&
-        xmkmf                       &&
-        intercept-build make -j
-        ''',
-        r'''
-        '''
-    ),
-
-    # # TODO
     # # requires xaw3dg-dev
-    # # transforms
-    # # takes 50 sec
-    # # failed tests.
-    # # problem:  nested typedefs and anonymous structs issue.
-    # #           in resources.h, PR_SIZE and RECT.
-    # # fix:      fix emitted deanonymized names.
-    # # problem:  in some files, the transformed definition of max_char_height
-    # #           referenced the anonymous, typedef'd struct XFontStruct
-    # #           before it was defined.
-    # #           the deanonymizer didn't catch this because it's defined
-    # #           in a system header (X11), which we don't emit rewrites to.
-    # # fix:      remove the struct keyword from function definitions and use
-    # #           the typedef instead.
-    # # NOTE:     we could automatically handle these cases by not deanonymizing
-    # #           system header structs/unions/enums, and using their typedefs
-    # #           instead.
-    # # now passes tests.
+    # # manual fixes: 0
     # EvaluationProgram(
     #     r'xfig-3.2.8b',
     #     r'https://cytranet.dl.sourceforge.net/project/mcj/xfig%2Bfig2dev-3.2.8b.tar.xz',
     #     r'fig2dev',
-    #     r'bash configure && intercept-build make',
+    #     r'./configure && intercept-build make',
     #     r'''
     #     make clean                  &&
     #     make                        &&
@@ -375,59 +360,134 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # # TODO
-    # # transforms
-    # # takes 70 sec
-    # # fails tests.
-    # # requires: autoconf
-    # # problem:  definition heuristic emitted a function that returned an
-    # #           anonymous typedef'd struct, __sigset_t.
-    # #           normally the deanonymizer would fix this by making the struct
-    # #           not anonymous, but since the struct is defined in a standard
-    # #           header, the deanonymizer wasn't able to rewrite it.
-    # # fix:      change all the functions that returned this type to
-    # #           the typedef instead of the struct
-    # # problem:  in the original code, some part of the build system
-    # #           generates .pro files with function forward declarations.
-    # #           after transforming, thes .pro files aren't generated
-    # #           correctly, and lacks some of these declarations.
-    # #           consequently, man files have undeclared reference errors.
-    # # fix:      add the required decls back to the .pro files.
-    # #           there are 80+ of these files, so to speed this process up
-    # #           i first built zsh before transforming it, and committed
-    # #           the result to a fresh git repo.
-    # #           then i ran the transformer, built again, and reverted all
-    # #           the .epro and .pro to their contents prior transformation.
-    # #           as i modified source files to fix other problems, make would
-    # #           regenerate these .epro and .pro files, but i would always
-    # #           revert them back to their prior-transformation state.
-    # # problem:  a series of macros defined in pattern.c, patinstart through
-    # #           globdots, are defined to expand to struct fields of the
-    # #           same name.
-    # #           the transformed definitions use the names as struct fields,
-    # #           however they are emitted after the macro definitions, so
-    # #           the preprocessor thinks they are referring to the macro
-    # #           definitions, and expand them.
-    # #           this expands to incorrect code.
-    # # fix:      comment out these macro definitions.
-    # # problem:  after fixing the last problem, invocation of these macros
-    # #           broke.
-    # # fix:      inline broken macro invocations.
-    # # problem:  macro ZF_BUFSIZE undeclared before use in zftp.c
-    # # fix:      move macro definition above first use
-    # #           (trivial since it was defined as an integer constant)
-    # # now passes tests.
-    # EvaluationProgram(
-    #     r'zsh-5.9',
-    #     r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
-    #     r'Src',
-    #     r'bash configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # requires: autoconf
+    # manual fixes: 230 SLOC.
+    # problem:  in the original code, some part of the build system
+    #           generates .pro and .epro files with function forward
+    #           declarations.
+    #           it seems that this part of the build system infers
+    #           what forward decls to generate by checking which functions have
+    #           comments directly above them.
+    #           the transformation moves some of these comments around,
+    #           so the build system doesn't generate all the forward
+    #           declarations that it should.
+    # fix:      move the comments back where they belong.
+    #           File                    Function                SLOC
+    #           Src/parse.c             bin_zcompile            2
+    #           Src/lex.c               gettok                  2
+    #           Src/math.c              mathparse               2
+    #           Src/options.c           optlookupc              2
+    #           Src/params.c            printparamnode          2
+    #           Src/parse.c             par_cmd                 2
+    #           Src/parse.c             load_dump_header        2
+    #           Src/parse.c             check_dump_file         2
+    #           Src/pattern.c           patcompswitch           2
+    #           Src/pattern.c           patcomppiece            2
+    #           Src/pattern.c           patoptail               2
+    #           Src/pattern.c           patmatch                2
+    #           Src/pattern.c           patcompile              2
+    #           Src/subst.c             stringsubst             2
+    #           Src/Modules/mathfunc.c  math_func               2
+    #           Src/Modules/watch.c     watchlog2               2
+    #           Src/Zle/compctl.c       get_xcompctl.c          2
+    #           Src/Zle/compctl.c       makecomplistctl         2
+    #           Src/Zle/compcore.c      do_completion           2
+    #           Src/Zle/complist.c      clprintm                2
+    #           Src/Zle/zle_hist.c      doisearch               2
+    #           Src/Zle/zle_move.c      backwardmetafiedchar    2
+    #           Src/Zle/zle_keymap.c    bin_bindkey_list        2
+    #           Src/Zle/zle_refresh.c   refreshline             2
+    #           Src/Zle/zle_refresh.c   tcoutarg                2
+    #           Src/Zle/zle_refresh.c   singmoveto              2
+    #           Src/Zle/zle_tricky.c    docomplete              2
+    #           Src/mem.c               zhalloc                 2
+    #           Src/mem.c               zheapptr                2
+    #                                   bindkey                 2
+    #                                   expandjobtab            2
+    #                                   freeheap                2
+    #                                   hbegin                  2
+    #                                   inpush                  2
+    #                                   moveto                  2
+    #                                   patgetglobflags         2
+    #                                   shinbufalloc            2
+    #                                   tcout                   2
+    #                                   wait_for_processes      2
+    #                                   zglob                   2
+    #                                   executenamedcommand     2
+    #                                   zrefresh                2
+    #                                   init_io                 2
+    #                                   initlextabs             2
+    #                                   setblock_fd             2
+    #                                   pattryrefs              2
+    #                                   unlinkkeymap            2
+    #                                   findcmd                 2
+    #                                   hist_in_word            2
+    #                                   new_optarg              2
+    #                                   closemn                 2
+    #                                   zexecve                 2
+    #                                   addpath                 2
+    #                                   insert                  2
+    #                                   setupvals               2
+    #                                   zzlex                   2
+    #                                   checkunary              2
+    #                                   push                    2
+    #                                   printoptionnode         2
+    #                                   setemulate              2
+    #                                   init_parse              2
+    #                                   bin_ln                  2
+    #                                   setpmmapfile            2
+    #                                   bin_sysread             2
+    #                                   zfstats                 2
+    #                                   zfsenddata              2
+    #                                   get_compctl             2
+    #                                   do_comp_vars            2
+    #                                   bin_compset             2
+    #                                   compprintlist           2
+    #                                   set_isrch_spot          2
+    #                                   scanfindfunc            2
+    #                                   resetvideo              2
+    #                                   insert_glob_match       8
+    #                                   mmap_heap_alloc         8
+    #                                   wait_for_processes      12
+    #                                   cfp_test_exact          30
+    # problem:  a series of macros defined in pattern.c, patinstart through
+    #           globdots, are defined to expand to struct fields of the
+    #           same name.
+    #           the transformed definitions use the names as struct fields,
+    #           however they are emitted after the macro definitions, so
+    #           the preprocessor thinks they are referring to the macro
+    #           definitions, and expand them.
+    #           this expands to incorrect code.
+    # fix:      comment out these macro definitions.
+    #           9 SLOC.
+    # problem:  after fixing the last problem, invocation of these macros
+    #           broke.
+    # fix:      inline broken macro invocations.
+    #           Macro           SLOC
+    #           patinstart      9
+    #           patinend        19
+    #           patinput        40
+    #           patinpath       3
+    #           patinlen        4
+    #           patbeginp       3
+    #           patendp         3
+    #           parsfound       4
+    #           globdots        3
+    # problem:  macro ZF_BUFSIZE undeclared before use in zftp.c
+    # fix:      move macro definition above first use.
+    #           trivial since it was defined as an integer constant.
+    #           2 SLOC.
+    EvaluationProgram(
+        r'zsh-5.9',
+        r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
+        r'Src',
+        r'./configure && intercept-build make',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
     # # TODO
     # # configured without gnutls
@@ -493,7 +553,7 @@ EVALUATION_PROGRAMS = [
     #     '''
     # ),
 
-    # # TODO: try to transform?
+    # # TODO: try to transform, may not be able to
     # # configured with all default options
     # # manual fixes: ?
     # # - file included inside struct, so some transformed decl inside struct.
@@ -537,6 +597,26 @@ EVALUATION_PROGRAMS = [
     #     make clean                  &&
     #     make                        &&
     #     make check
+    #     '''
+    # ),
+
+    # # requires libcqrlib-dev libcneartree-dev libcvector-dev libforms-dev
+    # # compiles successfully, but cannot get the original version to run,
+    # # and there is not make check, so no way of testing.
+    # # TODO: transform on local machine, just point it out in evaluation
+    # EvaluationProgram(
+    #     r'RasMol-2.7.5.2',
+    #     r'http://www.rasmol.org/software/RasMol_Latest.tar.gz',
+    #     r'src',
+    #     r'''
+    #     cd src                      &&
+    #     ./rasmol_build_options.sh --cbflib_local    &&
+    #     xmkmf                       &&
+    #     intercept-build make -j     &&
+    #     mv compile_commands.json .. &&
+    #     mv ..
+    #     ''',
+    #     r'''
     #     '''
     # ),
 
