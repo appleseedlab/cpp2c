@@ -23,4 +23,4 @@ RUN apt-get -y update && \
     # for workman
     xview-clients \
     # for RasMol
-    libcqrlib-dev
+    libcqrlib-dev libcneartree-dev libcvector-dev libforms-dev
