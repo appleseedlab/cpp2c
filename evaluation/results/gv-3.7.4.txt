@@ -1,0 +1,53 @@
+# gv-3.7.4
+avg expr nesting depth after: 2.9409046692607004
+num function and global names: 4038
+avg unique symbols per function: 15.43639053254438
+source macro definitions: 1246
+    olms: 1002
+    flms: 244
+expanded source macro definitions: 813
+    olms: 646
+    flms: 167
+unique source macro expansions: 6241
+time to reach a fixed point (s.ms): 18.647618
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 769
+    olms: 612
+    flms: 157
+transformed macro definitions: 126
+    olms: 102
+    flms: 24
+untransformed potentially transformable macro definitions: 643
+    olms: 510
+    flms: 133
+number of macros transformed to vars: 89
+percentage increase in transformed macros with our approach: 41.57303370786517%
+categories of reasons not transformed:
+    syntactic well-formedness: 322
+    environment capture: 90
+    parameter side-effects: 3
+    unsupported construct: 93
+    turned off construct: 14
+    multiple categories: 121
+potentially transformable invocations: 6185
+    olms: 3118
+    flms: 3067
+unique transformed invocations in source definitions: 313
+unique transformed invocations in transformed definitions: 5
+total unique transformed invocations: 318
+    olms: 288
+    flms: 30
+top five most transformed macros: [('LINE_CHUNK_SIZE', 12), ('FS_MAXNAMLEN', 10), ('WORD_MAXLEN', 10), ('DIALOG_POPUP', 10), ('UPPER_PART', 8)]
+untransformed invocations: 5867
+potentially transformable polymorphic macros: 187
+    olms: 148
+    flms: 39
+transformed polymorphic macros: 1
+    olms: 0
+    flms: 1
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('CALLscrollProc', 2), ('VLIST_MARK_LABEL_INDENT', 1), ('VLIST_MARK_LEFT_INDENT', 1), ('VLIST_MARK_VERTICAL_INDENT', 1), ('VLIST_MARK_WIDTH', 1)]
+transformed avg expr nesting depth after: 2.9254298642533936
+transformed num function and global names: 4165
+transformed avg unique symbols per function: 18.68617683686177
+
