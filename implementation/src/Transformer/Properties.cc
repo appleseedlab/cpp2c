@@ -414,9 +414,13 @@ namespace Transformer
             for (auto &&Arg : TD->getExpansion()->getArgumentsRef())
             {
                 std::string lower;
-                std::transform(Arg.getName().begin(),
-                               Arg.getName().end(),
-                               lower.begin(), std::towlower);
+                // make sure to add only lowercase v and a
+                for (auto c : Arg.getName())
+                {
+                    if (c == 'V') lower.push_back('v');
+                    else if (c == 'A') lower.push_back('a');
+                    else lower.push_back(c);
+                }
                 if (lower.find("__va") != std::string::npos)
                 {
                     return "Variadic macro";
