@@ -139,8 +139,13 @@ def main():
         # Configure program and generate compile_commands.json
         print(f'Building {evaluation_program.name}', file=sys.stderr)
         os.chdir(evaluation_program.extracted_archive_path)
+        start_time = datetime.now()
         subprocess.run(evaluation_program.configure_compile_commands_script, shell=True, capture_output=True)
+        end_time = datetime.now()
         print(f'Finished building {evaluation_program.name}', file=sys.stderr)
+        elapsed = end_time - start_time
+        str_stat('time to build (s.ms)', f'{elapsed.seconds}.{elapsed.microseconds}')
+
 
         # Collect compile commands from compile_commands.json
         compile_commands = compile_command.load_compile_commands_from_file('compile_commands.json')
