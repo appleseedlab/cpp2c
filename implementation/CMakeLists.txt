@@ -95,5 +95,5 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 add_subdirectory("include")
 add_subdirectory(src)
 add_subdirectory(wrappers)
-# add_subdirectory(tests)
+add_subdirectory(tests)
 
