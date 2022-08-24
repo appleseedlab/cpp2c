@@ -4,7 +4,9 @@
 
 int foo(int x) { return x; }
 
-int baz(int x, int y) { return x + y; }
+int bar(int x, int y) { return x + y; }
+
+int baz(int x, int y) { return x * y; }
 
 int main()
 {

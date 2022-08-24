@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #define BIN_EXPR_PLUS 1 + 1
 #define BIN_EXPR_MINUS 1 - 1
 #define BIN_EXPR_MULT 1 * 1
@@ -8,20 +10,37 @@
 
 int main()
 {
-    // Should transform
-    BIN_EXPR_PLUS;
+    printf(
+        "%d\n",
+        // Should transform
+        BIN_EXPR_PLUS
+    );
 
-    // Should transform
-    BIN_EXPR_MINUS;
+    printf(
+        "%d\n",
+        // Should transform
+        BIN_EXPR_MINUS
+    );
 
-    // Should transform
-    BIN_EXPR_MULT;
+    printf(
+        "%d\n",
+        // Should transform
+        BIN_EXPR_MULT
+    );
 
-    // Should transform
-    BIN_EXPR_DIV;
+    printf(
+        "%d\n",
+        // Should transform
+        BIN_EXPR_DIV
+    );
 
-    // Should not transform M, should transform N
-    M N;
+    printf(
+        "%d\n",
+        // Should not transform
+        M
+        // Should transform
+        N
+    );
 
     return 0;
 }
