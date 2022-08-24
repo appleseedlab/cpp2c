@@ -17,7 +17,8 @@ done
 let ok=0
 let fail=0
 let i=1
-for F in $(ls implementation/tests/*.c)
+C_FILES=$(ls implementation/tests/*.c)
+for F in $C_FILES
 do
     F_CPY=$F.cpy.c
     # copy src file
@@ -39,21 +40,38 @@ do
     # compile the transformed file
     cc -Wno-attributes $F_CPY
 
+    # check that it compiled successfully
+    if [ $? -ne 0 ]
+    then
+        echo "test $i: $(basename $F) fail"
+        let fail++
+        let i++
+        continue
+    fi
+
     # run it and save its output
     ./a.out >transformed.txt
+    if [ $? -ne 0 ]
+    then
+        echo "test $i: $(basename $F) fail"
+        let fail++
+        let i++
+        continue
+    fi
 
     # compare the original and transformed files
     RES=$(cmp original.txt transformed.txt)
 
-    if [ "$RES" != "" ]
+    if [ $? -ne 0 ]
     then
         echo "test $i: $(basename $F) fail"
         let fail++
-    else
-        echo "test $i: $(basename $F) ok"
-        let ok++
+        let i++
+        continue
     fi
 
+    echo "test $i: $(basename $F) ok"
+    let ok++
     let i++
 done
 
