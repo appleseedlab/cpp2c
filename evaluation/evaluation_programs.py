@@ -553,10 +553,24 @@ EVALUATION_PROGRAMS = [
     ),
 
     # Failed 2 tests out of 2527, 99.92% okay.
-    # ../ext/re/t/regop.t
-    #         re/speed.t
-    # perl does not fail these tests normally: so we must have broke something
-    # TODO: try to transform, may not be able to
+    # Test Summary Report
+    # -------------------
+    # re/speed.t                                                         (Wstat: 0 Tests: 59 Failed: 16)
+    #   Failed tests:  42-57
+    # ../ext/re/t/regop.t                                                (Wstat: 0 Tests: 52 Failed: 2)
+    #   Failed tests:  1, 51
+    #   Parse errors: Bad plan.  You planned 55 tests but ran 52.
+    # 
+    # to test, run these commands inside the perl directory
+    #   export LD_LIBRARY_PATH=`pwd`; cd t; ./perl harness re/speed.t
+    #   export LD_LIBRARY_PATH=`pwd`; cd t; ./perl harness ../ext/re/t/regop.t
+    # 
+    # i tried running both tests on a fresh perl install to see if they fail
+    # normally.
+    # when i run perl's test sute, it says that the first test passes.
+    # however, when i run the test individually in the clean install, it fails
+    # the same way it does in the transformed version.
+    # 
     # configured with all default options
     # manual fixes: 16 SLOC.
     # problem:  in regcomp.c, the transformed definition of WASTED_GC
