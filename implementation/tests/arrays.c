@@ -11,11 +11,11 @@ int main(int argc, char **argv)
     _ = FST(a);
 
     // should not transform
-    _ = FST_PTR((&a));
+    _ = FST_PTR((&(a)));
 
     for (int i=0; i < 3; i++)
         printf("%d ", a[i]);
     printf("\n");
 
-    return _;
+    return 0;
 }
