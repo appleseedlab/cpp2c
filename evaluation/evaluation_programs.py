@@ -48,317 +48,353 @@ EVALUATION_PROGRAMS = [
     #     r'test',
     #     r'test.zip',
     #     r'.',
-    #     r'intercept-build make',
+    #     r'intercept-build make -j',
     #     r''
     # ),
 
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'gzip-1.12',
-    #     r'https://mirrors.tripadvisor.com/gnu/gzip/gzip-1.12.tar.gz',
-    #     r'.',
-    #     r'./configure && intercept-build make -j',
-    #     r'''
-    #     make clean  &&
-    #     make        &&
-    #     make check
-    #     '''
-    # ),
+    # manual fixes: 0
+    EvaluationProgram(
+        r'gzip-1.12',
+        r'https://mirrors.tripadvisor.com/gnu/gzip/gzip-1.12.tar.gz',
+        r'.',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean  &&
+        make        &&
+        make check
+        '''
+    ),
 
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'remind',
-    #     r'https://git.skoll.ca/Skollsoft-Public/Remind/archive/04.00.01.tar.gz',
-    #     r'src',
-    #     r'bash configure && intercept-build make -j',
-    #     r'''
-    #     make clean      &&
-    #     make            &&
-    #     make test
-    #     '''
-    # ),
+    # manual fixes: 0
+    EvaluationProgram(
+        r'remind',
+        r'https://git.skoll.ca/Skollsoft-Public/Remind/archive/04.00.01.tar.gz',
+        r'src',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean      &&
+        make            &&
+        make test
+        '''
+    ),
 
-    # # requires makeinfo
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'bc-1.07.1',
-    #     r'https://gnu.mirror.constant.com/bc/bc-1.07.1.tar.gz',
-    #     r'bc',
-    #     r'./configure && intercept-build make -j',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check                  &&
-    #     cd Test                     &&
-    #     bash timetest 1>/dev/null
-    #     '''
-    # ),
+    # requires makeinfo
+    # manual fixes: 0
+    EvaluationProgram(
+        r'bc-1.07.1',
+        r'https://gnu.mirror.constant.com/bc/bc-1.07.1.tar.gz',
+        r'bc',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check                  &&
+        cd Test                     &&
+        bash timetest 1>/dev/null
+        '''
+    ),
 
-    # # requires help2man
-    # # failed same test it failed before transforming: ./198.sysval:err
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'm4-1.4.19',
-    #     r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
-    #     r'src',
-    #     r'./configure && intercept-build make -j',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # requires help2man
+    # failed same test it failed before transforming: ./198.sysval:err
+    # manual fixes: 0
+    EvaluationProgram(
+        r'm4-1.4.19',
+        r'https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.gz',
+        r'src',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'bash-5.2-rc1',
-    #     r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
-    #     r'.',
-    #     r'bash configure && intercept-build make -j',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # manual fixes: 0
+    EvaluationProgram(
+        r'bash-5.2-rc1',
+        r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
+        r'.',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'flex-2.6.4',
-    #     r'https://github.com/westes/flex/files/981163/flex-2.6.4.tar.gz',
-    #     r'src',
-    #     r'bash configure && intercept-build make -j',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # manual fixes: 0
+    EvaluationProgram(
+        r'flex-2.6.4',
+        r'https://github.com/westes/flex/files/981163/flex-2.6.4.tar.gz',
+        r'src',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # requires xaw3dg-dev
-    # # intercept-build didn't initially work because some of the files in gv
-    # # had utf-8 characters, but were not utf-8 encoded.
-    # # i fixed this by changing the file encodings to utf-8.
-    # # i do not count theses as manual fixes because they are not directly
-    # # related to cpp2c.
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'gv-3.7.4',
-    #     r'https://mirrors.sarata.com/gnu/gv/gv-3.7.4.tar.gz',
-    #     r'src',
-    #     r'''
-    #     iconv -f ISO-8859-1 -t UTF-8 src/Makefile.am -o tmp && mv -f tmp src/Makefile.am    &&
-    #     iconv -f ISO-8859-1 -t UTF-8 src/Makefile.in -o tmp && mv -f tmp src/Makefile.in    &&
-    #     for FN in src/gv_copyright.dat src/gv_font_res.dat src/gv_font_res-I18N_mb.dat src/gv_layout_res.dat src/gv_misc_res.dat src/gv_spartan.dat src/gv_user_res.dat src/gv_widgetless.dat; do iconv -f US-ASCII -t UTF-8 $FN -o tmp && mv -f tmp $FN; done  &&
-    #     ./configure                                                                         &&
-    #     intercept-build make -j
-    #     ''',
-    #     r'''
-    #     make clean  &&
-    #     make        &&
-    #     make check
-    #     '''
-    # ),
+    # requires xaw3dg-dev
+    # intercept-build didn't initially work because some of the files in gv
+    # had utf-8 characters, but were not utf-8 encoded.
+    # i fixed this by changing the file encodings to utf-8.
+    # i do not count theses as fixes because they are not directly
+    # related to cpp2c.
+    # manual fixes: 0
+    EvaluationProgram(
+        r'gv-3.7.4',
+        r'https://mirrors.sarata.com/gnu/gv/gv-3.7.4.tar.gz',
+        r'src',
+        r'''
+        iconv -f ISO-8859-1 -t UTF-8 src/Makefile.am -o tmp && mv -f tmp src/Makefile.am    &&
+        iconv -f ISO-8859-1 -t UTF-8 src/Makefile.in -o tmp && mv -f tmp src/Makefile.in    &&
+        for FN in src/gv_copyright.dat src/gv_font_res.dat src/gv_font_res-I18N_mb.dat src/gv_layout_res.dat src/gv_misc_res.dat src/gv_spartan.dat src/gv_user_res.dat src/gv_widgetless.dat; do iconv -f US-ASCII -t UTF-8 $FN -o tmp && mv -f tmp $FN; done  &&
+        ./configure                                                                         &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean  &&
+        make        &&
+        make check
+        '''
+    ),
 
-    # # note: this is genscript from the ernst study
-    # # the g stands for GNU
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'enscript-1.6.6',
-    #     r'https://ftp.gnu.org/gnu/enscript/enscript-1.6.6.tar.gz',
-    #     r'src',
-    #     r'bash configure && intercept-build make -j',
-    #     r'''
-    #     make clean      &&
-    #     make            &&
-    #     make check
-    #     ''',
-    # ),
+    # note: this is genscript from the ernst study
+    # the g stands for GNU
+    # manual fixes: 0
+    EvaluationProgram(
+        r'enscript-1.6.6',
+        r'https://ftp.gnu.org/gnu/enscript/enscript-1.6.6.tar.gz',
+        r'src',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean      &&
+        make            &&
+        make check
+        ''',
+    ),
 
-    # # found it!
-    # # do you know how hard it is to find something on the Internet
-    # # with such a generic name as "plan" ? :-)
+    # found it!
+    # do you know how hard it is to find something on the Internet
+    # with such a generic name as "plan" ? :-)
 
-    # # requires libmotif-dev
-    # # i had a hard time installing this one the remote machine.
-    # # my solution was to download it using wget --no-passive on my local
-    # # machine, then scp it over to the remote machine.
-    # # no tests - but manually ran the program after transforming it and
-    # # it seems to work.
-    # # i transformed the files on the remote machine, then copied them over
-    # # to my machine, then recompiled and ran the tests.
-    # # for some reason, when after configuring and making plan, i run into
-    # # a redefinition error. yylineno is redefined in lex.yy.c.
-    # # this occurs in the original, untransformed program.
-    # # i fixed this by changing the definition of int yylineno in holiday.c
-    # # to an extern int.
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'plan-1.12',
-    #     r'ftp://ftp.bitrot.de/pub/plan/plan-1.12.tar.gz',
-    #     r'src',
-    #     r'''
-    #     cd src                                                  &&
-    #     sed -i 's/int yylineno/extern int yylineno/' holiday.c  &&
-    #     ./configure 4                                           &&
-    #     make clean                                              &&
-    #     intercept-build make linux64                            &&
-    #     mv compile_commands.json ..                             &&
-    #     cd ..
-    #     ''',
-    #     r''
-    # ),
+    # requires libmotif-dev
+    # i had a hard time installing this one the remote machine.
+    # my solution was to download it using wget --no-passive on my local
+    # machine, then scp it over to the remote machine.
+    # no tests - but manually ran the program after transforming it and
+    # it seems to work.
+    # i transformed the files on the remote machine, then copied them over
+    # to my machine, then recompiled and ran the tests.
+    # for some reason, when after configuring and making plan, i run into
+    # a redefinition error. yylineno is redefined in lex.yy.c.
+    # this occurs in the original, untransformed program.
+    # i fixed this by changing the definition of int yylineno in holiday.c
+    # to an extern int.
+    # manual fixes: 0
+    EvaluationProgram(
+        r'plan-1.12',
+        r'ftp://ftp.bitrot.de/pub/plan/plan-1.12.tar.gz',
+        r'src',
+        r'''
+        cd src                                                  &&
+        sed -i 's/int yylineno/extern int yylineno/' holiday.c  &&
+        ./configure 4                                           &&
+        make clean                                              &&
+        intercept-build make linux64                            &&
+        mv compile_commands.json ..                             &&
+        cd ..
+        ''',
+        r''
+    ),
 
-    # # requires  build-essential libmotif-dev libjpeg62-dev
-    # #           libxmu-headers libxpm-dev libxmu-dev libpng-dev
-    # # no tests - but ran the program manually after transforming
-    # # and it seems to work
-    # # won't compile with gcc-11.
-    # # need to use gcc-9 or gcc-10.
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e',
-    #     r'https://github.com/alandipert/ncsa-mosaic/archive/af1c9aaaa299da3540faa16dcab82eb681cf624e.zip',
-    #     r'src',
-    #     r'intercept-build make CC=gcc-9 linux -j',
-    #     r''
-    # ),
+    # requires  build-essential libmotif-dev libjpeg62-dev
+    #           libxmu-headers libxpm-dev libxmu-dev libpng-dev
+    # no tests - but ran the program manually after transforming
+    # and it seems to work
+    # won't compile with gcc-11.
+    # need to use gcc-9 or gcc-10.
+    # manual fixes: 0
+    EvaluationProgram(
+        r'ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e',
+        r'https://github.com/alandipert/ncsa-mosaic/archive/af1c9aaaa299da3540faa16dcab82eb681cf624e.zip',
+        r'src',
+        r'intercept-build make CC=gcc-9 linux -j',
+        r''
+    ),
 
-    # # cvs redeclares stdio's getline function in lib/getline.h,
-    # # and redefines it in lib/getline.c.
-    # # to get cvs to compile, i had to rename the function's declaration
-    # # and definition to something else.
-    # # this has nothing to do with cpp2c, so i don't count it as a manual fix.
-    # # cvs has one failing test, but it fails this test before and after
-    # # transforming.
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'cvs-1.11.21',
-    #     r'https://cfhcable.dl.sourceforge.net/project/ccvs/CVS%20Stable%20Source%20Release/1.11.21/cvs-1.11.21.tar.gz',
-    #     r'src',
-    #     r'''
-    #     sed -i 's/getline __PROTO/getline_cvs __PROTO/' lib/getline.h                               &&
-    #     sed -i 's/getline (lineptr, n, stream)/getline_cvs (lineptr, n, stream)/' lib/getline.c     &&
-    #     bash configure  &&
-    #     intercept-build make
-    #     ''',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # cvs redeclares stdio's getline function in lib/getline.h,
+    # and redefines it in lib/getline.c.
+    # to get cvs to compile, i had to rename the function's declaration
+    # and definition to something else.
+    # this has nothing to do with cpp2c, so i don't count it as a manual fix.
+    # cvs has one failing test, but it fails this test before and after
+    # transforming.
+    # manual fixes: 0
+    EvaluationProgram(
+        r'cvs-1.11.21',
+        r'https://cfhcable.dl.sourceforge.net/project/ccvs/CVS%20Stable%20Source%20Release/1.11.21/cvs-1.11.21.tar.gz',
+        r'src',
+        r'''
+        sed -i 's/getline __PROTO/getline_cvs __PROTO/' lib/getline.h                               &&
+        sed -i 's/getline (lineptr, n, stream)/getline_cvs (lineptr, n, stream)/' lib/getline.c     &&
+        bash configure          &&
+        intercept-build make
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # transforms
-    # # takes 70 sec
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'gnuplot-5.4.4',
-    #     r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
-    #     r'src',
-    #     r'bash configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # transforms
+    # manual fixes: 0
+    EvaluationProgram(
+        r'gnuplot-5.4.4',
+        r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
+        r'src',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # requires X11 libraries (i think libx11-dev)
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'fvwm-2.6.9',
-    #     r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
-    #     r'fvwm',
-    #     r'./configure && intercept-build make -j',
-    #     r'''
-    #     make clean      &&
-    #     make            &&
-    #     make check
-    #     '''
-    # ),
+    # requires X11 libraries (i think libx11-dev)
+    # manual fixes: 0
+    EvaluationProgram(
+        r'fvwm-2.6.9',
+        r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
+        r'fvwm',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean      &&
+        make            &&
+        make check
+        '''
+    ),
 
-    # # manual fixes: 1 SLOC
-    # # problem:  an invocation of YY_INITIAL_VALUE in src/parse-gram.c
-    # #           was not transformed correctly.
-    # # fix:      undid the transformation.
-    # #           1 SLOC.
-    # EvaluationProgram(
-    #     r'bison-3.8.2',
-    #     r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
-    #     r'src',
-    #     r'bash configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # manual fixes: 1 SLOC
+    # problem:  an invocation of YY_INITIAL_VALUE in src/parse-gram.c
+    #           was not transformed correctly.
+    # fix:      undid the transformation.
+    #           1 SLOC.
+    EvaluationProgram(
+        r'bison-3.8.2',
+        r'https://mirrors.nav.ro/gnu/bison/bison-3.8.2.tar.gz',
+        r'src',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # when i try to compile rcs, i get a warning that gets is used
-    # # where fgets should be used instead.
-    # # i fixed this problem changing lib/stdio.in.h
-    # # https://www.fatalerrors.org/a/gets-undeclared-here-not-in-a-function.html
-    # # this was not an error due to cpp2c.
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'rcs-5.8',
-    #     r'https://mirror.koddos.net/gnu/rcs/rcs-5.8.tar.gz',
-    #     r'src',
-    #     r'''
-    #         sed -i 's/_GL_WARN_ON_USE (gets, "gets is a security hole - use fgets instead");/\#if defined(__GLIBC__) \&\& !defined(__UCLIBC__) \&\& !__GLIBC_PREREQ(2, 16)\n_GL_WARN_ON_USE (gets, "gets is a security hole - use fgets instead");\n\#endif/' lib/stdio.in.h  &&
-    #         bash configure  &&
-    #         intercept-build make''',
-    #     r'''
-    #     make clean                  &&
-    #     make distclean              &&
-    #     bash configure              &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # when i try to compile rcs, i get a warning that gets is used
+    # where fgets should be used instead.
+    # i fixed this problem changing lib/stdio.in.h
+    # https://www.fatalerrors.org/a/gets-undeclared-here-not-in-a-function.html
+    # this was not an error due to cpp2c.
+    # manual fixes: 0
+    EvaluationProgram(
+        r'rcs-5.8',
+        r'https://mirror.koddos.net/gnu/rcs/rcs-5.8.tar.gz',
+        r'src',
+        r'''
+        sed -i 's/_GL_WARN_ON_USE (gets, "gets is a security hole - use fgets instead");/\#if defined(__GLIBC__) \&\& !defined(__UCLIBC__) \&\& !__GLIBC_PREREQ(2, 16)\n_GL_WARN_ON_USE (gets, "gets is a security hole - use fgets instead");\n\#endif/' lib/stdio.in.h  &&
+        ./configure          &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make distclean              &&
+        bash configure              &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # manual fixes: 2. 3 SLOC.
-    # # problem:  in builtin.c, the macro INITIAL_OUT_SIZE was used in
-    # #           a transformed definition of GIVE_BACK_SIZE before
-    # #           INITIAL_OUT_SIZE was defined.
-    # # fix:      moved the transformed def of GIVE_BACK_SIZE after the
-    # #           definition of the macro INITIAL_OUT_SIZE.
-    # #           2 SLOC.
-    # # problem:  for some reason, in extension/intdiv.c, the definition of
-    # #           the macro MPFR_RNDZ throws an error.
-    # #           this only occurs in the tranformed code.
-    # # fix:      MPFR_RNDZ was already defined in the usr header mpfr.h
-    # #           as an enum, so i just commented out the erroneous macro
-    # #           definition.
-    # #           1 SLOC.
-    # EvaluationProgram(
-    #     r'gawk-5.1.1',
-    #     r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
-    #     r'.',
-    #     r'./configure && intercept-build make -j',
-    #     r'''
-    #     make clean                  &&
-    #     make distclean              &&
-    #     bash configure              &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # manual fixes: 2. 3 SLOC.
+    # problem:  in builtin.c, the macro INITIAL_OUT_SIZE was used in
+    #           a transformed definition of GIVE_BACK_SIZE before
+    #           INITIAL_OUT_SIZE was defined.
+    # fix:      moved the transformed def of GIVE_BACK_SIZE after the
+    #           definition of the macro INITIAL_OUT_SIZE.
+    #           2 SLOC.
+    # problem:  for some reason, in extension/intdiv.c, the definition of
+    #           the macro MPFR_RNDZ throws an error.
+    #           this only occurs in the tranformed code.
+    # fix:      MPFR_RNDZ was already defined in the usr header mpfr.h
+    #           as an enum, so i just commented out the erroneous macro
+    #           definition.
+    #           1 SLOC.
+    EvaluationProgram(
+        r'gawk-5.1.1',
+        r'https://ftp.gnu.org/gnu/gawk/gawk-5.1.1.tar.gz',
+        r'.',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make distclean              &&
+        bash configure              &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # requires xaw3dg-dev
-    # # manual fixes: 0
-    # EvaluationProgram(
-    #     r'xfig-3.2.8b',
-    #     r'https://cytranet.dl.sourceforge.net/project/mcj/xfig%2Bfig2dev-3.2.8b.tar.xz',
-    #     r'fig2dev',
-    #     r'./configure && intercept-build make',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # requires xaw3dg-dev
+    # manual fixes: 0
+    EvaluationProgram(
+        r'xfig-3.2.8b',
+        r'https://cytranet.dl.sourceforge.net/project/mcj/xfig%2Bfig2dev-3.2.8b.tar.xz',
+        r'fig2dev',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
     # requires: autoconf
     # manual fixes: 230 SLOC.
@@ -481,7 +517,10 @@ EVALUATION_PROGRAMS = [
         r'zsh-5.9',
         r'https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz',
         r'Src',
-        r'./configure && intercept-build make',
+        r'''
+        ./configure             &&
+        intercept-build make -j
+        ''',
         r'''
         make clean                  &&
         make                        &&
@@ -489,86 +528,64 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # # TODO
-    # # configured without gnutls
-    # # after these manual fixes i could not get make check to work,
-    # # but i was able to build and run emacs successfully.
-    # # manual fixes: ?
-    # # problem:  transformed definition of Qframep was called in
-    # #           frame.c before it was defined.
-    # #           normally this would not be a problem, since a declaration
-    # #           for this transformed macro would have been emitted prior
-    # #           to its first use.
-    # #           the declaration was not emitted, however, because the
-    # #           the file containing the macro definition was generated by the
-    # #           build system.
-    # #           the transformed definition must have been emitted at one point
-    # #           though, otherwise cpp2c would have failed.
-    # #           therefore, i think the build system must have overwritten the
-    # #           transformed definition by regenerating the macro definition
-    # #           file (globals.h).
-    # # fix:      moved the transformed definition above its first call.
-    # # problem:  transformed definition of pure_list had the wrong number of
-    # #           parameters.
-    # #           we shouldn't transform variadic macros; i think we need to add
-    # #           a check for this.
-    # # fix:      replaced all calls to the transformed macro across 9 files
-    # #           with the original macro.
-    # # problem:  ditto list_1660157865057390146function.
-    # # fix:      replaced transformed calls with original invocations
-    # #           across 2 files.
-    # # problem:  transformed definition of QCignore_defface called before
-    # #           definition.
-    # # fix:      moved transformed definition above first call in 1 file.
-    # # problem:  transformed definition of DIRECTORY_SEP called before
-    # #           definition.
-    # # fix:      move transformed definition above first call.
-    # # problem:  in alloc.c, there is a a struct named sdata, and an anonymous
-    # #           typedef'd to the name sdata.
-    # #           this broke the deanonmyizer and several transformed function
-    # #           signatures.
-    # # fix:      undid deanonymization in one file and fixed 2 transformed
-    # #           signatures in the same file.
-    # #           also removed forward decls of sdata union.
-    # # problem:  variadic macros list and pure_list ere transformed in alloc.c.
-    # # fix:      undid 2 transformations in alloc.c.
-    # # problem:  in editfns.c, macro COMBINING_BEFORE was invoked before
-    # #           it was defined in the transformed definition of COMBINING_BOTH.
-    # # fix:      moved transformed definition below macro definition.
-    # # problem:  in process.c, transformed definition of Qpipe was called before
-    # #           it was defined.
-    # # fix:      moved transformed definition above first use.
-    # # problem:  ditto Qserial, Qnetwork.
-    # # fix:      see above.
-    # # in total, 16 files were edited.
-    # EvaluationProgram(
-    #     r'emacs-28.1',
-    #     r'https://ftp.snt.utwente.nl/pub/software/gnu/emacs/emacs-28.1.tar.gz',
-    #     r'src',
-    #     r'bash configure --with-gnutls=ifavailable && intercept-build make -j',
-    #     r'''
-    #     make clean                  &&
-    #     make                        &&
-    #     make check
-    #     '''
-    # ),
+    # requires gnutls libjpeg libgif/libungif libtiff gnutls
+    # but these requirements can be circumvented with configuration options.
+    # manual fixes: 4 SLOC.
+    # problem:  in src/editfns.c, the transformed definition of
+    #           COMBINING_BOTH invoked the macros COMBINING_BEFORE and
+    #           COMBINING_AFTER before they were defined.
+    # fix:      moved the definitions of COMBINING_BEFORE and COMBINING_AFTER
+    #           above the transformed def of COMBINING_BOTH.
+    #           4 SLOC.
+    EvaluationProgram(
+        r'emacs-28.1',
+        r'https://ftp.snt.utwente.nl/pub/software/gnu/emacs/emacs-28.1.tar.gz',
+        r'src',
+        r'''
+        ./configure --with-gnutls=ifavailable --with-gif=ifavailable --with-tiff=ifavailable    &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean                  &&
+        make                        &&
+        make check
+        '''
+    ),
 
-    # # TODO: try to transform, may not be able to
-    # # configured with all default options
-    # # manual fixes: ?
-    # # - file included inside struct, so some transformed decl inside struct.
-    # #   + moved decls outside of struct.
-    # # - for some reason, the transformed def of OPSLOT_HEADER was not emitted.
-    # #   clang's error messages are not very informative.
-    # #   perl must be doing a lot of metaprogramming or something.
-    # #   i have not seen these sort of issues with any other program.
-    # EvaluationProgram(
-    #     r'perl-5.36.0',
-    #     r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
-    #     r'.',
-    #     r'./Configure -d -e -s && intercept-build make -j',
-    #     r'make clean -j && make check -j'
-    # ),
+    # Failed 2 tests out of 2527, 99.92% okay.
+    # ../ext/re/t/regop.t
+    #         re/speed.t
+    # perl does not fail these tests normally: so we must have broke something
+    # TODO: try to transform, may not be able to
+    # configured with all default options
+    # manual fixes: 16 SLOC.
+    # problem:  in regcomp.c, the transformed definition of WASTED_GC
+    #           invoked WASTED_G and WASTED_C before they were defined.
+    # fix:      moved macro definitions above transformed definition.
+    #           4 SLOC.
+    # problem:  in util.c, transformed definitions invoked DAYS_PER_YEAR,
+    #           DAYS_PER_QYEAR, DAYS_PER_CENT, MONTH_TO_DAYS, and SECS_PER_HOUR
+    #           before they were defined.
+    # fix:      move these macro defs up.
+    #           10 SLOC.
+    # problem:  in regcomp.c, the transformed def of IS_OPERAND invoked
+    #           IS_OPERATOR before it was defined.
+    # fix:      copied macro definition and corresponding undef
+    #           above transformed definition.
+    #           2 SLOC.
+    EvaluationProgram(
+        r'perl-5.36.0',
+        r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
+        r'.',
+        r'''
+        ./Configure -d -e -s        &&
+        intercept-build make -j
+        ''',
+        r'''
+        make clean -j   &&
+        make check -j
+        '''
+    ),
 
     # # contains c++ code.
     # # we do not transform c++ code.
@@ -603,7 +620,7 @@ EVALUATION_PROGRAMS = [
     # # requires libcqrlib-dev libcneartree-dev libcvector-dev libforms-dev
     # # compiles successfully, but cannot get the original version to run,
     # # and there is not make check, so no way of testing.
-    # # TODO: transform on local machine, just point it out in evaluation
+    # # manual fixes: N/A
     # EvaluationProgram(
     #     r'RasMol-2.7.5.2',
     #     r'http://www.rasmol.org/software/RasMol_Latest.tar.gz',
