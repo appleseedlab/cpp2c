@@ -24,7 +24,8 @@ UNTRANSFORMED_EXPANSION_PREFIX = 'CPP2C:Untransformed Expansion'
 
 OLM_TAG = 'object-like'
 FLM_TAG = 'function-like'
-EXTRACTED_EVALUATION_PROGRAMS_DIR = r'/home/bpappas/cpp2c/evaluation/'
+
+RESULTS_DIR = r'results/'
 
 CATEGORIES_NOT_TRANSFORMED = [
     'Syntactic well-formedness',
@@ -106,10 +107,19 @@ def top_five_macros_by_val(d: Dict[str, int]):
 
 def main():
 
+    # Create the results dir if it does not exist
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+
     # Disable numpy text wrapping
     np.set_printoptions(linewidth=np.inf)
 
     for evaluation_program in EVALUATION_PROGRAMS:
+
+        # Change std out to outfile
+        # FIXME: This is messy, should be using context managers instead
+        ofp_fn = os.path.join(RESULTS_DIR, evaluation_program.name + '.txt')
+        ofp = open(ofp_fn, 'w')
+        sys.stdout = ofp
 
         # Download the program zip file if we do not already have it
         if not os.path.exists(evaluation_program.archive_file):
@@ -136,6 +146,8 @@ def main():
         # evaluating this program
         evaluation_dir = os.getcwd()
 
+        print(f'{evaluation_program.name}')
+
         # Configure program and generate compile_commands.json
         print(f'Building {evaluation_program.name}', file=sys.stderr)
         os.chdir(evaluation_program.extracted_archive_path)
@@ -145,7 +157,6 @@ def main():
         print(f'Finished building {evaluation_program.name}', file=sys.stderr)
         elapsed = end_time - start_time
         str_stat('time to build (s.ms)', f'{elapsed.seconds}.{elapsed.microseconds}')
-
 
         # Collect compile commands from compile_commands.json
         compile_commands = compile_command.load_compile_commands_from_file('compile_commands.json')
@@ -171,7 +182,6 @@ def main():
                              if (cc.file.endswith('.c') or
                                 cc.file.endswith('.h')) and
                                 ('++' not in cc.arguments[0]) ]
-        print(f'# {evaluation_program.name}')
 
         # Loop 1: Pre-transformation abstraction factor
         # TODO: Put this into a function so we don't have to repeat this
@@ -582,6 +592,9 @@ def main():
         # Flush to see evaluation results of this program before moving on to next one
         sys.stdout.flush()
         print()
+        # Close out file
+        # FIXME: use context manager instead
+        ofp.close()
         # Change back to top-level evaluation directory
         os.chdir(evaluation_dir)
 
