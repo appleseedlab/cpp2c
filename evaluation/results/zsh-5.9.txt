@@ -1,4 +1,5 @@
-# zsh-5.9
+zsh-5.9
+time to build (s.ms): 62.603132
 avg expr nesting depth after: 2.5666814307474586
 num function and global names: 6406
 avg unique symbols per function: 11.589584143023707
@@ -9,7 +10,7 @@ expanded source macro definitions: 2234
     olms: 1881
     flms: 353
 unique source macro expansions: 25320
-time to reach a fixed point (s.ms): 52.560539
+time to reach a fixed point (s.ms): 56.122008
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 2192
     olms: 1849
@@ -46,7 +47,7 @@ transformed polymorphic macros: 5
     olms: 0
     flms: 5
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('mtmark', 2), ('mgmark', 2), ('mmarked', 2), ('P_OPERAND', 2), ('SELECT_ADD_COST', 2)]
+macros with most transformed types: [('mtmark', 2), ('mgmark', 2), ('mmarked', 2), ('SELECT_ADD_COST', 2), ('P_OPERAND', 2)]
 transformed avg expr nesting depth after: 2.556028872322802
 transformed num function and global names: 6776
 transformed avg unique symbols per function: 14.208432505950357

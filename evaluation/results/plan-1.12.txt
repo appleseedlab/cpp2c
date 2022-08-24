@@ -1,4 +1,5 @@
-# plan-1.12
+plan-1.12
+time to build (s.ms): 10.540394
 avg expr nesting depth after: 2.6663626746434175
 num function and global names: 2862
 avg unique symbols per function: 13.106542056074767
@@ -9,7 +10,7 @@ expanded source macro definitions: 371
     olms: 321
     flms: 50
 unique source macro expansions: 3187
-time to reach a fixed point (s.ms): 23.750242
+time to reach a fixed point (s.ms): 25.384430
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 365
     olms: 316
@@ -46,7 +47,7 @@ transformed polymorphic macros: 3
     olms: 0
     flms: 3
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('XSCALE', 2), ('YSCALE', 2), ('YYUSE', 2), ('MAXLANGUAGES', 1), ('SNOOZE_PERIOD', 1)]
+macros with most transformed types: [('YYUSE', 2), ('XSCALE', 2), ('YSCALE', 2), ('SNOOZE_PERIOD', 1), ('ANY', 1)]
 transformed avg expr nesting depth after: 2.662630890052356
 transformed num function and global names: 2944
 transformed avg unique symbols per function: 15.753646677471638

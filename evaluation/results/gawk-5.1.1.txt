@@ -1,4 +1,5 @@
-# gawk-5.1.1
+gawk-5.1.1
+time to build (s.ms): 21.91037
 avg expr nesting depth after: 2.462613589187693
 num function and global names: 4553
 avg unique symbols per function: 12.502911208151383
@@ -9,7 +10,7 @@ expanded source macro definitions: 1060
     olms: 731
     flms: 329
 unique source macro expansions: 12207
-time to reach a fixed point (s.ms): 218.513081
+time to reach a fixed point (s.ms): 222.551868
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 1011
     olms: 717
@@ -37,7 +38,7 @@ unique transformed invocations in transformed definitions: 7
 total unique transformed invocations: 688
     olms: 490
     flms: 198
-top five most transformed macros: [('instruction', 99), ('GET_INSTRUCTION', 44), ('CAN_FREE', 25), ('FSEP', 25), ('NO_PPRINT_FLAGS', 22)]
+top five most transformed macros: [('instruction', 99), ('GET_INSTRUCTION', 44), ('FSEP', 25), ('CAN_FREE', 25), ('NO_PPRINT_FLAGS', 22)]
 untransformed invocations: 11429
 potentially transformable polymorphic macros: 212
     olms: 142
@@ -46,7 +47,7 @@ transformed polymorphic macros: 4
     olms: 0
     flms: 4
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('YY_USE', 2), ('YY_USE', 2), ('instruction', 2), ('GET_INSTRUCTION', 2), ('MAX_ATYPE', 1)]
+macros with most transformed types: [('YY_USE', 2), ('YY_USE', 2), ('instruction', 2), ('GET_INSTRUCTION', 2), ('BP_ENABLE_ONCE', 1)]
 transformed avg expr nesting depth after: 2.454347077064431
 transformed num function and global names: 4733
 transformed avg unique symbols per function: 14.876932989690722

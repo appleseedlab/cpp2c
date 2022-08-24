@@ -1,0 +1,54 @@
+gnuplot-5.4.4
+time to build (s.ms): 19.626440
+avg expr nesting depth after: 2.5126282217050253
+num function and global names: 6604
+avg unique symbols per function: 13.5549472037544
+source macro definitions: 1481
+    olms: 1248
+    flms: 233
+expanded source macro definitions: 1061
+    olms: 865
+    flms: 196
+unique source macro expansions: 12749
+time to reach a fixed point (s.ms): 48.523632
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 1049
+    olms: 854
+    flms: 195
+transformed macro definitions: 165
+    olms: 141
+    flms: 24
+untransformed potentially transformable macro definitions: 884
+    olms: 713
+    flms: 171
+number of macros transformed to vars: 130
+percentage increase in transformed macros with our approach: 26.923076923076923%
+categories of reasons not transformed:
+    syntactic well-formedness: 335
+    environment capture: 14
+    parameter side-effects: 3
+    unsupported construct: 295
+    turned off construct: 29
+    multiple categories: 208
+potentially transformable invocations: 12735
+    olms: 10562
+    flms: 2173
+unique transformed invocations in source definitions: 719
+unique transformed invocations in transformed definitions: 2
+total unique transformed invocations: 721
+    olms: 461
+    flms: 260
+top five most transformed macros: [('plot', 61), ('X', 59), ('Y', 57), ('vlist', 35), ('pop', 31)]
+untransformed invocations: 12014
+potentially transformable polymorphic macros: 204
+    olms: 153
+    flms: 51
+transformed polymorphic macros: 1
+    olms: 0
+    flms: 1
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
+macros with most transformed types: [('GE', 3), ('COLORBOX_SCALE', 1), ('WIDEST_COLORBOX_TICTEXT', 1), ('MIN_LAMBDA', 1), ('STANDARD', 1)]
+transformed avg expr nesting depth after: 2.502942730411491
+transformed num function and global names: 6771
+transformed avg unique symbols per function: 14.803236484001472
+

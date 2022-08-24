@@ -1,4 +1,5 @@
-# gzip-1.12
+gzip-1.12
+time to build (s.ms): 21.794101
 avg expr nesting depth after: 2.1872799812250645
 num function and global names: 2622
 avg unique symbols per function: 10.495145631067961
@@ -9,7 +10,7 @@ expanded source macro definitions: 513
     olms: 303
     flms: 210
 unique source macro expansions: 4183
-time to reach a fixed point (s.ms): 114.513019
+time to reach a fixed point (s.ms): 113.897853
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 462
     olms: 290
@@ -46,7 +47,7 @@ transformed polymorphic macros: 0
     olms: 0
     flms: 0
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
-macros with most transformed types: [('MIN_EXP', 1), ('Buf_size', 1), ('LOCHDR', 1), ('LOCSIG', 1), ('LOCHOW', 1)]
+macros with most transformed types: [('REPLACE_FUNC_STAT_FILE', 1), ('futimes', 1), ('LENGTH_CODES', 1), ('D_CODES', 1), ('MAX_BITS', 1)]
 transformed avg expr nesting depth after: 2.1714019562179785
 transformed num function and global names: 2684
 transformed avg unique symbols per function: 15.52434456928839

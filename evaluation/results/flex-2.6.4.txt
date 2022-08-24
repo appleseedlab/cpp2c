@@ -1,4 +1,5 @@
-# flex-2.6.4
+flex-2.6.4
+time to build (s.ms): 12.320581
 avg expr nesting depth after: 1.719781117281934
 num function and global names: 1481
 avg unique symbols per function: 10.785016286644952
@@ -9,7 +10,7 @@ expanded source macro definitions: 401
     olms: 297
     flms: 104
 unique source macro expansions: 3134
-time to reach a fixed point (s.ms): 16.782213
+time to reach a fixed point (s.ms): 18.325251
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 376
     olms: 280
@@ -46,7 +47,7 @@ transformed polymorphic macros: 1
     olms: 0
     flms: 1
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('YYUSE', 2), ('TFLAGS_CLRDATA', 1), ('YYINITDEPTH', 1), ('YYEMPTY', 1), ('YYMAXDEPTH', 1)]
+macros with most transformed types: [('YYUSE', 2), ('set_indent', 1), ('bufsz', 1), ('CCL_HASH_SIZE', 1), ('NAME_TABLE_HASH_SIZE', 1)]
 transformed avg expr nesting depth after: 1.7225602336334875
 transformed num function and global names: 1605
 transformed avg unique symbols per function: 18.074245939675173

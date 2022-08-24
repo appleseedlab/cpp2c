@@ -1,4 +1,5 @@
-# fvwm-2.6.9
+fvwm-2.6.9
+time to build (s.ms): 31.797470
 avg expr nesting depth after: 1.4438738406670586
 num function and global names: 7330
 avg unique symbols per function: 16.259815636736086
@@ -9,7 +10,7 @@ expanded source macro definitions: 2256
     olms: 1121
     flms: 1135
 unique source macro expansions: 14787
-time to reach a fixed point (s.ms): 83.304228
+time to reach a fixed point (s.ms): 87.850739
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 2226
     olms: 1107
@@ -46,7 +47,7 @@ transformed polymorphic macros: 0
     olms: 0
     flms: 0
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
-macros with most transformed types: [('_XA_TARGETS', 1), ('MAX_TARGETS', 1), ('_XA_TIMESTAMP', 1), ('_XA_VERSION', 1), ('_XA_MULTIPLE', 1)]
+macros with most transformed types: [('NUM_DEFAULT_OPTS', 1), ('GRAB_EVMASK', 1), ('default_layer', 1), ('MOVE_PAGE', 1), ('MOVE_SCREEN', 1)]
 transformed avg expr nesting depth after: 1.4431677435721426
 transformed num function and global names: 7583
 transformed avg unique symbols per function: 17.992143306096793

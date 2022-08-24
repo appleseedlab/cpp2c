@@ -1,4 +1,5 @@
-# cvs-1.11.21
+cvs-1.11.21
+time to build (s.ms): 32.618311
 avg expr nesting depth after: 2.598453854069928
 num function and global names: 2434
 avg unique symbols per function: 13.24777975133215
@@ -9,7 +10,7 @@ expanded source macro definitions: 677
     olms: 443
     flms: 234
 unique source macro expansions: 5974
-time to reach a fixed point (s.ms): 36.440358
+time to reach a fixed point (s.ms): 38.195757
 runs to reach a fixed point: 4
 potentially transformable macro definitions: 623
     olms: 418

@@ -1,4 +1,5 @@
-# remind
+remind
+time to build (s.ms): 8.714405
 avg expr nesting depth after: 3.049976087996174
 num function and global names: 1760
 avg unique symbols per function: 10.830128205128204
@@ -9,7 +10,7 @@ expanded source macro definitions: 364
     olms: 307
     flms: 57
 unique source macro expansions: 4297
-time to reach a fixed point (s.ms): 6.256720
+time to reach a fixed point (s.ms): 6.423089
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 356
     olms: 304
@@ -37,7 +38,7 @@ unique transformed invocations in transformed definitions: 5
 total unique transformed invocations: 219
     olms: 154
     flms: 65
-top five most transformed macros: [('dsin', 30), ('torad', 16), ('ADARA', 9), ('fixangle', 8), ('DEGRAD', 6)]
+top five most transformed macros: [('dsin', 30), ('torad', 16), ('ADARA', 9), ('fixangle', 8), ('KISLEV', 6)]
 untransformed invocations: 4009
 potentially transformable polymorphic macros: 53
     olms: 43
@@ -46,7 +47,7 @@ transformed polymorphic macros: 0
     olms: 0
     flms: 0
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
-macros with most transformed types: [('FUNC_HASH_SIZE', 1), ('VAR_HASH_SIZE', 1), ('VARIABLE', 1), ('VALUE', 1), ('UNDEF', 1)]
+macros with most transformed types: [('CORRECTION', 1), ('MONTH', 1), ('M', 1), ('DAY', 1), ('WEEK', 1)]
 transformed avg expr nesting depth after: 3.0292393026941364
 transformed num function and global names: 1834
 transformed avg unique symbols per function: 12.974212034383955

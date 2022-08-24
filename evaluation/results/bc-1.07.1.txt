@@ -1,4 +1,5 @@
-# bc-1.07.1
+bc-1.07.1
+time to build (s.ms): 6.879650
 avg expr nesting depth after: 2.7296257432668765
 num function and global names: 922
 avg unique symbols per function: 10.320754716981131
@@ -9,7 +10,7 @@ expanded source macro definitions: 178
     olms: 146
     flms: 32
 unique source macro expansions: 1178
-time to reach a fixed point (s.ms): 3.943316
+time to reach a fixed point (s.ms): 4.411963
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 170
     olms: 140
@@ -46,7 +47,7 @@ transformed polymorphic macros: 1
     olms: 0
     flms: 1
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('YYUSE', 2), ('CastNumPtr', 1), ('CastNum', 1), ('DEFAULT_LINE_MAX', 1), ('MUL_SMALL_DIGITS', 1)]
+macros with most transformed types: [('YYUSE', 2), ('YY_BUF_SIZE', 1), ('YY_SC_TO_UI', 1), ('slcomment', 1), ('INITIAL', 1)]
 transformed avg expr nesting depth after: 2.7273357600970707
 transformed num function and global names: 967
 transformed avg unique symbols per function: 14.1

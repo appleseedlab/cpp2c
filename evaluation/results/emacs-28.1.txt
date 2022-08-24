@@ -1,4 +1,5 @@
-# emacs-28.1
+emacs-28.1
+time to build (s.ms): 56.2015
 avg expr nesting depth after: 2.5456231401361573
 num function and global names: 15908
 avg unique symbols per function: 17.54916166425171
@@ -9,7 +10,7 @@ expanded source macro definitions: 5769
     olms: 4257
     flms: 1512
 unique source macro expansions: 91900
-time to reach a fixed point (s.ms): 4621.135642
+time to reach a fixed point (s.ms): 4655.563940
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 4205
     olms: 2845
@@ -46,7 +47,7 @@ transformed polymorphic macros: 12
     olms: 0
     flms: 12
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 4.]
-macros with most transformed types: [('GET_PIXEL', 4), ('RE_CHAR_TO_MULTIBYTE', 2), ('SAVED_WINDOW_N', 2), ('SWAP', 2), ('ASCENDING_ORDER', 2)]
+macros with most transformed types: [('GET_PIXEL', 4), ('SWAP', 2), ('COLOR_INTENSITY', 2), ('SAVED_WINDOW_N', 2), ('ASCENDING_ORDER', 2)]
 transformed avg expr nesting depth after: 2.5411297707041243
 transformed num function and global names: 16318
 transformed avg unique symbols per function: 19.312177403938062
