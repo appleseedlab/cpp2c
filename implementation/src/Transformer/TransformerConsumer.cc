@@ -187,6 +187,7 @@ namespace Transformer
                 AllowedMacroDefFileRealPaths.insert(it.second);
             }
 
+            debugMsg("Removing all #includes inside decls\n");
             // Remove files #include'd inside decls
             for (auto &&it : IncludeLocToFileRealPath)
             {
@@ -197,6 +198,19 @@ namespace Transformer
                     auto E = DeclRange.getEnd();
                     if (B <= Loc && Loc <= E)
                     {
+                        if (TSettings.Verbose)
+                        {
+                            debugMsg(
+                                "Erasing " +
+                                it.second +
+                                " because its include location is\n");
+                            Loc.dump(SM);
+                            llvm::errs() << "between\n";
+                            B.dump(SM);
+                            llvm::errs() << "and\n";
+                            E.dump(SM);
+                        }
+                        
                         AllowedMacroDefFileRealPaths.erase(it.second);
                     }
                 }
@@ -204,7 +218,7 @@ namespace Transformer
 
             // Allow macros defined in main file
             clang::FileID MainFID = SM.getMainFileID();
-            auto FE= SM.getFileEntryForID(MainFID);
+            auto FE = SM.getFileEntryForID(MainFID);
             if (FE)
             {
                 auto MainFileRealPath = FE->tryGetRealPathName().str();
