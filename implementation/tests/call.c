@@ -10,17 +10,31 @@ int baz(int x, int y) { return x * y; }
 
 int main()
 {
-    // Should transform argument
-    foo(ONE);
+    foo(
+        // Should transform
+        ONE
+    );
 
-    // Should transform first argument
-    bar(ONE, 2);
+    bar(
+        // Should transform
+        ONE
+        ,
+        2
+    );
 
-    // Should transform second argument
-    bar(1, TWO);
+    bar(
+        1,
+        // Should transform
+        TWO
+    );
 
-    // Should transform both arguments
-    baz(ONE, TWO);
+    baz(
+        // Should transform
+        ONE
+        ,
+        // Should transform
+        TWO
+    );
 
     return 0;
 }

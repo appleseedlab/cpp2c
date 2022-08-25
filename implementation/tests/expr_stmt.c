@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int x = 0;
 
 int foo() { return 0; }
@@ -12,20 +14,34 @@ int foo() { return 0; }
 
 int main()
 {
-    // Should transform
-    NUM;
-    // Should transform
-    VAR;
-    // Should transform
-    PAREN_EXPR;
-    // Should transform
-    UN_EXPR;
-    // Should transform
-    BIN_EXPR;
-    // Should not transform
-    ASSIGN;
-    // Should not transform
-    CALL_OR_INVOCATION;
+    printf("%d\n",
+        // Should transform
+        NUM
+    );
+    printf("%d\n",
+        // Should transform
+        VAR
+    );
+    printf("%d\n",
+        // Should transform
+        PAREN_EXPR
+    );
+    printf("%d\n",
+        // Should transform
+        UN_EXPR
+    );
+    printf("%d\n",
+        // Should transform
+        BIN_EXPR
+    );
+    printf("%d\n",
+        // Should not transform
+        ASSIGN
+    );
+    printf("%d\n",
+        // Should not transform
+        CALL_OR_INVOCATION
+    );
 
     return 0;
 }

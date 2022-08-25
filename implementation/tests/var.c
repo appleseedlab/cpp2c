@@ -1,16 +1,22 @@
+#include <stdio.h>
+
 #define ID(x) x
 
-int y;
+int y = 1;
 
 int main()
 {
-    int x;
+    int x = 2;
 
-    // Should not transform
-    ID(x);
+    printf("%d\n",
+        // Should transform
+        ID(x)
+    );
 
-    // Should transform
-    ID(y);
+    printf("%d\n",
+        // Should transform
+        ID(y)
+    );
 
     return 0;
 }

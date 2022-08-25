@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #define ONE 1
 #define FOO 1 + 2
 #define BAR ONE + FOO
@@ -8,23 +10,35 @@
 
 int main()
 {
-    // Should transform
-    ONE;
+    printf("%d\n",
+        // Should transform
+        ONE
+    );
 
-    // Should transform
-    FOO;
+    printf("%d\n",
+        // Should transform
+        FOO
+    );
 
-    // Should transform
-    BAR;
+    printf("%d\n",
+        // Should transform
+        BAR
+    );
 
-    // Should transform
-    BAZ;
+    printf("%d\n",
+        // Should transform
+        BAZ
+    );
 
-    // Should transform
-    BUZZ;
+    printf("%d\n",
+        // Should transform
+        BUZZ
+    );
 
-    // Should transform
-    GT_FOO(3);
+    printf("%d\n",
+        // Should transform
+        GT_FOO(3)
+    );
 
     return 0;
 }

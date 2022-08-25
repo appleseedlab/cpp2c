@@ -4,8 +4,10 @@
 
 int main()
 {
-    // Should transform to var
-    int x = ONE;
+    int x =
+        // Should transform
+        ONE
+    ;
     printf("x=%d\n", x);
     return 0;
 }

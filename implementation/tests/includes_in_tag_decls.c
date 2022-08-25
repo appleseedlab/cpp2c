@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 struct S {
     #include "two.h"
     int x : TWO;
@@ -15,10 +17,19 @@ enum E {
 
 int main(int argc, char **argv)
 {
-    // should not transform because decl location is invalid
-    TWO;
-    // should not transform because decl location is invalid
-    FOUR;
-    // should not transform because decl location is invalid
-    EIGHT;
+    
+    printf("%d\n",
+        // Should not transform
+        TWO
+    );
+
+    printf("%d\n",
+        // Should not transform
+        FOUR
+    );
+
+    printf("%d\n",
+        // Should not transform
+        EIGHT
+    );
 }

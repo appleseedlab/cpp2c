@@ -1,21 +1,45 @@
+#include <stdio.h>
+
 #define ONE 1
 
 int main(void)
 {
 
-    // Should transform all three expressions
-    for (int i = ONE; i < ONE; i += ONE)
-    {
+    for (int i =
         // Should transform
-        ONE;
+        ONE
+        ; i <=
+        // Should transform
+        ONE
+        ; i +=
+        // Should transform
+        ONE
+        )
+    {
+        printf(
+            "%d\n",
+            // Should transform
+            ONE
+        );
     }
 
-    // Should transform all three expressions
     int j = 0;
-    for (j = ONE; j < ONE; j += ONE)
-    {
+    for (j =
         // Should transform
-        ONE;
+        ONE
+        ; j <=
+        // Should transform
+        ONE
+        ; j +=
+        // Should transform
+        ONE
+        )
+    {
+        printf(
+            "%d\n",
+            // Should transform
+            ONE
+        );
     }
 
     return 0;

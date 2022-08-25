@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #define X x
 
 int main()
@@ -5,8 +7,10 @@ int main()
     int x;
     x;
 
-    // Should not transform
-    X;
+    printf("%d\n",
+        // Should not transform
+        X
+    );
 
     return 0;
 }

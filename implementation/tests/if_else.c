@@ -1,24 +1,36 @@
+#include <stdio.h>
+
 #define ONE 1
 
 int main()
 {
-    // Should transform
-    if (ONE)
-    {
+    if (
         // Should transform
-        ONE;
+        ONE
+    )
+    {
+        printf("%d\n",
+            // Should transform
+            ONE
+        );
     }
 
-    // Should transform
-    if (ONE)
-    {
+    if (
         // Should transform
-        ONE;
+        ONE
+    )
+    {
+        printf("%d\n",
+            // Should transform
+            ONE
+        );
     }
     else
     {
-        // Should transform
-        ONE;
+        printf("%d\n",
+            // Should transform
+            ONE
+        );
     }
 
     return 0;

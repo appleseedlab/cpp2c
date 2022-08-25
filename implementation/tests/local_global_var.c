@@ -1,19 +1,27 @@
+#include <stdio.h>
+
 #define X x
-int y;
+int y = 0;
 #define Y y
 
 int main()
 {
-    int x;
+    int x = 1;
     x;
 
-    // Should not transform
-    X;
+    printf("%d\n",
+        // Should not transform
+        X
+    );
+    ;
 
     y;
 
-    // Should transform
-    Y;
+    printf("%d\n",
+        // Should transform
+        Y
+    );
+    ;
 
     return 0;
 }

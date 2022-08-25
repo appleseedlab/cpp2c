@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #define GET_X_STATIC(su) su.x
 #define GET_X_PTR(su) su->x
 #define GET_S_STATIC(u) u.s
@@ -35,33 +37,58 @@ M f(M m) { return m; }
 int main(int argc, char const *argv[])
 {
     S s;
-    // should be transformed
-    GET_X_STATIC(s);
-    // should be transformed
-    GET_X_STATIC(s);
-    // should be transformed
-    GET_X_PTR((&s));
+    s.x = 1;
+    printf("%d\n",
+        // Should transform
+        GET_X_STATIC(s)
+    );
+    printf("%d\n",
+        // Should transform
+        GET_X_STATIC(s)
+    );
+    printf("%d\n",
+        // Should transform
+        GET_X_PTR((&(s)))
+    );
 
     union U u;
-    // should be transformed
-    GET_X_STATIC(u);
-    // should be transformed
-    GET_S_STATIC(u);
+    u.x = 2;
+    printf("%d\n",
+        // Should transform
+        GET_X_STATIC(u)
+    );
+    printf("%d\n",
+        // Should transform
+        GET_X_STATIC(u)
+    );
 
-    M m;
-    // should not be transformed
-    CALL_F_WITH(m);
+    M m = Y;
+    // Should not transform
+    printf("%d\n",
+        // Should transform
+        CALL_F_WITH(m)
+    );
 
     struct T t;
-    // should not be transformed
-    GET_S_STATIC(t.u);
+    t.u.s.x = 1;
+    printf("%d\n",
+        // Should not transform
+       GET_S_STATIC(t.u)
+       .x
+    );
 
-    // should not be transformed
-    GET_S_PTR((&(t.u)));
+    printf("%d\n",
+        // Should not transform
+       GET_S_PTR((&(t.u)))
+       .x
+    );
 
 #undef GET_X_PTR
 #define GET_X_PTR(su) su->x
-    // should be transformed
-    GET_X_PTR((&s));
+
+    printf("%d\n",
+        // Should not transform
+       GET_X_PTR((&(s)))
+    );
     return 0;
 }

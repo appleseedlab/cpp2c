@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #define NUM_DAYS_IN_WEEK 7
 #define LUCKY_NUMBER 7
 
@@ -10,15 +12,25 @@ int main(int argc, char const *argv[])
     // to the same transformation.
     // If not, then they should be transformed to separate definitions
 
-    // Should transform
-    NUM_DAYS_IN_WEEK;
-    // Should transform
-    LUCKY_NUMBER;
+    printf("%d\n",
+        // Should transform
+        NUM_DAYS_IN_WEEK
+    );
+    
+    printf("%d\n",
+        // Should transform
+        LUCKY_NUMBER
+    );
 
-    // Should transform
-    DOUBLE(1);
-    // Should transform
-    SHL1(1);
+    printf("%d\n",
+        // Should transform
+        DOUBLE(1)
+    );
+
+    printf("%d\n",
+        // Should transform
+        SHL1(1)
+    );
 
     return 0;
 }

@@ -1,13 +1,22 @@
+#include <stdio.h>
+
 #define ZERO 0
 #define ONE 1
 
 int main()
 {
-    // Should transform
-    while (ZERO)
-    {
+    int i = 0;
+    while (
+        i <=
         // Should transform
-        ONE;
+        ZERO
+    )
+    {
+        printf("%d\n",
+            // Should not transform
+            ONE
+        );
+        i++;
     }
 
     return 0;

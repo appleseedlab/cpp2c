@@ -5,23 +5,23 @@
 int main()
 {
     {
-        // Should transform
         printf(
             "%d\n",
+            // Should transform
             ONE
         );
 
         {
-            // Should transform
             printf(
                 "%d\n",
+                // Should transform
                 ONE
             );
 
             {
-                // Should transform
                 printf(
                     "%d\n",
+                    // Should transform
                     ONE
                 );
 
@@ -30,9 +30,9 @@ int main()
                 {
                 }
 
-                // Should transform
                 printf(
                     "%d\n",
+                    // Should transform
                     ONE
                 );
             }

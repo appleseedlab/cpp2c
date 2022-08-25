@@ -1,42 +1,60 @@
+#include <stdio.h>
+
 #define ONE 1
 
 enum
 {
-    // Should not transform
-    VAR = ONE
+    VAR =
+        // Should not transform
+        ONE
 };
 
 struct MyStruct
 {
-    // Should not transform
-    int field : ONE;
+    int field :
+        // Should not transform
+        ONE
+    ;
 };
 
 union MyUnion
 {
-    // Should not transform
-    int field : ONE;
+    int field :
+        // Should not transform
+        ONE
+    ;
 };
 
-// Should not transform
-int g = ONE;
+int g =
+    // Should not transform
+    ONE
+;
 
 int main(int argc, char const *argv[])
 {
-    // Should transform
-    switch (ONE)
-    {
-    // Should not transform because this must be a constant expression
-    case ONE:
+    switch (
         // Should transform
-        ONE;
+        ONE
+    )
+    {
+    case
+        // Should not transform
+        ONE
+    :
+        printf("%d\n",
+            // Should transform
+            ONE
+        );
         break;
 
     default:
         break;
     }
 
-    // Should not transform
-    int a[ONE];
+    int a[
+        // Should not transform
+        ONE
+    ] = { 1 };
+    printf("%d\n", a[0]);
     return 0;
 }

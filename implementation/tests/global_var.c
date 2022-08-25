@@ -1,8 +1,10 @@
 #include "global_var.h"
 
-int x;
-int y;
-int z = 1;
+#include <stdio.h>
+
+int x = 3;
+int y = 4;
+int z = 5;
 
 #define W w
 #define X() x
@@ -11,19 +13,34 @@ int z = 1;
 
 int main()
 {
-    // Should transform, and definition should be in this file
-    U;
+    printf(
+        "%d\n",
+        // Should transform
+        U
+    );
 
-    // Should transform, and definition should be in this file
-    W;
+    printf(
+        "%d\n",
+        // Should transform
+        W
+    );
 
-    // Should transform
-    X();
+    printf(
+        "%d\n",
+        // Should transform
+        X()
+    );
 
-    // Should transform
-    Y;
+    printf(
+        "%d\n",
+        // Should transform
+        Y
+    );
 
-    // Should transform
-    Z;
+    printf(
+        "%d\n",
+        // Should transform
+        Z
+    );
     return 0;
 }
