@@ -348,7 +348,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # manual fixes: 2. 3 SLOC.
+    # manual fixes: 3 SLOC.
     # problem:  in builtin.c, the macro INITIAL_OUT_SIZE was used in
     #           a transformed definition of GIVE_BACK_SIZE before
     #           INITIAL_OUT_SIZE was defined.
