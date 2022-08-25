@@ -23,8 +23,6 @@ namespace Visitors
             return true;
         }
 
-        D->dump();
-
         this->DeclRanges.push_back(D->getSourceRange());
 
         return true;
