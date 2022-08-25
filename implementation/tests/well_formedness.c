@@ -253,8 +253,8 @@ int main()
         DIV(x, y)
     );
 
-    // Should transform
     printf("%lf\n",
+        // Should transform
         DIV(1.0, 2.0)
     );
 

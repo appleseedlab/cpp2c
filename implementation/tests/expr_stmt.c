@@ -35,11 +35,11 @@ int main()
         BIN_EXPR
     );
     printf("%d\n",
-        // Should not transform
+        // Should transform
         ASSIGN
     );
     printf("%d\n",
-        // Should not transform
+        // Should transform
         CALL_OR_INVOCATION
     );
 

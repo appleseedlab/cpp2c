@@ -65,7 +65,7 @@ int main(int argc, char const *argv[])
     M m = Y;
     // Should not transform
     printf("%d\n",
-        // Should transform
+        // Should not transform
         CALL_F_WITH(m)
     );
 
@@ -87,7 +87,7 @@ int main(int argc, char const *argv[])
 #define GET_X_PTR(su) su->x
 
     printf("%d\n",
-        // Should not transform
+        // Should transform
        GET_X_PTR((&(s)))
     );
     return 0;

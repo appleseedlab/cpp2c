@@ -41,7 +41,7 @@ int main()
     );
 
     printf("%d\n",
-        // Should not transform
+        // Should transform
         ID(foo())
     );
 
