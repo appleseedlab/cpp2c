@@ -17,6 +17,14 @@ namespace Visitors
             return true;
         }
 
+        // Don't include the Translation Unit Decl
+        if (clang::isa<clang::TranslationUnitDecl>(D))
+        {
+            return true;
+        }
+
+        D->dump();
+
         this->DeclRanges.push_back(D->getSourceRange());
 
         return true;
