@@ -107,6 +107,14 @@ def top_five_macros_by_val(d: Dict[str, int]):
 
 def main():
 
+    # Get the full path to the cpp2c shared object file
+    cpp2c_so_path = r'../implementation/build/lib/libCpp2C.so'
+    if os.path.exists(cpp2c_so_path):
+        cpp2c_so_path = os.path.realpath(cpp2c_so_path)
+    else:
+        print("error: cpp2c.so not found", file=sys.stderr)
+        return 1
+
     # Create the results dir if it does not exist
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
@@ -227,7 +235,7 @@ def main():
         source_macro_definitions: Set[str] = set()
         mhash_to_raw_expansion_spelling_locations: DefaultDict[str, set(str)] = defaultdict(set)
         for cc in compile_commands:
-            cmd = compile_command.cpp2c_command_from_compile_command(cc, ['tr', '-v'])
+            cmd = compile_command.cpp2c_command_from_compile_command(cpp2c_so_path, cc, ['tr', '-v'])
             os.chdir(cc.directory)
             cp = subprocess.run(cmd, shell=True, capture_output=True, text=True, errors='ignore')
 
@@ -368,7 +376,7 @@ def main():
         while True:
             emitted_a_transformation = False
             for cc in compile_commands:
-                cmd = compile_command.cpp2c_command_from_compile_command(cc, ['tr', '-dd', '-i', '-v'])
+                cmd = compile_command.cpp2c_command_from_compile_command(cpp2c_so_path, cc, ['tr', '-dd', '-i', '-v'])
                 # Change to the command directory to run the command
                 os.chdir(cc.directory)
                 cp = subprocess.run(cmd, shell=True, capture_output=True, text=True)
