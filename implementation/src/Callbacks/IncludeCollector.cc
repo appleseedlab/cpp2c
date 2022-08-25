@@ -7,25 +7,24 @@ namespace Callbacks
         &IncludeLocToFileRealPath)
         : IncludeLocToFileRealPath(IncludeLocToFileRealPath){};
 
-    void IncludeCollector::InclusionDirective (
+    void IncludeCollector::InclusionDirective(
         clang::SourceLocation HashLoc,
         const clang::Token &IncludeTok,
         llvm::StringRef FileName,
         bool IsAngled,
         clang::CharSourceRange FilenameRange,
-        llvm::Optional<clang::FileEntryRef> File,
+        const clang::FileEntry *File,
         llvm::StringRef SearchPath,
         llvm::StringRef RelativePath,
         const clang::Module *Imported,
         clang::SrcMgr::CharacteristicKind FileType)
         {
-            if (File.hasValue())
+            if (File)
             {
                 std::string FileRealPath = File
-                                           .getValue()
-                                           .getFileEntry()
-                                           .tryGetRealPathName()
+                                           ->tryGetRealPathName()
                                            .str();
+                llvm::errs() << "Visiting include of " << FileRealPath << "\n";
                 IncludeLocToFileRealPath[HashLoc] = FileRealPath;
             }
         }

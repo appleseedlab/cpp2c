@@ -26,16 +26,16 @@ namespace Callbacks
             std::map<clang::SourceLocation, std::string>
             &IncludeLocToFileRealPath);
 
-        void InclusionDirective (
+        void InclusionDirective(
             clang::SourceLocation HashLoc,
             const clang::Token &IncludeTok,
             llvm::StringRef FileName,
             bool IsAngled,
             clang::CharSourceRange FilenameRange,
-            llvm::Optional<clang::FileEntryRef> File,
+            const clang::FileEntry *File,
             llvm::StringRef SearchPath,
             llvm::StringRef RelativePath,
             const clang::Module *Imported,
-            clang::SrcMgr::CharacteristicKind FileType);
+            clang::SrcMgr::CharacteristicKind FileType) override;
     };
 } // namespace Callbacks
