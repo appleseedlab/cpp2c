@@ -52,7 +52,7 @@ EVALUATION_PROGRAMS = [
     #     r''
     # ),
 
-    # manual fixes: 0
+    manual fixes: 0
     EvaluationProgram(
         r'gzip-1.12',
         r'https://mirrors.tripadvisor.com/gnu/gzip/gzip-1.12.tar.gz',
@@ -236,7 +236,11 @@ EVALUATION_PROGRAMS = [
     # and it seems to work
     # won't compile with gcc-11.
     # need to use gcc-9 or gcc-10.
-    # manual fixes: 0
+    # manual fixes: 4 SLOC.
+    # problem:  in src/xpmhash.c, two transformed definitions of XpmFree had the
+    # wrong return type (int instead of void.)
+    # fix:      changed the transformed decls and defs to have void return type.
+    #           4 SLOC.
     EvaluationProgram(
         r'ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e',
         r'https://github.com/alandipert/ncsa-mosaic/archive/af1c9aaaa299da3540faa16dcab82eb681cf624e.zip',
@@ -250,8 +254,8 @@ EVALUATION_PROGRAMS = [
     # to get cvs to compile, i had to rename the function's declaration
     # and definition to something else.
     # this has nothing to do with cpp2c, so i don't count it as a manual fix.
-    # cvs has one failing test, but it fails this test before and after
-    # transforming.
+    # cvs has one failing test, basicb-21, but it fails this test before
+    # and after transforming.
     # manual fixes: 0
     EvaluationProgram(
         r'cvs-1.11.21',
@@ -271,7 +275,14 @@ EVALUATION_PROGRAMS = [
     ),
 
     # transforms
-    # manual fixes: 0
+    # manual fixes: 18 SLOC.
+    # problem:  in src/term.c, the there is a #include of "term.h" inside
+    #           the definition of the struct termentry.
+    #           term.h #includes pm3d.h, which has some transformed decls
+    #           emitted to it.
+    #           this results in a syntax error.
+    # fix:      comment out the transformed decls.
+    #           18 SLOC.
     EvaluationProgram(
         r'gnuplot-5.4.4',
         r'https://cytranet.dl.sourceforge.net/project/gnuplot/gnuplot/5.4.4/gnuplot-5.4.4.tar.gz',
@@ -348,16 +359,28 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # manual fixes: 3 SLOC.
+    # manual fixes: 11 SLOC.
     # problem:  in builtin.c, the macro INITIAL_OUT_SIZE was used in
     #           a transformed definition of GIVE_BACK_SIZE before
     #           INITIAL_OUT_SIZE was defined.
     # fix:      moved the transformed def of GIVE_BACK_SIZE after the
     #           definition of the macro INITIAL_OUT_SIZE.
     #           2 SLOC.
+    # problem:  in gawkapi.h, the macro definitions MPFR_RNDN, MPFR_RNDZ,
+    #           MPFR_RNDU, and MPFR_RNDD throw an error.
+    # fix:      comment out these macro definitions.
+    #           4 SLOC.
+    # problem:  the transformed definition of sym_update_scalar has a macro
+    #           named scalar_cookie.
+    #           this is the same name as a macro defined in gawkapi.h,
+    #           so the transformed definition throws an error.
+    # fix:      added a preprocessor conditional to check if scalar_cookie
+    #           was defined, undefined it if so, then redefined it after
+    #           the function definition.
+    #           4 SLOC.
     # problem:  for some reason, in extension/intdiv.c, the definition of
     #           the macro MPFR_RNDZ throws an error.
-    #           this only occurs in the tranformed code.
+    #           this only occurs in the transformed code.
     # fix:      MPFR_RNDZ was already defined in the usr header mpfr.h
     #           as an enum, so i just commented out the erroneous macro
     #           definition.
@@ -397,7 +420,9 @@ EVALUATION_PROGRAMS = [
     ),
 
     # requires: autoconf
-    # manual fixes: 230 SLOC.
+    # failed 1 of 61 tests
+    #   ./A04redirect.ztst: test failed.
+    # manual fixes: 182 SLOC.
     # problem:  in the original code, some part of the build system
     #           generates .pro and .epro files with function forward
     #           declarations.
@@ -408,84 +433,92 @@ EVALUATION_PROGRAMS = [
     #           so the build system doesn't generate all the forward
     #           declarations that it should.
     # fix:      move the comments back where they belong.
-    #           File                    Function                SLOC
-    #           Src/parse.c             bin_zcompile            2
-    #           Src/lex.c               gettok                  2
-    #           Src/math.c              mathparse               2
-    #           Src/options.c           optlookupc              2
-    #           Src/params.c            printparamnode          2
-    #           Src/parse.c             par_cmd                 2
-    #           Src/parse.c             load_dump_header        2
-    #           Src/parse.c             check_dump_file         2
-    #           Src/pattern.c           patcompswitch           2
-    #           Src/pattern.c           patcomppiece            2
-    #           Src/pattern.c           patoptail               2
-    #           Src/pattern.c           patmatch                2
-    #           Src/pattern.c           patcompile              2
-    #           Src/subst.c             stringsubst             2
-    #           Src/Modules/mathfunc.c  math_func               2
-    #           Src/Modules/watch.c     watchlog2               2
-    #           Src/Zle/compctl.c       get_xcompctl.c          2
-    #           Src/Zle/compctl.c       makecomplistctl         2
-    #           Src/Zle/compcore.c      do_completion           2
-    #           Src/Zle/complist.c      clprintm                2
-    #           Src/Zle/zle_hist.c      doisearch               2
-    #           Src/Zle/zle_move.c      backwardmetafiedchar    2
-    #           Src/Zle/zle_keymap.c    bin_bindkey_list        2
-    #           Src/Zle/zle_refresh.c   refreshline             2
-    #           Src/Zle/zle_refresh.c   tcoutarg                2
-    #           Src/Zle/zle_refresh.c   singmoveto              2
-    #           Src/Zle/zle_tricky.c    docomplete              2
-    #           Src/mem.c               zhalloc                 2
-    #           Src/mem.c               zheapptr                2
-    #                                   bindkey                 2
-    #                                   expandjobtab            2
-    #                                   freeheap                2
-    #                                   hbegin                  2
-    #                                   inpush                  2
-    #                                   moveto                  2
-    #                                   patgetglobflags         2
-    #                                   shinbufalloc            2
-    #                                   tcout                   2
-    #                                   wait_for_processes      2
-    #                                   zglob                   2
-    #                                   executenamedcommand     2
-    #                                   zrefresh                2
-    #                                   init_io                 2
-    #                                   initlextabs             2
-    #                                   setblock_fd             2
-    #                                   pattryrefs              2
-    #                                   unlinkkeymap            2
-    #                                   findcmd                 2
-    #                                   hist_in_word            2
-    #                                   new_optarg              2
-    #                                   closemn                 2
-    #                                   zexecve                 2
-    #                                   addpath                 2
-    #                                   insert                  2
-    #                                   setupvals               2
-    #                                   zzlex                   2
-    #                                   checkunary              2
-    #                                   push                    2
-    #                                   printoptionnode         2
-    #                                   setemulate              2
-    #                                   init_parse              2
-    #                                   bin_ln                  2
-    #                                   setpmmapfile            2
-    #                                   bin_sysread             2
-    #                                   zfstats                 2
-    #                                   zfsenddata              2
-    #                                   get_compctl             2
-    #                                   do_comp_vars            2
-    #                                   bin_compset             2
-    #                                   compprintlist           2
-    #                                   set_isrch_spot          2
-    #                                   scanfindfunc            2
-    #                                   resetvideo              2
-    #                                   insert_glob_match       8
-    #                                   mmap_heap_alloc         8
-    #                                   wait_for_processes      12
-    #                                   cfp_test_exact          30
+    # Function                  SLOC
+    # addhistnode               2
+    # backkill                  2
+    # backwardmetafiedchar      2
+    # bin_bindkey_list          2
+    # bin_setopt                2
+    # bin_zcompile              2
+    # bindkey                   2
+    # bindztrdup                2
+    # check_dump_file           2
+    # clprintm                  2
+    # cut                       2
+    # cuttext                   2
+    # dashgetfn                 2
+    # dircache_set              2
+    # disableshfuncnode         2
+    # do_completion             2
+    # docomplete                2
+    # doisearch                 2
+    # dosetopt                  2
+    # emulate                   2
+    # executenamedcommand       2
+    # expandjobtab              2
+    # fillnameddirtable         2
+    # findcmd                   2
+    # findpwd                   2
+    # forekill                  2
+    # freecmdnamnode            2
+    # freeheap                  2
+    # freehistdata              2
+    # freehistnode              2
+    # get_xcompctl.c            2
+    # gethashnode               2
+    # gettok                    2
+    # getzlequery               2
+    # hashdir                   2
+    # hist_in_word              2
+    # histhasher                2
+    # init_io                   2
+    # initlextabs               2
+    # inpush                    2
+    # installemulation          2
+    # load_dump_header          2
+    # makecomplistctl           2
+    # math_func                 2
+    # math_string               2
+    # mathparse                 2
+    # mkundoent                 2
+    # moveto                    2
+    # optlookupc                2
+    # par_cmd                   2
+    # patcompile                2
+    # patcomppiece              2
+    # patcompswitch             2
+    # patgetglobflags           2
+    # patmatch                  2
+    # patoptail                 2
+    # pattryrefs                2
+    # printaliasnode            2
+    # printnameddirnode         2
+    # printparamnode            2
+    # printshfuncnode           2
+    # refreshline               2
+    # setblock_fd               2
+    # setline                   2
+    # shinbufalloc              2
+    # showmsg                   2
+    # singmoveto                2
+    # sizeline                  2
+    # stringaszleline           2
+    # stringsubst               2
+    # strmetasort               2
+    # tcout                     2
+    # tcoutarg                  2
+    # unlinkkeymap              2
+    # wait_for_processes        2
+    # watchlog2                 2
+    # zcontext_save_partial     2
+    # zftp_open                 2
+    # zglob                     2
+    # zhalloc                   2
+    # zheapptr                  2
+    # zlecharasstring           2
+    # zlelineasstring           2
+    # zrefresh                  2
+    # TOTAL                     166
     # problem:  a series of macros defined in pattern.c, patinstart through
     #           globdots, are defined to expand to struct fields of the
     #           same name.
@@ -494,21 +527,17 @@ EVALUATION_PROGRAMS = [
     #           the preprocessor thinks they are referring to the macro
     #           definitions, and expand them.
     #           this expands to incorrect code.
-    # fix:      comment out these macro definitions.
-    #           9 SLOC.
-    # problem:  after fixing the last problem, invocation of these macros
-    #           broke.
-    # fix:      inline broken macro invocations.
-    #           Macro           SLOC
-    #           patinstart      9
-    #           patinend        19
-    #           patinput        40
-    #           patinpath       3
-    #           patinlen        4
-    #           patbeginp       3
-    #           patendp         3
-    #           parsfound       4
-    #           globdots        3
+    # fix:      move transformed definitions that used these names above the
+    #           macro definitions
+    #           Transformed Def     SLOC
+    #           patinstart          2
+    #           patinend            2
+    #           patinput            2
+    #           patinpath           2
+    #           patinlen            2
+    #           parsfound           2
+    #           globdots            2
+    #           TOTAL               14
     # problem:  macro ZF_BUFSIZE undeclared before use in zftp.c
     # fix:      move macro definition above first use.
     #           trivial since it was defined as an integer constant.
@@ -552,7 +581,7 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # Failed 2 tests out of 2527, 99.92% okay.
+    # Before last update, failed 2 tests out of 2527, 99.92% okay.
     # Test Summary Report
     # -------------------
     # re/speed.t                                                         (Wstat: 0 Tests: 59 Failed: 16)
@@ -560,19 +589,23 @@ EVALUATION_PROGRAMS = [
     # ../ext/re/t/regop.t                                                (Wstat: 0 Tests: 52 Failed: 2)
     #   Failed tests:  1, 51
     #   Parse errors: Bad plan.  You planned 55 tests but ran 52.
-    # 
+    #
     # to test, run these commands inside the perl directory
     #   export LD_LIBRARY_PATH=`pwd`; cd t; ./perl harness re/speed.t
     #   export LD_LIBRARY_PATH=`pwd`; cd t; ./perl harness ../ext/re/t/regop.t
-    # 
+    #
     # i tried running both tests on a fresh perl install to see if they fail
     # normally.
     # when i run perl's test sute, it says that the first test passes.
     # however, when i run the test individually in the clean install, it fails
     # the same way it does in the transformed version.
+    #
+    # now perl just fails to compile.
+    # if i run make -j, make says it cannot find git_version.h
+    # if i just run make, then it throws an out of memory error.
     # 
     # configured with all default options
-    # manual fixes: 16 SLOC.
+    # manual fixes: ?
     # problem:  in regcomp.c, the transformed definition of WASTED_GC
     #           invoked WASTED_G and WASTED_C before they were defined.
     # fix:      moved macro definitions above transformed definition.
@@ -587,19 +620,69 @@ EVALUATION_PROGRAMS = [
     # fix:      copied macro definition and corresponding undef
     #           above transformed definition.
     #           2 SLOC.
-    EvaluationProgram(
-        r'perl-5.36.0',
-        r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
-        r'.',
-        r'''
-        ./Configure -d -e -s        &&
-        intercept-build make -j
-        ''',
-        r'''
-        make clean -j   &&
-        make check -j
-        '''
-    ),
+    # problem:  several transformed definitions invoked the macro
+    #           GCC_DIAG_RESTORE, which expands to a prama that
+    #           results in a syntax error.
+    # fix:      remove call to GCC_DIAG_RESTORE from transformed definitions
+    #           File        Transformed Def
+    #           taint.c         GCC_DIAG_RESTORE_STMT
+    #           pp_ctl.c        GCC_DIAG_RESTORE_STMT
+    #           doio.c          GCC_DIAG_RESTORE_STMT
+    #           util.c          GCC_DIAG_RESTORE_STMT
+    #           pp_sys.c        GCC_DIAG_RESTORE_STMT
+    #           toke.c          GCC_DIAG_RESTORE_STMT
+    #           sv.c            GCC_DIAG_RESTORE_STMT
+    # problem:  a few transformed definitions were not declared before they
+    #           were first called.
+    #           this is especially odd because it seems that no transformed
+    #           definition at all was emitted for this macros.
+    #           it may have to do with the fact that the two affected files,
+    #           opmini.c and universalmini.c, are actually links.
+    #           also, this comment from opmini.c is telling:
+    #               Note that during the build of miniperl,
+    #               a temporary copy of this file
+    #               * is made, called opmini.c.
+    # fix:      add decls before first invocation.
+    #           Each is 1 SLOC.
+    #           Transformed Def             File
+    #           SVfARG                      opmini.c
+    #           PERL_UNUSED_ARG
+    #           PTR2IV
+    #           Perl_debug_log
+    #           PerlIO_stderr
+    #           PL_hints
+    #           NOOP
+    #           PERLDB_LINE
+    #           PERLDB_NOOPT
+    #           TAINTING_get
+    #           PERLDB_INTER
+    #           PERLDB_SUB (twice)
+    #           TAINT_set
+    #           PERLDB_NAMEANON
+    #           PERLDB_SUBLINE
+    #           UNLIKELY
+    #           EXPECT
+    #           EXPECT                      perlmini.c
+    #           NOOP
+    #           PERL_UNUSED_VAR (twice)     universalmini.c
+    #           PERL_UNUSED_ARG (3 times)
+    #           HEKfARG
+    #           CALLREG_NAMED_BUFF_COUNT
+    #           CALLREG_NAMED_BUFF_FETCH
+    #           CALLREG_NAMED_BUFF_ALL
+    # EvaluationProgram(
+    #     r'perl-5.36.0',
+    #     r'https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz',
+    #     r'.',
+    #     r'''
+    #     ./Configure -d -e -s        &&
+    #     intercept-build make -j
+    #     ''',
+    #     r'''
+    #     make clean -j   &&
+    #     make check -j
+    #     '''
+    # ),
 
     # # contains c++ code.
     # # we do not transform c++ code.
