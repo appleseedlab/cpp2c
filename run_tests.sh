@@ -35,7 +35,17 @@ done
 let ok=0
 let fail=0
 let i=1
-C_FILES=$(ls implementation/tests/*.c)
+C_FILES=""
+
+if [ $# != 0 ]
+then
+    # if the user passed specific tests, only run those tests
+    C_FILES="$@"
+else
+    # otherwise, run all tests
+    C_FILES=$(ls implementation/tests/*.c)
+fi
+
 for F in $C_FILES
 do
     F_CPY=$F.cpy.c
@@ -131,7 +141,7 @@ do
 done
 
 let i--
-echo "passing $ok / $i tests"
+echo "passed $ok / $i tests"
 
 # delete copied files
 rm -f implementation/tests/*.cpy.*
