@@ -1,5 +1,5 @@
 ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e
-time to build (s.ms): 1.476974
+time to build (s.ms): 1.438953
 avg expr nesting depth after: 2.3712065566165386
 num function and global names: 5033
 avg unique symbols per function: 14.63658991910392
@@ -10,45 +10,45 @@ expanded source macro definitions: 939
     olms: 837
     flms: 102
 unique source macro expansions: 6253
-time to reach a fixed point (s.ms): 37.561988
+time to reach a fixed point (s.ms): 194.344310
 runs to reach a fixed point: 3
-potentially transformable macro definitions: 889
-    olms: 797
-    flms: 92
-transformed macro definitions: 136
-    olms: 119
-    flms: 17
-untransformed potentially transformable macro definitions: 753
-    olms: 678
-    flms: 75
-number of macros transformed to vars: 117
-percentage increase in transformed macros with our approach: 16.23931623931624%
+potentially transformable macro definitions: 895
+    olms: 800
+    flms: 95
+transformed macro definitions: 313
+    olms: 289
+    flms: 24
+untransformed potentially transformable macro definitions: 582
+    olms: 511
+    flms: 71
+number of macros transformed to vars: 287
+percentage increase in transformed macros with our approach: 9.059233449477352%
 categories of reasons not transformed:
-    syntactic well-formedness: 191
+    syntactic well-formedness: 197
     environment capture: 11
     parameter side-effects: 3
-    unsupported construct: 405
+    unsupported construct: 307
     turned off construct: 9
-    multiple categories: 134
-potentially transformable invocations: 6139
-    olms: 4418
-    flms: 1721
-unique transformed invocations in source definitions: 545
+    multiple categories: 55
+potentially transformable invocations: 6145
+    olms: 4421
+    flms: 1724
+unique transformed invocations in source definitions: 1081
 unique transformed invocations in transformed definitions: 0
-total unique transformed invocations: 545
-    olms: 430
-    flms: 115
-top five most transformed macros: [('IMAGE_DEFAULT_BORDER', 23), ('NIL', 18), ('PUTS', 17), ('SLAB_GLOBE', 16), ('RED', 15)]
-untransformed invocations: 5594
-potentially transformable polymorphic macros: 123
-    olms: 99
+total unique transformed invocations: 1081
+    olms: 924
+    flms: 157
+top five most transformed macros: [('MO_LINE_LENGTH', 31), ('MCCIR_ERROR', 29), ('IMAGE_DEFAULT_BORDER', 23), ('XpmSuccess', 20), ('MCCI_FAIL', 19)]
+untransformed invocations: 5064
+potentially transformable polymorphic macros: 124
+    olms: 100
     flms: 24
-transformed polymorphic macros: 2
+transformed polymorphic macros: 7
     olms: 0
-    flms: 2
-twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('LM_to_uint', 2), ('ReadOK', 2), ('PNG_BYTES_TO_CHECK', 1), ('MAX_LINE', 1), ('INPUT_BUFFER_SIZE', 1)]
-transformed avg expr nesting depth after: 2.3618908081431216
-transformed num function and global names: 5171
-transformed avg unique symbols per function: 16.14785100286533
+    flms: 7
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 6.]
+macros with most transformed types: [('XpmFree', 6), ('FREE', 3), ('XpmMalloc', 3), ('MALLOC', 2), ('LM_to_uint', 2)]
+transformed avg expr nesting depth after: 2.3560723811716846
+transformed num function and global names: 5359
+transformed avg unique symbols per function: 18.006207966890845
 

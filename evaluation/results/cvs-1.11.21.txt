@@ -1,5 +1,5 @@
 cvs-1.11.21
-time to build (s.ms): 32.618311
+time to build (s.ms): 32.61580
 avg expr nesting depth after: 2.598453854069928
 num function and global names: 2434
 avg unique symbols per function: 13.24777975133215
@@ -10,45 +10,45 @@ expanded source macro definitions: 677
     olms: 443
     flms: 234
 unique source macro expansions: 5974
-time to reach a fixed point (s.ms): 38.195757
+time to reach a fixed point (s.ms): 332.368000
 runs to reach a fixed point: 4
-potentially transformable macro definitions: 623
-    olms: 418
+potentially transformable macro definitions: 624
+    olms: 419
     flms: 205
-transformed macro definitions: 115
-    olms: 86
-    flms: 29
-untransformed potentially transformable macro definitions: 508
-    olms: 332
-    flms: 176
-number of macros transformed to vars: 83
-percentage increase in transformed macros with our approach: 38.55421686746988%
+transformed macro definitions: 217
+    olms: 175
+    flms: 42
+untransformed potentially transformable macro definitions: 407
+    olms: 244
+    flms: 163
+number of macros transformed to vars: 172
+percentage increase in transformed macros with our approach: 26.16279069767442%
 categories of reasons not transformed:
-    syntactic well-formedness: 215
+    syntactic well-formedness: 216
     environment capture: 16
     parameter side-effects: 6
-    unsupported construct: 165
+    unsupported construct: 88
     turned off construct: 26
-    multiple categories: 80
-potentially transformable invocations: 5794
-    olms: 3111
+    multiple categories: 55
+potentially transformable invocations: 5796
+    olms: 3113
     flms: 2683
-unique transformed invocations in source definitions: 501
-unique transformed invocations in transformed definitions: 11
-total unique transformed invocations: 512
-    olms: 345
-    flms: 167
-top five most transformed macros: [('FILE0', 31), ('BYTEWIDTH', 26), ('D_NUMLINES', 21), ('false', 20), ('D_LOWLINE', 19)]
-untransformed invocations: 5282
-potentially transformable polymorphic macros: 154
-    olms: 93
+unique transformed invocations in source definitions: 1093
+unique transformed invocations in transformed definitions: 13
+total unique transformed invocations: 1106
+    olms: 873
+    flms: 233
+top five most transformed macros: [('Z_NULL', 54), ('RUN_TTY', 44), ('W_LOCAL', 42), ('Z_OK', 38), ('BUFFER_DATA_SIZE', 35)]
+untransformed invocations: 4690
+potentially transformable polymorphic macros: 155
+    olms: 94
     flms: 61
-transformed polymorphic macros: 10
+transformed polymorphic macros: 14
     olms: 0
-    flms: 10
-twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2. 2.]
-macros with most transformed types: [('D_LOWLINE', 2), ('D_HIGHLINE', 2), ('D_HIGH_MAPLINE', 2), ('D_NEXT', 2), ('D_LINEARRAY', 2)]
-transformed avg expr nesting depth after: 2.5834959715758394
-transformed num function and global names: 2559
-transformed avg unique symbols per function: 15.365307753796962
+    flms: 14
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2. 6.]
+macros with most transformed types: [('ZFREE', 6), ('ZALLOC', 4), ('RE_TRANSLATE', 3), ('bzero', 2), ('HASH', 2)]
+transformed avg expr nesting depth after: 2.560356192323956
+transformed num function and global names: 2672
+transformed avg unique symbols per function: 17.10850439882698
 

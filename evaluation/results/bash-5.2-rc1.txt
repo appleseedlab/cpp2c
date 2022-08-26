@@ -1,5 +1,5 @@
 bash-5.2-rc1
-time to build (s.ms): 30.905516
+time to build (s.ms): 31.951115
 avg expr nesting depth after: 2.7851440424689877
 num function and global names: 5290
 avg unique symbols per function: 16.355423476968795
@@ -10,45 +10,45 @@ expanded source macro definitions: 1825
     olms: 1276
     flms: 549
 unique source macro expansions: 20274
-time to reach a fixed point (s.ms): 52.538072
+time to reach a fixed point (s.ms): 486.699922
 runs to reach a fixed point: 3
-potentially transformable macro definitions: 1790
-    olms: 1260
-    flms: 530
-transformed macro definitions: 416
-    olms: 380
-    flms: 36
-untransformed potentially transformable macro definitions: 1374
-    olms: 880
-    flms: 494
-number of macros transformed to vars: 362
-percentage increase in transformed macros with our approach: 14.917127071823206%
+potentially transformable macro definitions: 1794
+    olms: 1263
+    flms: 531
+transformed macro definitions: 756
+    olms: 679
+    flms: 77
+untransformed potentially transformable macro definitions: 1038
+    olms: 584
+    flms: 454
+number of macros transformed to vars: 661
+percentage increase in transformed macros with our approach: 14.37216338880484%
 categories of reasons not transformed:
-    syntactic well-formedness: 491
+    syntactic well-formedness: 467
     environment capture: 18
     parameter side-effects: 17
-    unsupported construct: 542
+    unsupported construct: 311
     turned off construct: 142
-    multiple categories: 164
-potentially transformable invocations: 20208
-    olms: 9093
-    flms: 11115
-unique transformed invocations in source definitions: 1354
-unique transformed invocations in transformed definitions: 12
-total unique transformed invocations: 1366
-    olms: 1251
-    flms: 115
-top five most transformed macros: [('SIG_TRAPPED', 32), ('LPAREN', 28), ('SIG_INPROGRESS', 22), ('FALSE', 22), ('WORD', 22)]
-untransformed invocations: 18842
-potentially transformable polymorphic macros: 320
-    olms: 191
+    multiple categories: 83
+potentially transformable invocations: 20212
+    olms: 9096
+    flms: 11116
+unique transformed invocations in source definitions: 3431
+unique transformed invocations in transformed definitions: 23
+total unique transformed invocations: 3454
+    olms: 2940
+    flms: 514
+top five most transformed macros: [('EXECUTION_FAILURE', 97), ('EXECUTION_SUCCESS', 85), ('RL_ISSTATE', 78), ('CTLESC', 72), ('RL_UNSETSTATE', 59)]
+untransformed invocations: 16758
+potentially transformable polymorphic macros: 345
+    olms: 216
     flms: 129
-transformed polymorphic macros: 4
+transformed polymorphic macros: 9
     olms: 0
-    flms: 4
+    flms: 9
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('YY_USE', 3), ('binsize', 2), ('ALLOCATED_BYTES', 2), ('V', 2), ('ST_INT', 1)]
-transformed avg expr nesting depth after: 2.771490204591089
-transformed num function and global names: 5711
-transformed avg unique symbols per function: 18.29881109643329
+macros with most transformed types: [('_', 3), ('TOCHAR', 3), ('YY_USE', 3), ('free', 3), ('xmalloc', 2)]
+transformed avg expr nesting depth after: 2.74830974367246
+transformed num function and global names: 6059
+transformed avg unique symbols per function: 19.72513912412291
 

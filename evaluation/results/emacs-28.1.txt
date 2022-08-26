@@ -1,5 +1,5 @@
 emacs-28.1
-time to build (s.ms): 56.2015
+time to build (s.ms): 56.509592
 avg expr nesting depth after: 2.5456231401361573
 num function and global names: 15908
 avg unique symbols per function: 17.54916166425171
@@ -10,45 +10,45 @@ expanded source macro definitions: 5769
     olms: 4257
     flms: 1512
 unique source macro expansions: 91900
-time to reach a fixed point (s.ms): 4655.563940
-runs to reach a fixed point: 3
-potentially transformable macro definitions: 4205
-    olms: 2845
-    flms: 1360
-transformed macro definitions: 396
-    olms: 239
-    flms: 157
-untransformed potentially transformable macro definitions: 3809
-    olms: 2606
-    flms: 1203
-number of macros transformed to vars: 223
-percentage increase in transformed macros with our approach: 77.57847533632287%
+time to reach a fixed point (s.ms): 6494.569258
+runs to reach a fixed point: 4
+potentially transformable macro definitions: 4218
+    olms: 2848
+    flms: 1370
+transformed macro definitions: 727
+    olms: 324
+    flms: 403
+untransformed potentially transformable macro definitions: 3491
+    olms: 2524
+    flms: 967
+number of macros transformed to vars: 286
+percentage increase in transformed macros with our approach: 154.1958041958042%
 categories of reasons not transformed:
-    syntactic well-formedness: 987
+    syntactic well-formedness: 989
     environment capture: 55
-    parameter side-effects: 95
-    unsupported construct: 368
+    parameter side-effects: 94
+    unsupported construct: 212
     turned off construct: 151
-    multiple categories: 2153
-potentially transformable invocations: 54461
-    olms: 25763
-    flms: 28698
-unique transformed invocations in source definitions: 1806
-unique transformed invocations in transformed definitions: 10
-total unique transformed invocations: 1816
-    olms: 877
-    flms: 939
-top five most transformed macros: [('UNSPECIFIEDP', 96), ('MATCH', 69), ('L_', 44), ('LOOKING_AT', 37), ('CODING_ISO_FLAGS', 30)]
-untransformed invocations: 52645
-potentially transformable polymorphic macros: 2339
-    olms: 1945
-    flms: 394
-transformed polymorphic macros: 12
+    multiple categories: 1990
+potentially transformable invocations: 54477
+    olms: 25766
+    flms: 28711
+unique transformed invocations in source definitions: 4664
+unique transformed invocations in transformed definitions: 66
+total unique transformed invocations: 4730
+    olms: 1530
+    flms: 3200
+top five most transformed macros: [('FRAME_WINDOW_P', 163), ('UNSPECIFIEDP', 96), ('PT', 92), ('CHARSET_FROM_ID', 87), ('getc', 82)]
+untransformed invocations: 49747
+potentially transformable polymorphic macros: 2343
+    olms: 1946
+    flms: 397
+transformed polymorphic macros: 28
     olms: 0
-    flms: 12
+    flms: 28
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 4.]
-macros with most transformed types: [('GET_PIXEL', 4), ('SWAP', 2), ('COLOR_INTENSITY', 2), ('SAVED_WINDOW_N', 2), ('ASCENDING_ORDER', 2)]
-transformed avg expr nesting depth after: 2.5411297707041243
-transformed num function and global names: 16318
-transformed avg unique symbols per function: 19.312177403938062
+macros with most transformed types: [('GET_PIXEL', 4), ('INT_ADD_WRAPV', 3), ('ISO_CHARSET_TABLE', 3), ('RFONT_DEF_SET_SCORE', 2), ('CHARSET_FROM_ID', 2)]
+transformed avg expr nesting depth after: 2.5315434727431683
+transformed num function and global names: 16667
+transformed avg unique symbols per function: 20.807168458781362
 

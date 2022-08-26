@@ -1,5 +1,5 @@
 plan-1.12
-time to build (s.ms): 10.540394
+time to build (s.ms): 10.524738
 avg expr nesting depth after: 2.6663626746434175
 num function and global names: 2862
 avg unique symbols per function: 13.106542056074767
@@ -10,36 +10,36 @@ expanded source macro definitions: 371
     olms: 321
     flms: 50
 unique source macro expansions: 3187
-time to reach a fixed point (s.ms): 25.384430
+time to reach a fixed point (s.ms): 116.347613
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 365
     olms: 316
     flms: 49
-transformed macro definitions: 79
-    olms: 70
-    flms: 9
-untransformed potentially transformable macro definitions: 286
-    olms: 246
-    flms: 40
-number of macros transformed to vars: 63
-percentage increase in transformed macros with our approach: 25.396825396825395%
+transformed macro definitions: 185
+    olms: 175
+    flms: 10
+untransformed potentially transformable macro definitions: 180
+    olms: 141
+    flms: 39
+number of macros transformed to vars: 168
+percentage increase in transformed macros with our approach: 10.119047619047619%
 categories of reasons not transformed:
     syntactic well-formedness: 121
     environment capture: 5
     parameter side-effects: 1
-    unsupported construct: 63
+    unsupported construct: 37
     turned off construct: 8
-    multiple categories: 88
+    multiple categories: 8
 potentially transformable invocations: 3181
     olms: 2913
     flms: 268
-unique transformed invocations in source definitions: 288
+unique transformed invocations in source definitions: 832
 unique transformed invocations in transformed definitions: 3
-total unique transformed invocations: 291
-    olms: 254
-    flms: 37
-top five most transformed macros: [('X_TIME', 20), ('YY_CURRENT_BUFFER_LVALUE', 19), ('X_LABEL', 15), ('Y_ROW', 15), ('X_DATE', 14)]
-untransformed invocations: 2890
+total unique transformed invocations: 835
+    olms: 781
+    flms: 54
+top five most transformed macros: [('FALSE', 36), ('TRUE', 33), ('TRUE', 29), ('FALSE', 29), ('X_TIME', 20)]
+untransformed invocations: 2346
 potentially transformable polymorphic macros: 61
     olms: 44
     flms: 17
@@ -47,8 +47,8 @@ transformed polymorphic macros: 3
     olms: 0
     flms: 3
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('YYUSE', 2), ('XSCALE', 2), ('YSCALE', 2), ('SNOOZE_PERIOD', 1), ('ANY', 1)]
-transformed avg expr nesting depth after: 2.662630890052356
-transformed num function and global names: 2944
-transformed avg unique symbols per function: 15.753646677471638
+macros with most transformed types: [('XSCALE', 2), ('YSCALE', 2), ('YYUSE', 2), ('NDAYS', 1), ('XTDESTROYWIDGET', 1)]
+transformed avg expr nesting depth after: 2.6457093388161455
+transformed num function and global names: 3050
+transformed avg unique symbols per function: 18.19640387275242
 

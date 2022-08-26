@@ -1,5 +1,5 @@
 xfig-3.2.8b
-time to build (s.ms): 7.751619
+time to build (s.ms): 7.819239
 avg expr nesting depth after: 2.793363750738961
 num function and global names: 6538
 avg unique symbols per function: 15.029768085842852
@@ -10,36 +10,36 @@ expanded source macro definitions: 1319
     olms: 1220
     flms: 99
 unique source macro expansions: 13749
-time to reach a fixed point (s.ms): 55.988608
+time to reach a fixed point (s.ms): 190.178913
 runs to reach a fixed point: 3
-potentially transformable macro definitions: 1268
-    olms: 1171
+potentially transformable macro definitions: 1271
+    olms: 1174
     flms: 97
-transformed macro definitions: 362
-    olms: 351
-    flms: 11
-untransformed potentially transformable macro definitions: 906
-    olms: 820
-    flms: 86
-number of macros transformed to vars: 342
-percentage increase in transformed macros with our approach: 5.847953216374268%
+transformed macro definitions: 601
+    olms: 580
+    flms: 21
+untransformed potentially transformable macro definitions: 670
+    olms: 594
+    flms: 76
+number of macros transformed to vars: 570
+percentage increase in transformed macros with our approach: 5.43859649122807%
 categories of reasons not transformed:
-    syntactic well-formedness: 440
+    syntactic well-formedness: 443
     environment capture: 60
     parameter side-effects: 1
-    unsupported construct: 141
+    unsupported construct: 51
     turned off construct: 25
-    multiple categories: 239
-potentially transformable invocations: 13671
-    olms: 7274
+    multiple categories: 90
+potentially transformable invocations: 13674
+    olms: 7277
     flms: 6397
-unique transformed invocations in source definitions: 684
-unique transformed invocations in transformed definitions: 3
-total unique transformed invocations: 687
-    olms: 657
-    flms: 30
-top five most transformed macros: [('LIB_PREVIEW_SIZE', 14), ('NUM_IND_SW', 13), ('GENERICS', 12), ('Ninety_deg', 12), ('NO_ARROWS', 11)]
-untransformed invocations: 12984
+unique transformed invocations in source definitions: 2813
+unique transformed invocations in transformed definitions: 7
+total unique transformed invocations: 2820
+    olms: 2275
+    flms: 545
+top five most transformed macros: [('ArgCount', 504), ('SetValues', 335), ('GetValues', 110), ('PIX_PER_INCH', 62), ('active_layer', 61)]
+untransformed invocations: 10854
 potentially transformable polymorphic macros: 247
     olms: 221
     flms: 26
@@ -47,8 +47,8 @@ transformed polymorphic macros: 2
     olms: 0
     flms: 2
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('LM_to_uint', 2), ('ReadOK', 2), ('MAX_MISSPELLED_WORDS', 1), ('NCHILDREN', 1), ('KEYBOARD_HISTORY_MAX', 1)]
-transformed avg expr nesting depth after: 2.7814370357003217
-transformed num function and global names: 6902
-transformed avg unique symbols per function: 17.52659083922533
+macros with most transformed types: [('LM_to_uint', 2), ('ReadOK', 2), ('F_ADD', 1), ('F_MOVE', 1), ('regpoly_width_big', 1)]
+transformed avg expr nesting depth after: 2.7671676542141164
+transformed num function and global names: 7143
+transformed avg unique symbols per function: 18.694333142530052
 

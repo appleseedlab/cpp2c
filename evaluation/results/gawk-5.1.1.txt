@@ -1,5 +1,5 @@
 gawk-5.1.1
-time to build (s.ms): 21.91037
+time to build (s.ms): 21.706499
 avg expr nesting depth after: 2.462613589187693
 num function and global names: 4553
 avg unique symbols per function: 12.502911208151383
@@ -10,45 +10,45 @@ expanded source macro definitions: 1060
     olms: 731
     flms: 329
 unique source macro expansions: 12207
-time to reach a fixed point (s.ms): 222.551868
+time to reach a fixed point (s.ms): 310.428248
 runs to reach a fixed point: 3
-potentially transformable macro definitions: 1011
-    olms: 717
-    flms: 294
-transformed macro definitions: 176
-    olms: 154
-    flms: 22
-untransformed potentially transformable macro definitions: 835
-    olms: 563
-    flms: 272
-number of macros transformed to vars: 144
-percentage increase in transformed macros with our approach: 22.22222222222222%
+potentially transformable macro definitions: 1015
+    olms: 719
+    flms: 296
+transformed macro definitions: 305
+    olms: 219
+    flms: 86
+untransformed potentially transformable macro definitions: 710
+    olms: 500
+    flms: 210
+number of macros transformed to vars: 193
+percentage increase in transformed macros with our approach: 58.03108808290155%
 categories of reasons not transformed:
     syntactic well-formedness: 514
     environment capture: 10
     parameter side-effects: 17
-    unsupported construct: 170
+    unsupported construct: 79
     turned off construct: 33
-    multiple categories: 91
-potentially transformable invocations: 12117
-    olms: 7995
-    flms: 4122
-unique transformed invocations in source definitions: 681
-unique transformed invocations in transformed definitions: 7
-total unique transformed invocations: 688
-    olms: 490
-    flms: 198
-top five most transformed macros: [('instruction', 99), ('GET_INSTRUCTION', 44), ('FSEP', 25), ('CAN_FREE', 25), ('NO_PPRINT_FLAGS', 22)]
-untransformed invocations: 11429
-potentially transformable polymorphic macros: 212
+    multiple categories: 57
+potentially transformable invocations: 12121
+    olms: 7997
+    flms: 4124
+unique transformed invocations in source definitions: 1990
+unique transformed invocations in transformed definitions: 14
+total unique transformed invocations: 2004
+    olms: 1046
+    flms: 958
+top five most transformed macros: [('efree', 157), ('do_lint', 118), ('instruction', 99), ('do_traditional', 67), ('force_string', 59)]
+untransformed invocations: 10117
+potentially transformable polymorphic macros: 214
     olms: 142
-    flms: 70
-transformed polymorphic macros: 4
+    flms: 72
+transformed polymorphic macros: 11
     olms: 0
-    flms: 4
-twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('YY_USE', 2), ('YY_USE', 2), ('instruction', 2), ('GET_INSTRUCTION', 2), ('BP_ENABLE_ONCE', 1)]
-transformed avg expr nesting depth after: 2.454347077064431
-transformed num function and global names: 4733
-transformed avg unique symbols per function: 14.876932989690722
+    flms: 11
+twenty pt summary of transformed types: [ 1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1. 24.]
+macros with most transformed types: [('efree', 24), ('gawk_free', 5), ('make_string', 4), ('make_const_string', 3), ('is_valid_character', 2)]
+transformed avg expr nesting depth after: 2.4289575903504987
+transformed num function and global names: 4897
+transformed avg unique symbols per function: 16.95911214953271
 

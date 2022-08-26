@@ -1,5 +1,5 @@
 fvwm-2.6.9
-time to build (s.ms): 31.797470
+time to build (s.ms): 31.520547
 avg expr nesting depth after: 1.4438738406670586
 num function and global names: 7330
 avg unique symbols per function: 16.259815636736086
@@ -10,45 +10,45 @@ expanded source macro definitions: 2256
     olms: 1121
     flms: 1135
 unique source macro expansions: 14787
-time to reach a fixed point (s.ms): 87.850739
-runs to reach a fixed point: 3
-potentially transformable macro definitions: 2226
-    olms: 1107
-    flms: 1119
-transformed macro definitions: 253
-    olms: 225
-    flms: 28
-untransformed potentially transformable macro definitions: 1973
-    olms: 882
-    flms: 1091
-number of macros transformed to vars: 215
-percentage increase in transformed macros with our approach: 17.674418604651162%
+time to reach a fixed point (s.ms): 809.272209
+runs to reach a fixed point: 4
+potentially transformable macro definitions: 2232
+    olms: 1110
+    flms: 1122
+transformed macro definitions: 963
+    olms: 613
+    flms: 350
+untransformed potentially transformable macro definitions: 1269
+    olms: 497
+    flms: 772
+number of macros transformed to vars: 602
+percentage increase in transformed macros with our approach: 59.966777408637874%
 categories of reasons not transformed:
-    syntactic well-formedness: 346
+    syntactic well-formedness: 335
     environment capture: 16
     parameter side-effects: 288
-    unsupported construct: 831
+    unsupported construct: 434
     turned off construct: 58
-    multiple categories: 434
-potentially transformable invocations: 14739
-    olms: 5983
-    flms: 8756
-unique transformed invocations in source definitions: 640
-unique transformed invocations in transformed definitions: 6
-total unique transformed invocations: 646
-    olms: 591
-    flms: 55
-top five most transformed macros: [('BdWidth', 27), ('CP_GET_NEXT_STEP', 22), ('YY_CURRENT_BUFFER_LVALUE', 14), ('MWM_FUNC_MINIMIZE', 12), ('MWM_FUNC_MAXIMIZE', 12)]
-untransformed invocations: 14093
-potentially transformable polymorphic macros: 403
-    olms: 108
-    flms: 295
-transformed polymorphic macros: 0
+    multiple categories: 138
+potentially transformable invocations: 14746
+    olms: 5987
+    flms: 8759
+unique transformed invocations in source definitions: 4026
+unique transformed invocations in transformed definitions: 24
+total unique transformed invocations: 4050
+    olms: 2048
+    flms: 2002
+top five most transformed macros: [('CF', 256), ('FW_W', 169), ('MR_WINDOW', 78), ('FW_W_FRAME', 66), ('FW_W_ICON_PIXMAP', 65)]
+untransformed invocations: 10696
+potentially transformable polymorphic macros: 425
+    olms: 118
+    flms: 307
+transformed polymorphic macros: 11
     olms: 0
-    flms: 0
-twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
-macros with most transformed types: [('NUM_DEFAULT_OPTS', 1), ('GRAB_EVMASK', 1), ('default_layer', 1), ('MOVE_PAGE', 1), ('MOVE_SCREEN', 1)]
-transformed avg expr nesting depth after: 1.4431677435721426
-transformed num function and global names: 7583
-transformed avg unique symbols per function: 17.992143306096793
+    flms: 11
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
+macros with most transformed types: [('FW_W', 3), ('FW_W_ICON_TITLE', 3), ('FOCUS_SET', 2), ('FW_W_FRAME', 2), ('FW_W_PARENT', 2)]
+transformed avg expr nesting depth after: 1.4278089943216667
+transformed num function and global names: 8306
+transformed avg unique symbols per function: 22.059170081967213
 
