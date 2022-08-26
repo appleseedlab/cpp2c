@@ -48,7 +48,7 @@ EVALUATION_PROGRAMS = [
     #     r'test',
     #     r'test.zip',
     #     r'.',
-    #     r'intercept-build make -j',
+    #     r'intercept-build make -j8',
     #     r''
     # ),
 
@@ -59,7 +59,7 @@ EVALUATION_PROGRAMS = [
         r'.',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean  &&
@@ -75,7 +75,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean      &&
@@ -92,7 +92,7 @@ EVALUATION_PROGRAMS = [
         r'bc',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -112,7 +112,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -128,7 +128,7 @@ EVALUATION_PROGRAMS = [
         r'.',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -144,7 +144,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -169,7 +169,7 @@ EVALUATION_PROGRAMS = [
         iconv -f ISO-8859-1 -t UTF-8 src/Makefile.in -o tmp && mv -f tmp src/Makefile.in    &&
         for FN in src/gv_copyright.dat src/gv_font_res.dat src/gv_font_res-I18N_mb.dat src/gv_layout_res.dat src/gv_misc_res.dat src/gv_spartan.dat src/gv_user_res.dat src/gv_widgetless.dat; do iconv -f US-ASCII -t UTF-8 $FN -o tmp && mv -f tmp $FN; done  &&
         ./configure                                                                         &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean  &&
@@ -187,7 +187,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean      &&
@@ -245,7 +245,7 @@ EVALUATION_PROGRAMS = [
         r'ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e',
         r'https://github.com/alandipert/ncsa-mosaic/archive/af1c9aaaa299da3540faa16dcab82eb681cf624e.zip',
         r'src',
-        r'intercept-build make CC=gcc-9 linux -j',
+        r'intercept-build make CC=gcc-9 linux -j8',
         r''
     ),
 
@@ -289,7 +289,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -306,7 +306,7 @@ EVALUATION_PROGRAMS = [
         r'fvwm',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean      &&
@@ -326,7 +326,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -348,7 +348,7 @@ EVALUATION_PROGRAMS = [
         r'''
         sed -i 's/_GL_WARN_ON_USE (gets, "gets is a security hole - use fgets instead");/\#if defined(__GLIBC__) \&\& !defined(__UCLIBC__) \&\& !__GLIBC_PREREQ(2, 16)\n_GL_WARN_ON_USE (gets, "gets is a security hole - use fgets instead");\n\#endif/' lib/stdio.in.h  &&
         ./configure          &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -391,7 +391,7 @@ EVALUATION_PROGRAMS = [
         r'.',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -410,7 +410,7 @@ EVALUATION_PROGRAMS = [
         r'fig2dev',
         r'''
         ./configure             &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
@@ -436,12 +436,32 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         ./configure --with-gnutls=ifavailable --with-gif=ifavailable --with-tiff=ifavailable    &&
-        intercept-build make -j
+        intercept-build make -j8
         ''',
         r'''
         make clean                  &&
         make                        &&
         make check
+        '''
+    ),
+
+    # lua is not one of ernst et al.'s 26 programs, but because we can't
+    # transform perl, we transform lua instead since it is also a
+    # language.
+    # manual fixes: 0
+    EvaluationProgram(
+        r'lua-5.4.4',
+        r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
+        r'src',
+        r'intercept-build make -j8',
+        f'''
+        make clean                  &&
+        make                        &&
+        if [[ -e {LUA_TESTS_DIR} ]]; then rm -fr {LUA_TESTS_DIR}; fi    &&
+        cd ../                      &&
+        tar -xvf ../{LUA_TESTS_ZIP} &&
+        cd {LUA_TESTS_DIR}          &&
+        ../lua-5.4.4/src/lua -e"_U=true" all.lua 1>/dev/null
         '''
     ),
 
@@ -574,7 +594,7 @@ EVALUATION_PROGRAMS = [
     #     r'Src',
     #     r'''
     #     ./configure             &&
-    #     intercept-build make -j
+    #     intercept-build make -j8
     #     ''',
     #     r'''
     #     make clean                  &&
@@ -603,7 +623,7 @@ EVALUATION_PROGRAMS = [
     # the same way it does in the transformed version.
     #
     # now perl just fails to compile.
-    # if i run make -j, make says it cannot find git_version.h
+    # if i run make -j8, make says it cannot find git_version.h
     # if i just run make, then it throws an out of memory error.
     # 
     # configured with all default options
@@ -678,11 +698,11 @@ EVALUATION_PROGRAMS = [
     #     r'.',
     #     r'''
     #     ./Configure -d -e -s        &&
-    #     intercept-build make -j
+    #     intercept-build make -j8
     #     ''',
     #     r'''
-    #     make clean -j   &&
-    #     make check -j
+    #     make clean -j8   &&
+    #     make check -j8
     #     '''
     # ),
 
@@ -693,11 +713,11 @@ EVALUATION_PROGRAMS = [
     #     r'ghostscript-9.56.1',
     #     r'https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz',
     #     r'',
-    #     r'bash configure && intercept-build make -j',
+    #     r'bash configure && intercept-build make -j8',
     #     r'''
-    #     make clean -j     &&
-    #     make -j           &&
-    #     make check -j
+    #     make clean -j8     &&
+    #     make -j8           &&
+    #     make check -j8
     #     '''
     # ),
 
@@ -708,7 +728,7 @@ EVALUATION_PROGRAMS = [
     #     r'gcc-12.1.0',
     #     r'https://bigsearcher.com/mirrors/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.gz',
     #     r'gcc',
-    #     r'./configure --disable-multilib && intercept-build make -j',
+    #     r'./configure --disable-multilib && intercept-build make -j8',
     #     r'''
     #     make clean                  &&
     #     make                        &&
@@ -728,7 +748,7 @@ EVALUATION_PROGRAMS = [
     #     cd src                      &&
     #     ./rasmol_build_options.sh --cbflib_local    &&
     #     xmkmf                       &&
-    #     intercept-build make -j     &&
+    #     intercept-build make -j8     &&
     #     mv compile_commands.json .. &&
     #     mv ..
     #     ''',
@@ -766,31 +786,11 @@ EVALUATION_PROGRAMS = [
     #     r'gnuchess-6.2.9',
     #     r'https://gnu.mirror.constant.com/chess/gnuchess-6.2.9.tar.gz',
     #     r'src',
-    #     r'./configure && intercept-build make -j',
+    #     r'./configure && intercept-build make -j8',
     #     r'''
     #     make clean                  &&
     #     make                        &&
     #     make check
-    #     '''
-    # ),
-
-    # # we can transform lua nicely, but unfortunately it is not
-    # # one of ernst et al.'s 26 programs, so i can't justify including
-    # # it in the study.
-    # # manual fixes: N/A
-    # EvaluationProgram(
-    #     r'lua-5.4.4',
-    #     r'https://www.lua.org/ftp/lua-5.4.4.tar.gz',
-    #     r'src',
-    #     r'intercept-build make -j',
-    #     f'''
-    #     make clean                  &&
-    #     make                        &&
-    #     if [[ -e {LUA_TESTS_DIR} ]]; then rm -fr {LUA_TESTS_DIR}; fi    &&
-    #     cd ../                      &&
-    #     tar -xvf ../{LUA_TESTS_ZIP} &&
-    #     cd {LUA_TESTS_DIR}          &&
-    #     ../lua-5.4.4/src/lua -e"_U=true" all.lua 1>/dev/null
     #     '''
     # ),
 
