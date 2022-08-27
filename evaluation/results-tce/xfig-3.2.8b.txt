@@ -1,0 +1,54 @@
+xfig-3.2.8b
+time to build (s.ms): 9.816172
+avg expr nesting depth after: 2.793363750738961
+num function and global names: 6538
+avg unique symbols per function: 15.029768085842852
+source macro definitions: 1452
+    olms: 1349
+    flms: 103
+expanded source macro definitions: 1319
+    olms: 1220
+    flms: 99
+unique source macro expansions: 13749
+time to reach a fixed point (s.ms): 190.386953
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 1273
+    olms: 1176
+    flms: 97
+transformed macro definitions: 630
+    olms: 591
+    flms: 39
+untransformed potentially transformable macro definitions: 643
+    olms: 585
+    flms: 58
+number of macros transformed to vars: 575
+percentage increase in transformed macros with our approach: 9.565217391304348%
+categories of reasons not transformed:
+    syntactic well-formedness: 440
+    environment capture: 60
+    parameter side-effects: 1
+    unsupported construct: 55
+    turned off construct: 0
+    multiple categories: 87
+potentially transformable invocations: 13679
+    olms: 7282
+    flms: 6397
+unique transformed invocations in source definitions: 3027
+unique transformed invocations in transformed definitions: 27
+total unique transformed invocations: 3054
+    olms: 2324
+    flms: 730
+top five most transformed macros: [('ArgCount', 504), ('SetValues', 335), ('GetValues', 110), ('PIX_PER_INCH', 65), ('active_layer', 61)]
+untransformed invocations: 10625
+potentially transformable polymorphic macros: 250
+    olms: 224
+    flms: 26
+transformed polymorphic macros: 5
+    olms: 0
+    flms: 5
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
+macros with most transformed types: [('round', 3), ('LM_to_uint', 2), ('ReadOK', 2), ('zXFillArc', 2), ('zXDrawArc', 2)]
+transformed avg expr nesting depth after: 2.7470140017595397
+transformed num function and global names: 7174
+transformed avg unique symbols per function: 18.85191489361702
+

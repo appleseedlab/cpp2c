@@ -1,0 +1,54 @@
+gv-3.7.4
+time to build (s.ms): 17.112884
+avg expr nesting depth after: 2.9409046692607004
+num function and global names: 4038
+avg unique symbols per function: 15.43639053254438
+source macro definitions: 1246
+    olms: 1002
+    flms: 244
+expanded source macro definitions: 813
+    olms: 646
+    flms: 167
+unique source macro expansions: 6241
+time to reach a fixed point (s.ms): 80.376927
+runs to reach a fixed point: 4
+potentially transformable macro definitions: 769
+    olms: 612
+    flms: 157
+transformed macro definitions: 241
+    olms: 200
+    flms: 41
+untransformed potentially transformable macro definitions: 528
+    olms: 412
+    flms: 116
+number of macros transformed to vars: 186
+percentage increase in transformed macros with our approach: 29.56989247311828%
+categories of reasons not transformed:
+    syntactic well-formedness: 319
+    environment capture: 90
+    parameter side-effects: 3
+    unsupported construct: 35
+    turned off construct: 0
+    multiple categories: 81
+potentially transformable invocations: 6185
+    olms: 3118
+    flms: 3067
+unique transformed invocations in source definitions: 872
+unique transformed invocations in transformed definitions: 9
+total unique transformed invocations: 881
+    olms: 759
+    flms: 122
+top five most transformed macros: [('MEDIA_ID_INVALID', 26), ('NONE', 24), ('DSCcomment', 22), ('SCALE_VAL', 14), ('PAGE_H', 13)]
+untransformed invocations: 5304
+potentially transformable polymorphic macros: 190
+    olms: 151
+    flms: 39
+transformed polymorphic macros: 5
+    olms: 0
+    flms: 5
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 6.]
+macros with most transformed types: [('MIN', 6), ('MAX', 5), ('PUT_IN_RANGE', 5), ('Dispose', 3), ('CALLscrollProc', 2)]
+transformed avg expr nesting depth after: 2.8781997856887727
+transformed num function and global names: 4295
+transformed avg unique symbols per function: 21.055734190782424
+

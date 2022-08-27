@@ -1,0 +1,54 @@
+gawk-5.1.1
+time to build (s.ms): 21.451024
+avg expr nesting depth after: 2.462613589187693
+num function and global names: 4553
+avg unique symbols per function: 12.502911208151383
+source macro definitions: 1494
+    olms: 1036
+    flms: 458
+expanded source macro definitions: 1060
+    olms: 731
+    flms: 329
+unique source macro expansions: 12207
+time to reach a fixed point (s.ms): 311.423471
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 1021
+    olms: 723
+    flms: 298
+transformed macro definitions: 333
+    olms: 225
+    flms: 108
+untransformed potentially transformable macro definitions: 688
+    olms: 498
+    flms: 190
+number of macros transformed to vars: 199
+percentage increase in transformed macros with our approach: 67.33668341708542%
+categories of reasons not transformed:
+    syntactic well-formedness: 514
+    environment capture: 10
+    parameter side-effects: 18
+    unsupported construct: 91
+    turned off construct: 0
+    multiple categories: 55
+potentially transformable invocations: 12132
+    olms: 8002
+    flms: 4130
+unique transformed invocations in source definitions: 2106
+unique transformed invocations in transformed definitions: 24
+total unique transformed invocations: 2130
+    olms: 1063
+    flms: 1067
+top five most transformed macros: [('efree', 157), ('do_lint', 118), ('instruction', 99), ('do_traditional', 69), ('force_string', 59)]
+untransformed invocations: 10002
+potentially transformable polymorphic macros: 217
+    olms: 144
+    flms: 73
+transformed polymorphic macros: 12
+    olms: 0
+    flms: 12
+twenty pt summary of transformed types: [ 1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1. 24.]
+macros with most transformed types: [('efree', 24), ('gawk_free', 5), ('make_string', 4), ('numtype_choose', 4), ('make_const_string', 3)]
+transformed avg expr nesting depth after: 2.421527919587956
+transformed num function and global names: 4928
+transformed avg unique symbols per function: 17.337543053960964
+

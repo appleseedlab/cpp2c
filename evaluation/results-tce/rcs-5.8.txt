@@ -1,0 +1,54 @@
+rcs-5.8
+time to build (s.ms): 27.100089
+avg expr nesting depth after: 2.3593959090040144
+num function and global names: 1327
+avg unique symbols per function: 10.156542056074766
+source macro definitions: 957
+    olms: 548
+    flms: 409
+expanded source macro definitions: 438
+    olms: 173
+    flms: 265
+unique source macro expansions: 3159
+time to reach a fixed point (s.ms): 55.788904
+runs to reach a fixed point: 4
+potentially transformable macro definitions: 396
+    olms: 158
+    flms: 238
+transformed macro definitions: 114
+    olms: 58
+    flms: 56
+untransformed potentially transformable macro definitions: 282
+    olms: 100
+    flms: 182
+number of macros transformed to vars: 53
+percentage increase in transformed macros with our approach: 115.09433962264151%
+categories of reasons not transformed:
+    syntactic well-formedness: 214
+    environment capture: 15
+    parameter side-effects: 9
+    unsupported construct: 29
+    turned off construct: 0
+    multiple categories: 15
+potentially transformable invocations: 3071
+    olms: 776
+    flms: 2295
+unique transformed invocations in source definitions: 577
+unique transformed invocations in transformed definitions: 20
+total unique transformed invocations: 597
+    olms: 272
+    flms: 325
+top five most transformed macros: [('PROB', 62), ('SINGLE', 47), ('PLEXUS', 41), ('SDELIM', 25), ('KDELIM', 21)]
+untransformed invocations: 2474
+potentially transformable polymorphic macros: 111
+    olms: 38
+    flms: 73
+transformed polymorphic macros: 6
+    olms: 0
+    flms: 6
+twenty pt summary of transformed types: [1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.5 7. ]
+macros with most transformed types: [('STR_DIFF', 7), ('STR_SAME', 6), ('PROB', 2), ('fully_numeric_no_k', 2), ('MEM_DIFF', 2)]
+transformed avg expr nesting depth after: 2.3545513593764498
+transformed num function and global names: 1456
+transformed avg unique symbols per function: 16.124548736462096
+

@@ -1,0 +1,54 @@
+emacs-28.1
+time to build (s.ms): 59.304967
+avg expr nesting depth after: 2.5456231401361573
+num function and global names: 15908
+avg unique symbols per function: 17.54916166425171
+source macro definitions: 6668
+    olms: 4951
+    flms: 1717
+expanded source macro definitions: 5769
+    olms: 4257
+    flms: 1512
+unique source macro expansions: 91900
+time to reach a fixed point (s.ms): 9723.276334
+runs to reach a fixed point: 6
+potentially transformable macro definitions: 4222
+    olms: 2850
+    flms: 1372
+transformed macro definitions: 854
+    olms: 340
+    flms: 514
+untransformed potentially transformable macro definitions: 3368
+    olms: 2510
+    flms: 858
+number of macros transformed to vars: 298
+percentage increase in transformed macros with our approach: 186.5771812080537%
+categories of reasons not transformed:
+    syntactic well-formedness: 983
+    environment capture: 55
+    parameter side-effects: 93
+    unsupported construct: 278
+    turned off construct: 0
+    multiple categories: 1959
+potentially transformable invocations: 54482
+    olms: 25769
+    flms: 28713
+unique transformed invocations in source definitions: 5988
+unique transformed invocations in transformed definitions: 146
+total unique transformed invocations: 6134
+    olms: 1593
+    flms: 4541
+top five most transformed macros: [('XFRAME', 400), ('FRAME_WINDOW_P', 185), ('UNSPECIFIEDP', 96), ('PT', 92), ('CHARSET_FROM_ID', 88)]
+untransformed invocations: 48348
+potentially transformable polymorphic macros: 2356
+    olms: 1952
+    flms: 404
+transformed polymorphic macros: 35
+    olms: 0
+    flms: 35
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 4.]
+macros with most transformed types: [('GET_PIXEL', 4), ('INT_ADD_WRAPV', 3), ('ISO_CHARSET_TABLE', 3), ('max', 3), ('ASCENDING_ORDER', 2)]
+transformed avg expr nesting depth after: 2.5318738077494527
+transformed num function and global names: 16802
+transformed avg unique symbols per function: 21.31037504381353
+

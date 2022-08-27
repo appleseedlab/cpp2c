@@ -1,0 +1,54 @@
+ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e
+time to build (s.ms): 2.205658
+avg expr nesting depth after: 2.3712065566165386
+num function and global names: 5033
+avg unique symbols per function: 14.63658991910392
+source macro definitions: 1381
+    olms: 1236
+    flms: 145
+expanded source macro definitions: 939
+    olms: 837
+    flms: 102
+unique source macro expansions: 6253
+time to reach a fixed point (s.ms): 261.592235
+runs to reach a fixed point: 4
+potentially transformable macro definitions: 911
+    olms: 815
+    flms: 96
+transformed macro definitions: 330
+    olms: 300
+    flms: 30
+untransformed potentially transformable macro definitions: 581
+    olms: 515
+    flms: 66
+number of macros transformed to vars: 298
+percentage increase in transformed macros with our approach: 10.738255033557047%
+categories of reasons not transformed:
+    syntactic well-formedness: 203
+    environment capture: 11
+    parameter side-effects: 3
+    unsupported construct: 309
+    turned off construct: 0
+    multiple categories: 55
+potentially transformable invocations: 6179
+    olms: 4452
+    flms: 1727
+unique transformed invocations in source definitions: 1105
+unique transformed invocations in transformed definitions: 16
+total unique transformed invocations: 1121
+    olms: 948
+    flms: 173
+top five most transformed macros: [('MO_LINE_LENGTH', 31), ('MCCIR_ERROR', 29), ('IMAGE_DEFAULT_BORDER', 23), ('XpmSuccess', 20), ('MCCI_FAIL', 19)]
+untransformed invocations: 5058
+potentially transformable polymorphic macros: 135
+    olms: 108
+    flms: 27
+transformed polymorphic macros: 7
+    olms: 0
+    flms: 7
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 6.]
+macros with most transformed types: [('XpmFree', 6), ('FREE', 3), ('XpmMalloc', 3), ('LM_to_uint', 2), ('ReadOK', 2)]
+transformed avg expr nesting depth after: 2.3533474007289468
+transformed num function and global names: 5376
+transformed avg unique symbols per function: 18.178974358974358
+

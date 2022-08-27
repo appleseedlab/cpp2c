@@ -1,0 +1,54 @@
+bc-1.07.1
+time to build (s.ms): 6.674287
+avg expr nesting depth after: 2.7296257432668765
+num function and global names: 922
+avg unique symbols per function: 10.320754716981131
+source macro definitions: 312
+    olms: 269
+    flms: 43
+expanded source macro definitions: 178
+    olms: 146
+    flms: 32
+unique source macro expansions: 1178
+time to reach a fixed point (s.ms): 10.875174
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 172
+    olms: 142
+    flms: 30
+transformed macro definitions: 109
+    olms: 98
+    flms: 11
+untransformed potentially transformable macro definitions: 63
+    olms: 44
+    flms: 19
+number of macros transformed to vars: 90
+percentage increase in transformed macros with our approach: 21.11111111111111%
+categories of reasons not transformed:
+    syntactic well-formedness: 50
+    environment capture: 2
+    parameter side-effects: 2
+    unsupported construct: 9
+    turned off construct: 0
+    multiple categories: 0
+potentially transformable invocations: 1172
+    olms: 882
+    flms: 290
+unique transformed invocations in source definitions: 496
+unique transformed invocations in transformed definitions: 5
+total unique transformed invocations: 501
+    olms: 415
+    flms: 86
+top five most transformed macros: [('DC_SUCCESS', 47), ('EX_VOID', 36), ('CastNum', 27), ('BASE', 23), ('CastNumPtr', 21)]
+untransformed invocations: 671
+potentially transformable polymorphic macros: 18
+    olms: 11
+    flms: 7
+transformed polymorphic macros: 2
+    olms: 0
+    flms: 2
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('MIN', 2), ('YYUSE', 2), ('FALSE', 1), ('STORE_INCR', 1), ('BC_START_SIZE', 1)]
+transformed avg expr nesting depth after: 2.7025316455696204
+transformed num function and global names: 1033
+transformed avg unique symbols per function: 16.94148936170213
+

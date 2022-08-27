@@ -1,0 +1,54 @@
+bison-3.8.2
+time to build (s.ms): 37.310732
+avg expr nesting depth after: 2.2256704683580315
+num function and global names: 4419
+avg unique symbols per function: 16.440900562851784
+source macro definitions: 2357
+    olms: 1490
+    flms: 867
+expanded source macro definitions: 1137
+    olms: 657
+    flms: 480
+unique source macro expansions: 8978
+time to reach a fixed point (s.ms): 351.603129
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 1033
+    olms: 615
+    flms: 418
+transformed macro definitions: 133
+    olms: 73
+    flms: 60
+untransformed potentially transformable macro definitions: 900
+    olms: 542
+    flms: 358
+number of macros transformed to vars: 66
+percentage increase in transformed macros with our approach: 101.51515151515152%
+categories of reasons not transformed:
+    syntactic well-formedness: 646
+    environment capture: 4
+    parameter side-effects: 22
+    unsupported construct: 136
+    turned off construct: 0
+    multiple categories: 92
+potentially transformable invocations: 8705
+    olms: 4475
+    flms: 4230
+unique transformed invocations in source definitions: 623
+unique transformed invocations in transformed definitions: 9
+total unique transformed invocations: 632
+    olms: 229
+    flms: 403
+top five most transformed macros: [('VBITSET_WORDS', 67), ('VBITSET_SIZE', 45), ('LBITSET_HEAD', 34), ('ISSLASH', 30), ('LBITSET_ELT_WORDS', 27)]
+untransformed invocations: 8073
+potentially transformable polymorphic macros: 234
+    olms: 148
+    flms: 86
+transformed polymorphic macros: 6
+    olms: 0
+    flms: 6
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 5.]
+macros with most transformed types: [('STREQ', 5), ('INDEX_TO_NODE', 3), ('xtimes', 2), ('YY_USE', 2), ('INT_ADD_WRAPV', 2)]
+transformed avg expr nesting depth after: 2.2094731704811075
+transformed num function and global names: 4562
+transformed avg unique symbols per function: 18.1071842410197
+

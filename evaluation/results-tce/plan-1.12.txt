@@ -1,0 +1,54 @@
+plan-1.12
+time to build (s.ms): 10.543329
+avg expr nesting depth after: 2.6663626746434175
+num function and global names: 2862
+avg unique symbols per function: 13.106542056074767
+source macro definitions: 482
+    olms: 415
+    flms: 67
+expanded source macro definitions: 371
+    olms: 321
+    flms: 50
+unique source macro expansions: 3187
+time to reach a fixed point (s.ms): 84.824911
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 367
+    olms: 318
+    flms: 49
+transformed macro definitions: 196
+    olms: 179
+    flms: 17
+untransformed potentially transformable macro definitions: 171
+    olms: 139
+    flms: 32
+number of macros transformed to vars: 171
+percentage increase in transformed macros with our approach: 14.619883040935672%
+categories of reasons not transformed:
+    syntactic well-formedness: 120
+    environment capture: 5
+    parameter side-effects: 1
+    unsupported construct: 37
+    turned off construct: 0
+    multiple categories: 8
+potentially transformable invocations: 3183
+    olms: 2915
+    flms: 268
+unique transformed invocations in source definitions: 870
+unique transformed invocations in transformed definitions: 6
+total unique transformed invocations: 876
+    olms: 805
+    flms: 71
+top five most transformed macros: [('FALSE', 36), ('TRUE', 33), ('TRUE', 29), ('FALSE', 29), ('X_TIME', 20)]
+untransformed invocations: 2307
+potentially transformable polymorphic macros: 62
+    olms: 45
+    flms: 17
+transformed polymorphic macros: 4
+    olms: 0
+    flms: 4
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('CHARWIDTH', 2), ('XSCALE', 2), ('YSCALE', 2), ('YYUSE', 2), ('CHUNK', 1)]
+transformed avg expr nesting depth after: 2.6462636530766734
+transformed num function and global names: 3062
+transformed avg unique symbols per function: 18.485714285714284
+

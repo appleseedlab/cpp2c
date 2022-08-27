@@ -1,0 +1,54 @@
+cvs-1.11.21
+time to build (s.ms): 31.629698
+avg expr nesting depth after: 2.598453854069928
+num function and global names: 2434
+avg unique symbols per function: 13.24777975133215
+source macro definitions: 836
+    olms: 588
+    flms: 248
+expanded source macro definitions: 677
+    olms: 443
+    flms: 234
+unique source macro expansions: 5974
+time to reach a fixed point (s.ms): 335.872343
+runs to reach a fixed point: 4
+potentially transformable macro definitions: 625
+    olms: 419
+    flms: 206
+transformed macro definitions: 241
+    olms: 177
+    flms: 64
+untransformed potentially transformable macro definitions: 384
+    olms: 242
+    flms: 142
+number of macros transformed to vars: 174
+percentage increase in transformed macros with our approach: 38.50574712643678%
+categories of reasons not transformed:
+    syntactic well-formedness: 216
+    environment capture: 16
+    parameter side-effects: 6
+    unsupported construct: 94
+    turned off construct: 0
+    multiple categories: 52
+potentially transformable invocations: 5808
+    olms: 3113
+    flms: 2695
+unique transformed invocations in source definitions: 1171
+unique transformed invocations in transformed definitions: 13
+total unique transformed invocations: 1184
+    olms: 877
+    flms: 307
+top five most transformed macros: [('Z_NULL', 54), ('RUN_TTY', 44), ('W_LOCAL', 42), ('Z_OK', 38), ('BUFFER_DATA_SIZE', 35)]
+untransformed invocations: 4624
+potentially transformable polymorphic macros: 156
+    olms: 95
+    flms: 61
+transformed polymorphic macros: 16
+    olms: 0
+    flms: 16
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2. 6.]
+macros with most transformed types: [('ZFREE', 6), ('STREQ', 5), ('ZALLOC', 4), ('GUESS_LINES', 3), ('RE_TRANSLATE', 3)]
+transformed avg expr nesting depth after: 2.5606840156090773
+transformed num function and global names: 2702
+transformed avg unique symbols per function: 17.49389806173726
+

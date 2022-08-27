@@ -1,0 +1,54 @@
+flex-2.6.4
+time to build (s.ms): 12.707464
+avg expr nesting depth after: 1.719781117281934
+num function and global names: 1481
+avg unique symbols per function: 10.785016286644952
+source macro definitions: 592
+    olms: 465
+    flms: 127
+expanded source macro definitions: 401
+    olms: 297
+    flms: 104
+unique source macro expansions: 3134
+time to reach a fixed point (s.ms): 86.840628
+runs to reach a fixed point: 3
+potentially transformable macro definitions: 381
+    olms: 284
+    flms: 97
+transformed macro definitions: 194
+    olms: 157
+    flms: 37
+untransformed potentially transformable macro definitions: 187
+    olms: 127
+    flms: 60
+number of macros transformed to vars: 140
+percentage increase in transformed macros with our approach: 38.57142857142858%
+categories of reasons not transformed:
+    syntactic well-formedness: 104
+    environment capture: 2
+    parameter side-effects: 0
+    unsupported construct: 57
+    turned off construct: 0
+    multiple categories: 24
+potentially transformable invocations: 3094
+    olms: 2278
+    flms: 816
+unique transformed invocations in source definitions: 722
+unique transformed invocations in transformed definitions: 15
+total unique transformed invocations: 737
+    olms: 609
+    flms: 128
+top five most transformed macros: [('NIL', 35), ('ACTION_ECHO', 32), ('ACTION_ECHO', 32), ('CCL', 28), ('reallocate_integer_array', 28)]
+untransformed invocations: 2357
+potentially transformable polymorphic macros: 84
+    olms: 69
+    flms: 15
+transformed polymorphic macros: 1
+    olms: 0
+    flms: 1
+twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
+macros with most transformed types: [('YYUSE', 2), ('NIL', 1), ('MAXLINE', 1), ('reallocate_character_array', 1), ('CSIZE', 1)]
+transformed avg expr nesting depth after: 1.7156539235412476
+transformed num function and global names: 1676
+transformed avg unique symbols per function: 21.189243027888445
+
