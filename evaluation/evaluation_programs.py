@@ -277,9 +277,9 @@ EVALUATION_PROGRAMS = [
     # transforms
     # manual fixes: 18 SLOC.
     # problem:  in src/term.c, the there is a #include of "term.h" inside
-    #           the definition of the struct termentry.
-    #           term.h #includes pm3d.h, which has some transformed decls
-    #           emitted to it.
+    #           the initializer of the array term_tbl.
+    #           term.h contains some transformed declarations, so the resulting
+    #           code is syntactically invalid.
     #           this results in a syntax error.
     # fix:      comment out the transformed decls.
     #           18 SLOC.
