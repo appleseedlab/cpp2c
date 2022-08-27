@@ -25,8 +25,6 @@ UNTRANSFORMED_EXPANSION_PREFIX = 'CPP2C:Untransformed Expansion'
 OLM_TAG = 'object-like'
 FLM_TAG = 'function-like'
 
-RESULTS_DIR = r'results/'
-
 CATEGORIES_NOT_TRANSFORMED = [
     'Syntactic well-formedness',
     'Environment capture',
@@ -107,6 +105,10 @@ def top_five_macros_by_val(d: Dict[str, int]):
 
 def main():
 
+    # Whether to transform macros relying on conditional evaluation
+    tce = len(sys.argv) == 2 and sys.argv[1] == 'tce'
+    results_dir = r'results-tce/' if tce else r'results/'
+
     # Get the full path to the cpp2c shared object file
     cpp2c_so_path = r'../implementation/build/lib/libCpp2C.so'
     if os.path.exists(cpp2c_so_path):
@@ -116,7 +118,7 @@ def main():
         return 1
 
     # Create the results dir if it does not exist
-    os.makedirs(RESULTS_DIR, exist_ok=True)
+    os.makedirs(results_dir, exist_ok=True)
 
     # Disable numpy text wrapping
     np.set_printoptions(linewidth=np.inf)
@@ -125,7 +127,7 @@ def main():
 
         # Change std out to outfile
         # FIXME: This is messy, should be using context managers instead
-        ofp_fn = os.path.join(RESULTS_DIR, evaluation_program.name + '.txt')
+        ofp_fn = os.path.join(results_dir, evaluation_program.name + '.txt')
         ofp = open(ofp_fn, 'w')
         sys.stdout = ofp
 
@@ -235,7 +237,8 @@ def main():
         source_macro_definitions: Set[str] = set()
         mhash_to_raw_expansion_spelling_locations: DefaultDict[str, set(str)] = defaultdict(set)
         for cc in compile_commands:
-            cmd = compile_command.cpp2c_command_from_compile_command(cpp2c_so_path, cc, ['tr', '-v'])
+            opts = ['tr', '-v'] + (['-tce'] if tce else [])
+            cmd = compile_command.cpp2c_command_from_compile_command(cpp2c_so_path, cc, opts)
             os.chdir(cc.directory)
             cp = subprocess.run(cmd, shell=True, capture_output=True, text=True, errors='ignore')
 
@@ -376,7 +379,8 @@ def main():
         while True:
             emitted_a_transformation = False
             for cc in compile_commands:
-                cmd = compile_command.cpp2c_command_from_compile_command(cpp2c_so_path, cc, ['tr', '-dd', '-i', '-v'])
+                opts = ['tr', '-dd', '-i', '-v'] + (['-tce'] if tce else [])
+                cmd = compile_command.cpp2c_command_from_compile_command(cpp2c_so_path, cc, opts)
                 # Change to the command directory to run the command
                 os.chdir(cc.directory)
                 cp = subprocess.run(cmd, shell=True, capture_output=True, text=True)
