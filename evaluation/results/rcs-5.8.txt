@@ -1,5 +1,5 @@
 rcs-5.8
-time to build (s.ms): 28.803809
+time to build (s.ms): 28.191572
 avg expr nesting depth after: 2.3593959090040144
 num function and global names: 1327
 avg unique symbols per function: 10.156542056074766
@@ -10,7 +10,7 @@ expanded source macro definitions: 438
     olms: 173
     flms: 265
 unique source macro expansions: 3159
-time to reach a fixed point (s.ms): 55.217130
+time to reach a fixed point (s.ms): 54.765510
 runs to reach a fixed point: 4
 potentially transformable macro definitions: 395
     olms: 158
@@ -47,7 +47,7 @@ transformed polymorphic macros: 5
     olms: 0
     flms: 5
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 7.]
-macros with most transformed types: [('STR_DIFF', 7), ('STR_SAME', 6), ('fully_numeric_no_k', 2), ('MEM_DIFF', 2), ('PROB', 2)]
+macros with most transformed types: [('STR_DIFF', 7), ('STR_SAME', 6), ('PROB', 2), ('fully_numeric_no_k', 2), ('MEM_DIFF', 2)]
 transformed avg expr nesting depth after: 2.35015333147477
 transformed num function and global names: 1446
 transformed avg unique symbols per function: 15.729779411764707

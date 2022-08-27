@@ -1,5 +1,5 @@
 xfig-3.2.8b
-time to build (s.ms): 7.819239
+time to build (s.ms): 9.895240
 avg expr nesting depth after: 2.793363750738961
 num function and global names: 6538
 avg unique symbols per function: 15.029768085842852
@@ -10,7 +10,7 @@ expanded source macro definitions: 1319
     olms: 1220
     flms: 99
 unique source macro expansions: 13749
-time to reach a fixed point (s.ms): 190.178913
+time to reach a fixed point (s.ms): 189.972998
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 1271
     olms: 1174
@@ -47,8 +47,8 @@ transformed polymorphic macros: 2
     olms: 0
     flms: 2
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('LM_to_uint', 2), ('ReadOK', 2), ('F_ADD', 1), ('F_MOVE', 1), ('regpoly_width_big', 1)]
+macros with most transformed types: [('LM_to_uint', 2), ('ReadOK', 2), ('ArgCount', 1), ('GetValues', 1), ('SetValues', 1)]
 transformed avg expr nesting depth after: 2.7671676542141164
-transformed num function and global names: 7143
-transformed avg unique symbols per function: 18.694333142530052
+transformed num function and global names: 7141
+transformed avg unique symbols per function: 18.68241695303551
 

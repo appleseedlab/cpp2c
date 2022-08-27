@@ -1,5 +1,5 @@
 bash-5.2-rc1
-time to build (s.ms): 31.951115
+time to build (s.ms): 31.674666
 avg expr nesting depth after: 2.7851440424689877
 num function and global names: 5290
 avg unique symbols per function: 16.355423476968795
@@ -10,7 +10,7 @@ expanded source macro definitions: 1825
     olms: 1276
     flms: 549
 unique source macro expansions: 20274
-time to reach a fixed point (s.ms): 486.699922
+time to reach a fixed point (s.ms): 432.633196
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 1794
     olms: 1263
@@ -47,7 +47,7 @@ transformed polymorphic macros: 9
     olms: 0
     flms: 9
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('_', 3), ('TOCHAR', 3), ('YY_USE', 3), ('free', 3), ('xmalloc', 2)]
+macros with most transformed types: [('free', 3), ('_', 3), ('TOCHAR', 3), ('YY_USE', 3), ('MB_NULLWCH', 2)]
 transformed avg expr nesting depth after: 2.74830974367246
 transformed num function and global names: 6059
 transformed avg unique symbols per function: 19.72513912412291

@@ -1,5 +1,5 @@
 enscript-1.6.6
-time to build (s.ms): 13.944733
+time to build (s.ms): 14.306403
 avg expr nesting depth after: 2.4020569620253163
 num function and global names: 2327
 avg unique symbols per function: 12.15
@@ -10,7 +10,7 @@ expanded source macro definitions: 394
     olms: 235
     flms: 159
 unique source macro expansions: 3629
-time to reach a fixed point (s.ms): 44.980010
+time to reach a fixed point (s.ms): 36.878202
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 355
     olms: 219
@@ -47,7 +47,7 @@ transformed polymorphic macros: 3
     olms: 0
     flms: 3
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('CHAR_WIDTH', 3), ('EXISTS', 2), ('bzero', 2), ('RESOURCE_LINE_WIDTH', 1), ('LINESKIP', 1)]
+macros with most transformed types: [('CHAR_WIDTH', 3), ('bzero', 2), ('EXISTS', 2), ('Sword', 1), ('INIT_COMPILE_STACK_SIZE', 1)]
 transformed avg expr nesting depth after: 2.418980037429819
 transformed num function and global names: 2491
 transformed avg unique symbols per function: 19.646271510516254

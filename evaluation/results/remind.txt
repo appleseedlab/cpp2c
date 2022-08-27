@@ -1,5 +1,5 @@
 remind
-time to build (s.ms): 8.611331
+time to build (s.ms): 8.691399
 avg expr nesting depth after: 3.049976087996174
 num function and global names: 1760
 avg unique symbols per function: 10.830128205128204
@@ -10,7 +10,7 @@ expanded source macro definitions: 364
     olms: 307
     flms: 57
 unique source macro expansions: 4297
-time to reach a fixed point (s.ms): 22.408356
+time to reach a fixed point (s.ms): 17.325380
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 356
     olms: 304
@@ -47,7 +47,7 @@ transformed polymorphic macros: 0
     olms: 0
     flms: 0
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
-macros with most transformed types: [('NO_DATE', 1), ('NO_TIME', 1), ('MINUTES_PER_DAY', 1), ('TERMINAL_BACKGROUND_UNKNOWN', 1), ('TERMINAL_BACKGROUND_DARK', 1)]
+macros with most transformed types: [('NO_TIME', 1), ('MINUTES_PER_DAY', 1), ('NO_TYPE', 1), ('E_EOLN', 1), ('SAT_TYPE', 1)]
 transformed avg expr nesting depth after: 3.0223262237225716
 transformed num function and global names: 2007
 transformed avg unique symbols per function: 17.167816091954023

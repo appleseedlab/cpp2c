@@ -1,5 +1,5 @@
 fvwm-2.6.9
-time to build (s.ms): 31.520547
+time to build (s.ms): 33.117629
 avg expr nesting depth after: 1.4438738406670586
 num function and global names: 7330
 avg unique symbols per function: 16.259815636736086
@@ -10,7 +10,7 @@ expanded source macro definitions: 2256
     olms: 1121
     flms: 1135
 unique source macro expansions: 14787
-time to reach a fixed point (s.ms): 809.272209
+time to reach a fixed point (s.ms): 806.598129
 runs to reach a fixed point: 4
 potentially transformable macro definitions: 2232
     olms: 1110
@@ -47,7 +47,7 @@ transformed polymorphic macros: 11
     olms: 0
     flms: 11
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('FW_W', 3), ('FW_W_ICON_TITLE', 3), ('FOCUS_SET', 2), ('FW_W_FRAME', 2), ('FW_W_PARENT', 2)]
+macros with most transformed types: [('FW_W', 3), ('FW_W_ICON_TITLE', 3), ('mymalloc', 2), ('FW_W_FRAME', 2), ('FW_W_PARENT', 2)]
 transformed avg expr nesting depth after: 1.4278089943216667
 transformed num function and global names: 8306
 transformed avg unique symbols per function: 22.059170081967213

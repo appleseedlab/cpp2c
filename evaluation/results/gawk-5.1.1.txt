@@ -1,5 +1,5 @@
 gawk-5.1.1
-time to build (s.ms): 21.706499
+time to build (s.ms): 20.953097
 avg expr nesting depth after: 2.462613589187693
 num function and global names: 4553
 avg unique symbols per function: 12.502911208151383
@@ -10,7 +10,7 @@ expanded source macro definitions: 1060
     olms: 731
     flms: 329
 unique source macro expansions: 12207
-time to reach a fixed point (s.ms): 310.428248
+time to reach a fixed point (s.ms): 310.246226
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 1015
     olms: 719
@@ -47,7 +47,7 @@ transformed polymorphic macros: 11
     olms: 0
     flms: 11
 twenty pt summary of transformed types: [ 1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1. 24.]
-macros with most transformed types: [('efree', 24), ('gawk_free', 5), ('make_string', 4), ('make_const_string', 3), ('is_valid_character', 2)]
+macros with most transformed types: [('efree', 24), ('gawk_free', 5), ('make_string', 4), ('make_const_string', 3), ('_', 2)]
 transformed avg expr nesting depth after: 2.4289575903504987
 transformed num function and global names: 4897
 transformed avg unique symbols per function: 16.95911214953271

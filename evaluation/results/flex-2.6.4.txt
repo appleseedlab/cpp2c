@@ -1,5 +1,5 @@
 flex-2.6.4
-time to build (s.ms): 11.858464
+time to build (s.ms): 12.206188
 avg expr nesting depth after: 1.719781117281934
 num function and global names: 1481
 avg unique symbols per function: 10.785016286644952
@@ -10,7 +10,7 @@ expanded source macro definitions: 401
     olms: 297
     flms: 104
 unique source macro expansions: 3134
-time to reach a fixed point (s.ms): 102.503246
+time to reach a fixed point (s.ms): 85.968520
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 379
     olms: 282

@@ -1,5 +1,5 @@
 bison-3.8.2
-time to build (s.ms): 35.248081
+time to build (s.ms): 38.446217
 avg expr nesting depth after: 2.2256704683580315
 num function and global names: 4419
 avg unique symbols per function: 16.440900562851784
@@ -10,7 +10,7 @@ expanded source macro definitions: 1137
     olms: 657
     flms: 480
 unique source macro expansions: 8978
-time to reach a fixed point (s.ms): 351.594468
+time to reach a fixed point (s.ms): 355.364641
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 1031
     olms: 615
@@ -47,7 +47,7 @@ transformed polymorphic macros: 5
     olms: 0
     flms: 5
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 5.]
-macros with most transformed types: [('STREQ', 5), ('INDEX_TO_NODE', 3), ('YY_USE', 2), ('INT_ADD_WRAPV', 2), ('SI_DISABLED', 2)]
+macros with most transformed types: [('STREQ', 5), ('INDEX_TO_NODE', 3), ('INT_ADD_WRAPV', 2), ('YY_USE', 2), ('SI_DISABLED', 2)]
 transformed avg expr nesting depth after: 2.209752839011356
 transformed num function and global names: 4551
 transformed avg unique symbols per function: 17.984839650145773

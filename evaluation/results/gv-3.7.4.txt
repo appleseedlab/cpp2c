@@ -1,5 +1,5 @@
 gv-3.7.4
-time to build (s.ms): 15.653300
+time to build (s.ms): 16.903738
 avg expr nesting depth after: 2.9409046692607004
 num function and global names: 4038
 avg unique symbols per function: 15.43639053254438
@@ -10,7 +10,7 @@ expanded source macro definitions: 813
     olms: 646
     flms: 167
 unique source macro expansions: 6241
-time to reach a fixed point (s.ms): 81.198427
+time to reach a fixed point (s.ms): 59.213022
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 769
     olms: 612
@@ -47,8 +47,8 @@ transformed polymorphic macros: 2
     olms: 0
     flms: 2
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('Dispose', 3), ('CALLscrollProc', 2), ('EYEGUIDE_REMOVE', 1), ('EYEGUIDE_DRAW', 1), ('EYEGUIDE_RESET', 1)]
+macros with most transformed types: [('Dispose', 3), ('CALLscrollProc', 2), ('SuperClass', 1), ('SYSTEM_FAILED_ON', 1), ('PROCESS_NOTIFY', 1)]
 transformed avg expr nesting depth after: 2.8927719465648853
-transformed num function and global names: 4270
-transformed avg unique symbols per function: 20.687224669603523
+transformed num function and global names: 4266
+transformed avg unique symbols per function: 20.648230088495577
 

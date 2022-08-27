@@ -1,5 +1,5 @@
 cvs-1.11.21
-time to build (s.ms): 32.61580
+time to build (s.ms): 32.861655
 avg expr nesting depth after: 2.598453854069928
 num function and global names: 2434
 avg unique symbols per function: 13.24777975133215
@@ -10,7 +10,7 @@ expanded source macro definitions: 677
     olms: 443
     flms: 234
 unique source macro expansions: 5974
-time to reach a fixed point (s.ms): 332.368000
+time to reach a fixed point (s.ms): 334.692641
 runs to reach a fixed point: 4
 potentially transformable macro definitions: 624
     olms: 419
@@ -47,7 +47,7 @@ transformed polymorphic macros: 14
     olms: 0
     flms: 14
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2. 6.]
-macros with most transformed types: [('ZFREE', 6), ('ZALLOC', 4), ('RE_TRANSLATE', 3), ('bzero', 2), ('HASH', 2)]
+macros with most transformed types: [('ZFREE', 6), ('ZALLOC', 4), ('RE_TRANSLATE', 3), ('HASH', 2), ('bzero', 2)]
 transformed avg expr nesting depth after: 2.560356192323956
 transformed num function and global names: 2672
 transformed avg unique symbols per function: 17.10850439882698

@@ -1,5 +1,5 @@
 ncsa-mosaic-af1c9aaaa299da3540faa16dcab82eb681cf624e
-time to build (s.ms): 1.438953
+time to build (s.ms): 2.180837
 avg expr nesting depth after: 2.3712065566165386
 num function and global names: 5033
 avg unique symbols per function: 14.63658991910392
@@ -10,7 +10,7 @@ expanded source macro definitions: 939
     olms: 837
     flms: 102
 unique source macro expansions: 6253
-time to reach a fixed point (s.ms): 194.344310
+time to reach a fixed point (s.ms): 194.116746
 runs to reach a fixed point: 3
 potentially transformable macro definitions: 895
     olms: 800
@@ -47,7 +47,7 @@ transformed polymorphic macros: 7
     olms: 0
     flms: 7
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 6.]
-macros with most transformed types: [('XpmFree', 6), ('FREE', 3), ('XpmMalloc', 3), ('MALLOC', 2), ('LM_to_uint', 2)]
+macros with most transformed types: [('XpmFree', 6), ('FREE', 3), ('XpmMalloc', 3), ('LM_to_uint', 2), ('ReadOK', 2)]
 transformed avg expr nesting depth after: 2.3560723811716846
 transformed num function and global names: 5359
 transformed avg unique symbols per function: 18.006207966890845
