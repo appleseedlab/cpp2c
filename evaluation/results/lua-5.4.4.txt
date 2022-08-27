@@ -1,0 +1,54 @@
+lua-5.4.4
+time to build (s.ms): 2.138776
+avg expr nesting depth after: 3.881841355525566
+num function and global names: 1861
+avg unique symbols per function: 10.382034632034632
+source macro definitions: 1092
+    olms: 518
+    flms: 574
+expanded source macro definitions: 953
+    olms: 410
+    flms: 543
+unique source macro expansions: 6684
+time to reach a fixed point (s.ms): 53.55445
+runs to reach a fixed point: 5
+potentially transformable macro definitions: 896
+    olms: 397
+    flms: 499
+transformed macro definitions: 182
+    olms: 89
+    flms: 93
+untransformed potentially transformable macro definitions: 714
+    olms: 308
+    flms: 406
+number of macros transformed to vars: 89
+percentage increase in transformed macros with our approach: 104.49438202247192%
+categories of reasons not transformed:
+    syntactic well-formedness: 279
+    environment capture: 15
+    parameter side-effects: 60
+    unsupported construct: 131
+    turned off construct: 21
+    multiple categories: 208
+potentially transformable invocations: 6564
+    olms: 2324
+    flms: 4240
+unique transformed invocations in source definitions: 509
+unique transformed invocations in transformed definitions: 36
+total unique transformed invocations: 545
+    olms: 200
+    flms: 345
+top five most transformed macros: [('luaK_codeABC', 25), ('luaL_checkstring', 25), ('luaL_pushfail', 23), ('NO_JUMP', 21), ('GETARG_B', 13)]
+untransformed invocations: 6019
+potentially transformable polymorphic macros: 353
+    olms: 128
+    flms: 225
+transformed polymorphic macros: 10
+    olms: 0
+    flms: 10
+twenty pt summary of transformed types: [1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.5 3. ]
+macros with most transformed types: [('luaK_codeABC', 3), ('Int2I', 2), ('lisdigit', 2), ('ltolower', 2), ('lisspace', 2)]
+transformed avg expr nesting depth after: 3.8099391629407022
+transformed num function and global names: 2054
+transformed avg unique symbols per function: 14.428054298642534
+
