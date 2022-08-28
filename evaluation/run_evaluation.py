@@ -167,7 +167,7 @@ def main():
         build_end_time = datetime.now()
         print(f'Finished building {evaluation_program.name}', file=sys.stderr)
         build_elapsed_time = build_end_time - build_start_time
-        str_stat('time to build (s.ms)', f'{build_elapsed_time.seconds}.{build_elapsed_time.microseconds}')
+        str_stat('time to build', f'{build_elapsed_time.seconds}s {build_elapsed_time.microseconds}us')
 
         # Collect compile commands from compile_commands.json
         compile_commands = compile_command.load_compile_commands_from_file('compile_commands.json')
@@ -365,6 +365,7 @@ def main():
         potentially_transformable_macros_to_raw_sigs: DefaultDict[str, Set[str]] = defaultdict(set)
 
         file_realpath_to_max_time_needed_to_transform: Dict[str, datetime.timedelta] = {}
+        file_realpath_to_sum_time_needed_to_transform: Dict[str, datetime.timedelta] = {}
 
         mhash_to_cats_not_transformed: DefaultDict[str, Set[str]] = defaultdict(set)
 
@@ -395,6 +396,10 @@ def main():
                 if ((file_realpath not in file_realpath_to_max_time_needed_to_transform) or
                     (file_realpath_to_max_time_needed_to_transform[file_realpath] < file_transform_elapsed_time)):
                     file_realpath_to_max_time_needed_to_transform[file_realpath] = file_transform_elapsed_time
+                if file_realpath not in file_realpath_to_sum_time_needed_to_transform:
+                    file_realpath_to_sum_time_needed_to_transform[file_realpath] = file_transform_elapsed_time
+                else:
+                    file_realpath_to_sum_time_needed_to_transform[file_realpath] += file_transform_elapsed_time
                 for line in cp.stderr.splitlines():
 
                     # Check if Clang crashed
@@ -464,13 +469,19 @@ def main():
             if mhash in potentially_transformable_macros
         }
 
-        str_stat('time to reach a fixed point (s.ms)', f'{program_transform_elapsed_time.seconds}.{program_transform_elapsed_time.microseconds}')
+        str_stat('time to reach a fixed point', f'{program_transform_elapsed_time.seconds}s {program_transform_elapsed_time.microseconds}us')
         num_stat('runs to reach a fixed point', runs_to_fixed_point)
-        print('max time needed to transform each file (s.ms)')
+        print('max time needed to transform each file')
         print(json.dumps([
-            (file_realpath, f'{max_elapsed.seconds}.{max_elapsed.microseconds}')
+            (file_realpath, f'{max_elapsed.seconds}s {max_elapsed.microseconds}us')
             for file_realpath, max_elapsed
             in file_realpath_to_max_time_needed_to_transform.items()
+        ]))
+        print('sum time needed to transform each file')
+        print(json.dumps([
+            (file_realpath, f'{max_elapsed.seconds}s {max_elapsed.microseconds}us')
+            for file_realpath, max_elapsed
+            in file_realpath_to_sum_time_needed_to_transform.items()
         ]))
 
         mhash_set_len_stat('potentially transformable macro definitions', potentially_transformable_macros)
