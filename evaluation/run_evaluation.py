@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -161,12 +162,12 @@ def main():
         # Configure program and generate compile_commands.json
         print(f'Building {evaluation_program.name}', file=sys.stderr)
         os.chdir(evaluation_program.extracted_archive_path)
-        start_time = datetime.now()
+        build_start_time = datetime.now()
         subprocess.run(evaluation_program.configure_compile_commands_script, shell=True, capture_output=True)
-        end_time = datetime.now()
+        build_end_time = datetime.now()
         print(f'Finished building {evaluation_program.name}', file=sys.stderr)
-        elapsed = end_time - start_time
-        str_stat('time to build (s.ms)', f'{elapsed.seconds}.{elapsed.microseconds}')
+        build_elapsed_time = build_end_time - build_start_time
+        str_stat('time to build (s.ms)', f'{build_elapsed_time.seconds}.{build_elapsed_time.microseconds}')
 
         # Collect compile commands from compile_commands.json
         compile_commands = compile_command.load_compile_commands_from_file('compile_commands.json')
@@ -278,6 +279,7 @@ def main():
 
         # Loop 3: Macro transformation metrics
         # - Measure time needed to transform program to a fixed point.
+        # - Measure max time needed to transform each file across all runs.
         # - Count runs needed to transform program to a fixed point.
         # - Count potentially transformable definitions.
         #   + If a macro has a potentially transformable expansion,
@@ -357,10 +359,12 @@ def main():
         #   + Macros whose set of transformed signatures has a cardinality > 1.
 
         runs_to_fixed_point = 0
-        start_time = datetime.now()
+        program_transform_start_time = datetime.now()
 
         potentially_transformable_macros: Set[str] = set()
         potentially_transformable_macros_to_raw_sigs: DefaultDict[str, Set[str]] = defaultdict(set)
+
+        file_realpath_to_max_time_needed_to_transform: Dict[str, datetime.timedelta] = {}
 
         mhash_to_cats_not_transformed: DefaultDict[str, Set[str]] = defaultdict(set)
 
@@ -383,8 +387,14 @@ def main():
                 cmd = compile_command.cpp2c_command_from_compile_command(cpp2c_so_path, cc, opts)
                 # Change to the command directory to run the command
                 os.chdir(cc.directory)
+                file_transform_start_time = datetime.now()
                 cp = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+                file_transform_end_time = datetime.now()
+                file_transform_elapsed_time = file_transform_end_time - file_transform_start_time
                 file_realpath = os.path.join(cc.directory+'/', cc.file)
+                if ((file_realpath not in file_realpath_to_max_time_needed_to_transform) or
+                    (file_realpath_to_max_time_needed_to_transform[file_realpath] < file_transform_elapsed_time)):
+                    file_realpath_to_max_time_needed_to_transform[file_realpath] = file_transform_elapsed_time
                 for line in cp.stderr.splitlines():
 
                     # Check if Clang crashed
@@ -433,8 +443,8 @@ def main():
             if not emitted_a_transformation:
                 break
 
-        end_time = datetime.now()
-        elapsed = end_time - start_time
+        program_transform_end_time = datetime.now()
+        program_transform_elapsed_time = program_transform_end_time - program_transform_start_time
 
         print(f'Finished transforming {evaluation_program.name}', file=sys.stderr)
 
@@ -454,8 +464,14 @@ def main():
             if mhash in potentially_transformable_macros
         }
 
-        str_stat('time to reach a fixed point (s.ms)', f'{elapsed.seconds}.{elapsed.microseconds}')
+        str_stat('time to reach a fixed point (s.ms)', f'{program_transform_elapsed_time.seconds}.{program_transform_elapsed_time.microseconds}')
         num_stat('runs to reach a fixed point', runs_to_fixed_point)
+        print('max time needed to transform each file (s.ms)')
+        print(json.dumps([
+            (file_realpath, f'{max_elapsed.seconds}.{max_elapsed.microseconds}')
+            for file_realpath, max_elapsed
+            in file_realpath_to_max_time_needed_to_transform.items()
+        ]))
 
         mhash_set_len_stat('potentially transformable macro definitions', potentially_transformable_macros)
         mhash_set_len_stat('transformed macro definitions', transformed_macros)
@@ -488,6 +504,22 @@ def main():
                 # Only check for multiple cats on the first pass
                 elif i == 0 and len(cats) > 1:
                     multiple_cats_count += 1
+
+            print(f'    {cat.lower()}: {count}')
+        print(f'    multiple categories: {multiple_cats_count}')
+
+        print('categories of reasons not transformed (flms):')
+        multiple_cats_count = 0
+        for i, cat in enumerate(CATEGORIES_NOT_TRANSFORMED):
+            count = 0
+            for mh, cats in pt_mhash_to_cats_not_transformed.items():
+                if FLM_TAG in mh:
+                    if cats == {cat}:
+                        count += 1
+
+                    # Only check for multiple cats on the first pass
+                    elif i == 0 and len(cats) > 1:
+                        multiple_cats_count += 1
 
             print(f'    {cat.lower()}: {count}')
         print(f'    multiple categories: {multiple_cats_count}')
