@@ -1,0 +1,65 @@
+test
+time to build: 0s 967223us
+avg expr nesting depth after: 2.696969696969697
+num function and global names: 3
+avg unique symbols per function: 2.6666666666666665
+source macro definitions: 22
+    olms: 7
+    flms: 15
+expanded source macro definitions: 20
+    olms: 6
+    flms: 14
+unique source macro expansions: 36
+time to reach a fixed point: 1s 152608us
+runs to reach a fixed point: 5
+max time needed to transform each file
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test3.c", "0s 32805us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test5.c", "0s 32795us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test1.c", "0s 34591us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test4.c", "0s 32687us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test2.c", "0s 34270us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test7.c", "0s 34029us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test6.c", "0s 31859us"]]
+sum time needed to transform each file
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test3.c", "0s 159787us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test5.c", "0s 161613us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test1.c", "0s 170479us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test4.c", "0s 159566us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test2.c", "0s 164929us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test7.c", "0s 162206us"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/test/test6.c", "0s 155741us"]]
+potentially transformable macro definitions: 20
+    olms: 6
+    flms: 14
+transformed macro definitions: 14
+    olms: 5
+    flms: 9
+untransformed potentially transformable macro definitions: 6
+    olms: 1
+    flms: 5
+number of macros transformed to vars: 2
+percentage increase in transformed macros with our approach: 600.0%
+categories of reasons not transformed:
+    syntactic well-formedness: 0
+    environment capture: 1
+    parameter side-effects: 0
+    unsupported construct: 4
+    turned off construct: 0
+    multiple categories: 1
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 0
+    environment capture: 0
+    parameter side-effects: 0
+    unsupported construct: 4
+    turned off construct: 0
+    multiple categories: 1
+potentially transformable invocations: 36
+    olms: 15
+    flms: 21
+unique transformed invocations in source definitions: 17
+unique transformed invocations in transformed definitions: 12
+total unique transformed invocations: 29
+    olms: 14
+    flms: 15
+top five most transformed macros: [('MIDDLE', 5), ('INNER', 4), ('PLUS_ONE', 3), ('X_PLUS_Y', 3), ('DIGITBIT', 2)]
+untransformed invocations: 7
+potentially transformable polymorphic macros: 8
+    olms: 1
+    flms: 7
+transformed polymorphic macros: 5
+    olms: 0
+    flms: 5
+twenty pt summary of transformed types: [1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.5 2.  2.  2.  2.5 2.5 3.  3. ]
+macros with most transformed types: [('X_PLUS_Y', 3), ('L1', 3), ('PLUS_ONE', 2), ('L2', 2), ('ID', 2)]
+transformed avg expr nesting depth after: 2.2982456140350878
+transformed num function and global names: 24
+transformed avg unique symbols per function: 29.0
+
