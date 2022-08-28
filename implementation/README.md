@@ -7,6 +7,3 @@ build and test the plugin.
 Refer back to the readme file in the main directory on how to start the Docker
 container, build the plugin and the wrapper, and run the wrapper script.
 
-<!--
-NOTE TO SELF: DON'T TRY TO BUILD LLVM + CLANG FROM SOURCE IT DOESN'T WORK
--->

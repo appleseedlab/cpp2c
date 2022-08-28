@@ -1,38 +1,32 @@
 # Evaluation
-Note: We don't transform test scripts in these projects to ensure that the
-tests are consistent (i.e., the only dependent variable in our evaluation
-is the source code pre and post transformation)
+
+## Table of Contents
+- [Evaluation](#evaluation)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Getting Started](#getting-started)
+  - [Running the Evaluation](#running-the-evaluation)
+
+## Prerequisites
+- All of the prerequisites for cpp2c
+- Python 3.8+
 
 ## Getting Started
-Build Cpp2C:
-1. Navigate to the `implementation` directory
-2. Run the script `build.sh`
-3. Install `pipenv`:
+1. Build Cpp2C. Refer back to the readme in the top-level directory for instructions on how to do this.
+2. Install `pipenv`
 ```bash
-    $ python3 -m pip install pipenv
+$ python3 -m pip install pipenv
+```
+3. Install Python dependencies
+```bash
+$ pipenv install
 ```
 
 ## Running the Evaluation
 1. Run `pipenv shell`
 2. Run `python3 run_evaluation.py`
+   1. Optional: If you would like to run the evaluation with the `-tce` option active, run `python3 run_evaluation.py tce` instead.
 
-## bc v1.07
-Downloaded on 2022-03-20
-
-https://mirrors.kernel.org/gnu/bc/bc-1.07.tar.gz
-
-## gzip v1.10
-Downloaded on 2022-03-20
-
-https://gnu.mirror.constant.com/gzip/gzip-1.10.tar.gz
-
-## Lua 5.4.4
-Downloaded on 2022-03-19
-
-- [Source link](https://www.lua.org/ftp/lua-5.4.4.tar.gz)
-- [Tests link](https://www.lua.org/tests/lua-5.4.4-tests.tar.gz)
-
-## Remind v03.04.02
-Downloaded on 2022-03-17
-
-https://dianne.skoll.ca/projects/remind/download/remind-03.04.02.tar.gz
+The file `evaluation_programs.py` contains links to compressed versions of all programs included in the study, as well as scripts for building and testing them.
+`run_evaluation.py` will download these programs, unzip, build them, and transform them with cpp2c.
+The transformer emits diagnostic data while transforming the programs, and the evaluation script emits this data to a file in the `results` directory (or `results-tce` directory if the tce argument was passed).
