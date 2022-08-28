@@ -1,5 +1,5 @@
 flex-2.6.4
-time to build (s.ms): 12.206188
+time to build (s.ms): 12.254776
 avg expr nesting depth after: 1.719781117281934
 num function and global names: 1481
 avg unique symbols per function: 10.785016286644952
@@ -10,8 +10,10 @@ expanded source macro definitions: 401
     olms: 297
     flms: 104
 unique source macro expansions: 3134
-time to reach a fixed point (s.ms): 85.968520
+time to reach a fixed point (s.ms): 86.395478
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/scanopt.c", "0.562684"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/ccl.c", "0.532453"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/main.c", "0.587817"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/tables.c", "0.557336"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/parse.c", "0.580227"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/scanflags.c", "0.547249"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/ecs.c", "0.529771"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/nfa.c", "0.536297"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/options.c", "0.543598"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/regex.c", "0.560362"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/tables_shared.c", "0.544470"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/libyywrap.c", "0.41970"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/libmain.c", "0.97961"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/buf.c", "0.535104"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/sym.c", "0.549823"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/scan.c", "0.706880"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/stage1scan.c", "0.685618"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/filter.c", "0.575346"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/skel.c", "0.548068"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/gen.c", "0.553309"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/dfa.c", "0.575564"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/yylex.c", "0.557086"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/tblcmp.c", "0.544076"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/misc.c", "0.568993"]]
 potentially transformable macro definitions: 379
     olms: 282
     flms: 97
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 53
     turned off construct: 15
     multiple categories: 24
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 42
+    environment capture: 2
+    parameter side-effects: 0
+    unsupported construct: 11
+    turned off construct: 13
+    multiple categories: 1
 potentially transformable invocations: 3092
     olms: 2276
     flms: 816

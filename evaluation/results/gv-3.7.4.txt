@@ -1,5 +1,5 @@
 gv-3.7.4
-time to build (s.ms): 16.903738
+time to build (s.ms): 16.741092
 avg expr nesting depth after: 2.9409046692607004
 num function and global names: 4038
 avg unique symbols per function: 15.43639053254438
@@ -10,8 +10,10 @@ expanded source macro definitions: 813
     olms: 646
     flms: 167
 unique source macro expansions: 6241
-time to reach a fixed point (s.ms): 59.213022
+time to reach a fixed point (s.ms): 59.658107
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_fs.c", "0.273891"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Vlist.c", "0.413388"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/zoom.c", "0.416511"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options.c", "0.320200"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/note.c", "0.154646"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/MButton.c", "0.167310"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/miscmenu.c", "0.438317"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Aaa_lex.c", "0.257701"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/ps.c", "0.627396"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/info.c", "0.230825"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Clip.c", "0.134651"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/misc_private.c", "0.310578"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_gs.c", "0.326206"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_gv.c", "0.482648"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/secscanf.c", "0.197434"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/FileSel.c", "0.961618"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/main.c", "0.773737"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/popup.c", "0.134202"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/resource.c", "0.351063"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Scrollbar.c", "0.548842"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/media.c", "0.220240"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/lib/malloca.c", "0.117490"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/widgets_misc.c", "0.196701"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Switch.c", "0.178035"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/confirm.c", "0.175065"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/callbacks.c", "0.799547"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/save.c", "0.311223"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/misc.c", "1.34415"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Ghostview.c", "0.546122"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/lib/tempname.c", "0.332467"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/doc_misc.c", "0.243171"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_setup.c", "0.296119"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Aaa.c", "0.273023"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/dialog.c", "0.334712"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/magmenu.c", "0.439009"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/process.c", "0.542076"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Aaa_bison.c", "0.288054"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Frame.c", "0.149855"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/scale.c", "0.316362"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/version.c", "0.159472"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Button.c", "0.163109"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/actions.c", "0.634657"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/error.c", "0.371048"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/file.c", "0.570580"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/gv_signal.c", "0.396509"]]
 potentially transformable macro definitions: 769
     olms: 612
     flms: 157
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 35
     turned off construct: 14
     multiple categories: 81
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 87
+    environment capture: 12
+    parameter side-effects: 3
+    unsupported construct: 10
+    turned off construct: 14
+    multiple categories: 5
 potentially transformable invocations: 6185
     olms: 3118
     flms: 3067
@@ -47,8 +56,8 @@ transformed polymorphic macros: 2
     olms: 0
     flms: 2
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('Dispose', 3), ('CALLscrollProc', 2), ('SuperClass', 1), ('SYSTEM_FAILED_ON', 1), ('PROCESS_NOTIFY', 1)]
+macros with most transformed types: [('Dispose', 3), ('CALLscrollProc', 2), ('VLIST_MARK_LABEL_INDENT', 1), ('VLIST_MARK_LEFT_INDENT', 1), ('VLIST_MARK_VERTICAL_INDENT', 1)]
 transformed avg expr nesting depth after: 2.8927719465648853
-transformed num function and global names: 4266
-transformed avg unique symbols per function: 20.648230088495577
+transformed num function and global names: 4265
+transformed avg unique symbols per function: 20.624584717607974
 

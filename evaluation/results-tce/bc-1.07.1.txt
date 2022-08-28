@@ -1,5 +1,5 @@
 bc-1.07.1
-time to build (s.ms): 6.674287
+time to build (s.ms): 6.681895
 avg expr nesting depth after: 2.7296257432668765
 num function and global names: 922
 avg unique symbols per function: 10.320754716981131
@@ -10,8 +10,10 @@ expanded source macro definitions: 178
     olms: 146
     flms: 32
 unique source macro expansions: 1178
-time to reach a fixed point (s.ms): 10.875174
+time to reach a fixed point (s.ms): 10.864730
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/dc/string.c", "0.146328"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/dc/numeric.c", "0.166870"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/dc/misc.c", "0.150994"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/warranty.c", "0.163328"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/execute.c", "0.224826"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/lib/getopt.c", "0.50008"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/scan.c", "0.254972"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/dc/eval.c", "0.142782"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/dc/dc.c", "0.198170"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/load.c", "0.158540"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/storage.c", "0.166308"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/lib/getopt1.c", "0.54917"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/main.c", "0.234655"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/lib/number.c", "0.145847"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/util.c", "0.192574"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/bc.c", "0.176412"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/dc/stack.c", "0.155356"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/lib/vfprintf.c", "0.33229"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/dc/array.c", "0.148271"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/bc-1.07.1/bc/global.c", "0.91402"]]
 potentially transformable macro definitions: 172
     olms: 142
     flms: 30
@@ -28,6 +30,13 @@ categories of reasons not transformed:
     environment capture: 2
     parameter side-effects: 2
     unsupported construct: 9
+    turned off construct: 0
+    multiple categories: 0
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 14
+    environment capture: 1
+    parameter side-effects: 2
+    unsupported construct: 2
     turned off construct: 0
     multiple categories: 0
 potentially transformable invocations: 1172
@@ -47,7 +56,7 @@ transformed polymorphic macros: 2
     olms: 0
     flms: 2
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('MIN', 2), ('YYUSE', 2), ('FALSE', 1), ('STORE_INCR', 1), ('BC_START_SIZE', 1)]
+macros with most transformed types: [('MIN', 2), ('YYUSE', 2), ('CastNumPtr', 1), ('CastNum', 1), ('DC_SUCCESS', 1)]
 transformed avg expr nesting depth after: 2.7025316455696204
 transformed num function and global names: 1033
 transformed avg unique symbols per function: 16.94148936170213

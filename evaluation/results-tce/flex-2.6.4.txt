@@ -1,5 +1,5 @@
 flex-2.6.4
-time to build (s.ms): 12.707464
+time to build (s.ms): 12.483548
 avg expr nesting depth after: 1.719781117281934
 num function and global names: 1481
 avg unique symbols per function: 10.785016286644952
@@ -10,8 +10,10 @@ expanded source macro definitions: 401
     olms: 297
     flms: 104
 unique source macro expansions: 3134
-time to reach a fixed point (s.ms): 86.840628
+time to reach a fixed point (s.ms): 87.658507
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/yylex.c", "0.573351"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/tables.c", "0.555675"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/buf.c", "0.559183"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/scanflags.c", "0.540386"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/parse.c", "0.570190"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/regex.c", "0.542885"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/nfa.c", "0.548694"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/gen.c", "0.563714"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/ccl.c", "0.553017"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/main.c", "0.612901"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/skel.c", "0.552676"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/filter.c", "0.546614"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/scanopt.c", "0.563906"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/ecs.c", "0.541608"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/libmain.c", "0.104490"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/tblcmp.c", "0.550905"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/sym.c", "0.549021"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/misc.c", "0.556567"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/scan.c", "0.749676"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/libyywrap.c", "0.56323"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/options.c", "0.573406"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/dfa.c", "0.600710"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/stage1scan.c", "0.741225"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/flex-2.6.4/src/tables_shared.c", "0.543449"]]
 potentially transformable macro definitions: 381
     olms: 284
     flms: 97
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 57
     turned off construct: 0
     multiple categories: 24
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 42
+    environment capture: 2
+    parameter side-effects: 0
+    unsupported construct: 15
+    turned off construct: 0
+    multiple categories: 1
 potentially transformable invocations: 3094
     olms: 2278
     flms: 816
@@ -38,7 +47,7 @@ unique transformed invocations in transformed definitions: 15
 total unique transformed invocations: 737
     olms: 609
     flms: 128
-top five most transformed macros: [('NIL', 35), ('ACTION_ECHO', 32), ('ACTION_ECHO', 32), ('CCL', 28), ('reallocate_integer_array', 28)]
+top five most transformed macros: [('NIL', 35), ('ACTION_ECHO', 32), ('ACTION_ECHO', 32), ('reallocate_integer_array', 28), ('CCL', 28)]
 untransformed invocations: 2357
 potentially transformable polymorphic macros: 84
     olms: 69
@@ -47,7 +56,7 @@ transformed polymorphic macros: 1
     olms: 0
     flms: 1
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('YYUSE', 2), ('NIL', 1), ('MAXLINE', 1), ('reallocate_character_array', 1), ('CSIZE', 1)]
+macros with most transformed types: [('YYUSE', 2), ('SECTEND', 1), ('TFLAGS_CLRDATA', 1), ('BYTES2TFLAG', 1), ('YYINITDEPTH', 1)]
 transformed avg expr nesting depth after: 1.7156539235412476
 transformed num function and global names: 1676
 transformed avg unique symbols per function: 21.189243027888445

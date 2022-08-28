@@ -1,5 +1,5 @@
 gv-3.7.4
-time to build (s.ms): 17.112884
+time to build (s.ms): 16.310726
 avg expr nesting depth after: 2.9409046692607004
 num function and global names: 4038
 avg unique symbols per function: 15.43639053254438
@@ -10,8 +10,10 @@ expanded source macro definitions: 813
     olms: 646
     flms: 167
 unique source macro expansions: 6241
-time to reach a fixed point (s.ms): 80.376927
+time to reach a fixed point (s.ms): 80.355100
 runs to reach a fixed point: 4
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/zoom.c", "0.429493"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/callbacks.c", "0.790618"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_gv.c", "0.496847"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/actions.c", "0.631207"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/lib/tempname.c", "0.374218"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_fs.c", "0.280249"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/media.c", "0.222507"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Frame.c", "0.152666"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/error.c", "0.382429"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/process.c", "0.561479"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/confirm.c", "0.175435"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/doc_misc.c", "0.244227"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/gv_signal.c", "0.392395"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/version.c", "0.171279"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Ghostview.c", "0.564046"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options.c", "0.327576"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/lib/malloca.c", "0.120407"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Aaa_bison.c", "0.324695"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/magmenu.c", "0.435010"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/info.c", "0.246532"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_setup.c", "0.298498"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/popup.c", "0.139991"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/dialog.c", "0.336187"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/miscmenu.c", "0.441969"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/note.c", "0.159461"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/MButton.c", "0.170199"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/main.c", "0.742045"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/misc.c", "1.12777"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/misc_private.c", "0.316195"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Button.c", "0.164981"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/ps.c", "0.644302"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Aaa.c", "0.282312"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/options_gs.c", "0.333981"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Aaa_lex.c", "0.261628"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Clip.c", "0.137503"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/FileSel.c", "0.985563"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/secscanf.c", "0.181371"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/save.c", "0.308460"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/resource.c", "0.360277"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/file.c", "0.587230"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/scale.c", "0.317665"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Vlist.c", "0.421809"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Scrollbar.c", "0.552866"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/widgets_misc.c", "0.180973"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gv-3.7.4/src/Switch.c", "0.168156"]]
 potentially transformable macro definitions: 769
     olms: 612
     flms: 157
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 35
     turned off construct: 0
     multiple categories: 81
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 87
+    environment capture: 12
+    parameter side-effects: 3
+    unsupported construct: 10
+    turned off construct: 0
+    multiple categories: 4
 potentially transformable invocations: 6185
     olms: 3118
     flms: 3067

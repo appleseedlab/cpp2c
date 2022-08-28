@@ -1,5 +1,5 @@
 enscript-1.6.6
-time to build (s.ms): 14.327016
+time to build (s.ms): 14.117660
 avg expr nesting depth after: 2.4020569620253163
 num function and global names: 2327
 avg unique symbols per function: 12.15
@@ -10,8 +10,10 @@ expanded source macro definitions: 394
     olms: 235
     flms: 159
 unique source macro expansions: 3629
-time to reach a fixed point (s.ms): 37.541311
+time to reach a fixed point (s.ms): 37.386903
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/compat/xalloc.c", "0.137077"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_vms.c", "0.287113"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/strhash.c", "0.287950"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_885910.c", "0.288224"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/deffont.c", "0.283115"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_mac.c", "0.283462"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/states/lex.c", "0.297462"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_pc.c", "0.297464"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/afmtest.c", "0.130456"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_koi8.c", "0.284910"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_88591.c", "0.286354"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/compat/regex.c", "0.461562"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/states/utils.c", "0.358004"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_88595.c", "0.284966"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/src/prt_lpr.c", "0.530660"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_88592.c", "0.283950"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/afm.c", "0.294889"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_88597.c", "0.287720"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/compat/getopt.c", "0.56393"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/src/mkafmmap.c", "0.170971"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_88599.c", "0.308686"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/afmparse.c", "0.315962"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/states/main.c", "0.470119"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/states/prims.c", "0.375383"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/states/gram.c", "0.355670"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/states/process.c", "0.347642"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/src/psgen.c", "0.430523"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_88594.c", "0.293960"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_88593.c", "0.286873"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/afmlib/e_hp8.c", "0.294632"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/compat/getopt1.c", "0.56433"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/src/util.c", "0.613751"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/enscript-1.6.6/src/main.c", "0.670553"]]
 potentially transformable macro definitions: 358
     olms: 221
     flms: 137
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 25
     turned off construct: 0
     multiple categories: 17
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 64
+    environment capture: 14
+    parameter side-effects: 2
+    unsupported construct: 6
+    turned off construct: 0
+    multiple categories: 9
 potentially transformable invocations: 3561
     olms: 1900
     flms: 1661
@@ -47,7 +56,7 @@ transformed polymorphic macros: 6
     olms: 0
     flms: 6
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('CHAR_WIDTH', 3), ('ISNUMBERDIGIT', 2), ('ISSPACE', 2), ('bzero', 2), ('EXISTS', 2)]
+macros with most transformed types: [('CHAR_WIDTH', 3), ('bzero', 2), ('ISSPACE', 2), ('EXISTS', 2), ('ISSPACE', 2)]
 transformed avg expr nesting depth after: 2.4239595488136914
 transformed num function and global names: 2519
 transformed avg unique symbols per function: 20.450090744101633

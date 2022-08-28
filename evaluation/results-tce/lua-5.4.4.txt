@@ -1,5 +1,5 @@
 lua-5.4.4
-time to build (s.ms): 2.141201
+time to build (s.ms): 2.113185
 avg expr nesting depth after: 3.881841355525566
 num function and global names: 1861
 avg unique symbols per function: 10.382034632034632
@@ -10,8 +10,10 @@ expanded source macro definitions: 953
     olms: 410
     flms: 543
 unique source macro expansions: 6684
-time to reach a fixed point (s.ms): 53.727176
+time to reach a fixed point (s.ms): 53.621846
 runs to reach a fixed point: 5
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lstrlib.c", "0.204947"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/luac.c", "0.300914"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/llex.c", "0.147078"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lobject.c", "0.289381"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lparser.c", "0.178854"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lua.c", "0.227549"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/ldblib.c", "0.136788"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lauxlib.c", "0.209235"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/liolib.c", "0.171587"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lapi.c", "0.446963"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lcode.c", "0.318357"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/ldo.c", "0.297155"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lctype.c", "0.60402"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/ldebug.c", "0.245510"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/loslib.c", "0.182990"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lzio.c", "0.99194"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/ltm.c", "0.164160"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lutf8lib.c", "0.122876"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/loadlib.c", "0.142701"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/ldump.c", "0.87159"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lstate.c", "0.159406"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lfunc.c", "0.113694"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/linit.c", "0.73041"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lmem.c", "0.89484"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/ltable.c", "0.205826"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lstring.c", "0.121861"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lbaselib.c", "0.157831"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lundump.c", "0.138496"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lgc.c", "0.350202"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lmathlib.c", "0.167273"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lopcodes.c", "0.75756"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lvm.c", "4.141583"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/ltablib.c", "0.102872"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/lua-5.4.4/src/lcorolib.c", "0.116746"]]
 potentially transformable macro definitions: 898
     olms: 397
     flms: 501
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 144
     turned off construct: 0
     multiple categories: 202
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 134
+    environment capture: 11
+    parameter side-effects: 60
+    unsupported construct: 86
+    turned off construct: 0
+    multiple categories: 106
 potentially transformable invocations: 6571
     olms: 2324
     flms: 4247
@@ -47,7 +56,7 @@ transformed polymorphic macros: 10
     olms: 0
     flms: 10
 twenty pt summary of transformed types: [1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.5 3. ]
-macros with most transformed types: [('luaK_codeABC', 3), ('luaL_optstring', 2), ('Int2I', 2), ('uchar', 2), ('lisxdigit', 2)]
+macros with most transformed types: [('luaK_codeABC', 3), ('uchar', 2), ('lisxdigit', 2), ('lisdigit', 2), ('lisspace', 2)]
 transformed avg expr nesting depth after: 3.808027539734857
 transformed num function and global names: 2069
 transformed avg unique symbols per function: 14.667562724014337

@@ -1,5 +1,5 @@
 remind
-time to build (s.ms): 8.691399
+time to build (s.ms): 8.673833
 avg expr nesting depth after: 3.049976087996174
 num function and global names: 1760
 avg unique symbols per function: 10.830128205128204
@@ -10,8 +10,10 @@ expanded source macro definitions: 364
     olms: 307
     flms: 57
 unique source macro expansions: 4297
-time to reach a fixed point (s.ms): 17.325380
+time to reach a fixed point (s.ms): 18.537657
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/expr.c", "0.228068"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/omit.c", "0.154094"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/rem2ps.c", "0.279215"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/sort.c", "0.187629"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/utils.c", "0.219946"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/funcs.c", "0.468885"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/dynbuf.c", "0.152288"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/init.c", "0.302156"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/queue.c", "0.298132"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/moon.c", "0.225418"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/dosubst.c", "0.215099"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/md5.c", "0.75581"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/dorem.c", "0.226568"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/main.c", "0.428025"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/token.c", "0.217878"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/files.c", "0.293398"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/trigger.c", "0.156197"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/json.c", "0.211302"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/calendar.c", "0.254909"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/userfns.c", "0.170275"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/hbcal.c", "0.91133"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/var.c", "0.245709"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/remind/src/globals.c", "0.93150"]]
 potentially transformable macro definitions: 356
     olms: 304
     flms: 52
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 12
     turned off construct: 11
     multiple categories: 12
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 22
+    environment capture: 1
+    parameter side-effects: 4
+    unsupported construct: 0
+    turned off construct: 11
+    multiple categories: 6
 potentially transformable invocations: 4228
     olms: 2964
     flms: 1264
@@ -47,7 +56,7 @@ transformed polymorphic macros: 0
     olms: 0
     flms: 0
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
-macros with most transformed types: [('NO_TIME', 1), ('MINUTES_PER_DAY', 1), ('NO_TYPE', 1), ('E_EOLN', 1), ('SAT_TYPE', 1)]
+macros with most transformed types: [('UN_OP', 1), ('OK', 1), ('E_NO_MEM', 1), ('E_MISS_QUOTE', 1), ('E_ILLEGAL_CHAR', 1)]
 transformed avg expr nesting depth after: 3.0223262237225716
 transformed num function and global names: 2007
 transformed avg unique symbols per function: 17.167816091954023

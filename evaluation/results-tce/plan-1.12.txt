@@ -1,5 +1,5 @@
 plan-1.12
-time to build (s.ms): 10.543329
+time to build (s.ms): 10.461337
 avg expr nesting depth after: 2.6663626746434175
 num function and global names: 2862
 avg unique symbols per function: 13.106542056074767
@@ -10,8 +10,10 @@ expanded source macro definitions: 371
     olms: 321
     flms: 50
 unique source macro expansions: 3187
-time to reach a fixed point (s.ms): 84.824911
+time to reach a fixed point (s.ms): 84.668676
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/yeardraw.c", "0.234894"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/holmenu.c", "0.415238"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/usersel.c", "0.417903"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/vcalendar_r.c", "0.467002"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/servmenu.c", "0.326029"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/daemon.c", "0.420004"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/weekcalc.c", "0.333783"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/daydraw.c", "0.240226"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/weekmenu.c", "0.430901"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/main.c", "0.655607"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/yovmenu.c", "0.436290"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/daymenu.c", "0.424636"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/holiday.c", "0.456657"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/psdraw.c", "0.230263"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/g_formfile.c", "0.436316"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/cyccalc.c", "0.231251"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/gotomenu.c", "0.292023"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/time.c", "0.343106"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/notifier.c", "0.324011"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/calmenu.c", "0.425050"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/mondraw.c", "0.328386"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/edit.c", "0.411480"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/adjmenu.c", "0.428466"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/file_w.c", "0.297992"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/keymenu.c", "0.298319"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/yearmenu.c", "0.421850"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/print.c", "0.589007"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/parser.c", "0.333515"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/msgmenu.c", "0.416485"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/notmenu.c", "0.407262"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/sublist.c", "0.357996"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/util.c", "0.670945"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/lex.yy.c", "0.226919"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/g_dbase.c", "0.464932"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/g_formop.c", "0.433995"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/weekdraw.c", "0.241924"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/yovcalc.c", "0.337146"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/excmenu.c", "0.435018"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/cnfmenu.c", "0.428755"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/language.c", "0.368691"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/vcalendar_w.c", "0.235050"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/network.c", "0.603247"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/g_dbfile.c", "0.658870"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/xutil.c", "0.344579"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/help.c", "0.429861"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/usermenu.c", "0.659454"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/yovdraw.c", "0.236004"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/netplan.c", "0.502653"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/confmenu.c", "0.442286"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/dbase.c", "0.327309"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/netplan_acl.c", "0.433042"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/cycmenu.c", "0.426651"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/daycalc.c", "0.338631"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/editdraw.c", "0.234768"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/convert.c", "0.316344"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/monmenu.c", "0.422489"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/editmenu.c", "0.433322"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/popup.c", "0.498841"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/plan-1.12/src/file_r.c", "0.486930"]]
 potentially transformable macro definitions: 367
     olms: 318
     flms: 49
@@ -30,6 +32,13 @@ categories of reasons not transformed:
     unsupported construct: 37
     turned off construct: 0
     multiple categories: 8
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 22
+    environment capture: 5
+    parameter side-effects: 1
+    unsupported construct: 3
+    turned off construct: 0
+    multiple categories: 1
 potentially transformable invocations: 3183
     olms: 2915
     flms: 268
@@ -38,7 +47,7 @@ unique transformed invocations in transformed definitions: 6
 total unique transformed invocations: 876
     olms: 805
     flms: 71
-top five most transformed macros: [('FALSE', 36), ('TRUE', 33), ('TRUE', 29), ('FALSE', 29), ('X_TIME', 20)]
+top five most transformed macros: [('FALSE', 36), ('TRUE', 33), ('TRUE', 29), ('FALSE', 29), ('FONT_NOTE', 20)]
 untransformed invocations: 2307
 potentially transformable polymorphic macros: 62
     olms: 45
@@ -47,7 +56,7 @@ transformed polymorphic macros: 4
     olms: 0
     flms: 4
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 2.]
-macros with most transformed types: [('CHARWIDTH', 2), ('XSCALE', 2), ('YSCALE', 2), ('YYUSE', 2), ('CHUNK', 1)]
+macros with most transformed types: [('CHARWIDTH', 2), ('XSCALE', 2), ('YSCALE', 2), ('YYUSE', 2), ('COL_YBACK', 1)]
 transformed avg expr nesting depth after: 2.6462636530766734
 transformed num function and global names: 3062
 transformed avg unique symbols per function: 18.485714285714284

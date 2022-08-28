@@ -1,5 +1,5 @@
 gnuplot-5.4.4
-time to build (s.ms): 22.456449
+time to build (s.ms): 22.230410
 avg expr nesting depth after: 2.5126282217050253
 num function and global names: 6604
 avg unique symbols per function: 13.5549472037544
@@ -10,45 +10,54 @@ expanded source macro definitions: 1061
     olms: 865
     flms: 196
 unique source macro expansions: 12749
-time to reach a fixed point (s.ms): 249.764584
+time to reach a fixed point (s.ms): 247.789257
 runs to reach a fixed point: 3
+max time needed to transform each file (s.ms)
+[["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/fit.c", "1.108359"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/doc2ipf.c", "0.993693"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/demo/plugin/demo_plugin.c", "0.102649"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/doc2rnh.c", "0.967508"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/matrix.c", "0.755934"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/misc.c", "0.990020"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/multiplot.c", "0.924193"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/plot.c", "1.56941"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/save.c", "1.167832"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/set.c", "1.435425"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/contour.c", "0.920235"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/datablock.c", "0.958902"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/specfun.c", "0.771626"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/stats.c", "0.959425"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/term.c", "2.404670"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/util3d.c", "0.991127"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/xref.c", "0.734519"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/termdoc.c", "0.738438"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/stdfn.c", "0.724628"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/vplot.c", "0.919719"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/show.c", "1.209247"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/voxelgrid.c", "0.960818"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/external.c", "0.804749"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/time.c", "0.756812"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/bf_test.c", "0.169901"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/interpol.c", "0.923533"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/gadgets.c", "1.249105"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/internal.c", "0.962396"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/parse.c", "0.821012"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/getcolor.c", "0.776561"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/plot3d.c", "1.156630"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/doc2gih.c", "0.948054"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/libcerf.c", "0.77797"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/util.c", "1.82849"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/datafile.c", "1.81159"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/pm3d.c", "0.957669"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/readline.c", "0.844473"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/plot2d.c", "1.152974"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/scanner.c", "0.761750"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/gplt_x11.c", "1.100493"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/alloc.c", "0.715153"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/doc2tex.c", "0.773695"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/tabulate.c", "0.945012"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/axis.c", "0.950338"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/dynarray.c", "0.743962"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/hidden3d.c", "1.22247"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/jitter.c", "0.845526"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/unset.c", "1.255554"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/doc2rtf.c", "0.942712"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/checkdoc.c", "0.963215"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/graph3d.c", "1.64523"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/help.c", "0.759684"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/version.c", "0.68836"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/history.c", "0.599266"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/encoding.c", "0.823223"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/boundary.c", "0.903481"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/tables.c", "0.924362"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/gpexecute.c", "0.728180"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/graphics.c", "1.143983"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/command.c", "1.248249"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/color.c", "0.852390"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/doc2hlp.c", "0.947352"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/breaders.c", "0.909651"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/eval.c", "0.990069"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/mouse.c", "1.73722"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/variable.c", "0.730332"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/doc2ms.c", "0.773935"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/docs/windows/doc2html.c", "0.811007"], ["/home/bpappas/cpp2c/evaluation/extracted_evaluation_programs/gnuplot-5.4.4/src/standard.c", "0.773115"]]
 potentially transformable macro definitions: 1049
     olms: 854
     flms: 195
-transformed macro definitions: 259
-    olms: 217
+transformed macro definitions: 258
+    olms: 216
     flms: 42
-untransformed potentially transformable macro definitions: 790
-    olms: 637
+untransformed potentially transformable macro definitions: 791
+    olms: 638
     flms: 153
 number of macros transformed to vars: 202
-percentage increase in transformed macros with our approach: 28.217821782178216%
+percentage increase in transformed macros with our approach: 27.722772277227726%
 categories of reasons not transformed:
-    syntactic well-formedness: 330
+    syntactic well-formedness: 331
     environment capture: 14
     parameter side-effects: 3
     unsupported construct: 234
     turned off construct: 29
     multiple categories: 180
+categories of reasons not transformed (flms):
+    syntactic well-formedness: 86
+    environment capture: 4
+    parameter side-effects: 3
+    unsupported construct: 21
+    turned off construct: 25
+    multiple categories: 14
 potentially transformable invocations: 12735
     olms: 10562
     flms: 2173
-unique transformed invocations in source definitions: 1041
+unique transformed invocations in source definitions: 1033
 unique transformed invocations in transformed definitions: 12
-total unique transformed invocations: 1053
-    olms: 759
+total unique transformed invocations: 1045
+    olms: 751
     flms: 294
 top five most transformed macros: [('plot', 61), ('X', 59), ('Y', 57), ('vlist', 35), ('pop', 31)]
-untransformed invocations: 11682
-potentially transformable polymorphic macros: 210
-    olms: 157
-    flms: 53
+untransformed invocations: 11690
+potentially transformable polymorphic macros: 208
+    olms: 156
+    flms: 52
 transformed polymorphic macros: 2
     olms: 0
     flms: 2
 twenty pt summary of transformed types: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 3.]
-macros with most transformed types: [('fseek', 3), ('GE', 3), ('NO_CARET', 1), ('df_set_skip_after', 1), ('GD_PNG', 1)]
-transformed avg expr nesting depth after: 2.5000919918065962
-transformed num function and global names: 6867
-transformed avg unique symbols per function: 15.570717839374556
+macros with most transformed types: [('fseek', 3), ('GE', 3), ('MIN_LAMBDA', 1), ('STANDARD', 1), ('SQR', 1)]
+transformed avg expr nesting depth after: 2.5000552018547824
+transformed num function and global names: 6866
+transformed avg unique symbols per function: 15.563099893352293
 
