@@ -1,3 +1,5 @@
+// tests transforming macros that expand to numeric constants
+
 #include <stdio.h>
 
 #define ONE 1

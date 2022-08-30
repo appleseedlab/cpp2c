@@ -1,3 +1,5 @@
+// tests transforming macros that expand to parenthesized expressions
+
 #include <stdio.h>
 
 #define PAREN_EXPR (1)

@@ -1,3 +1,5 @@
+// test transforming macros that expand to variables
+
 #include <stdio.h>
 
 #define ID(x) x

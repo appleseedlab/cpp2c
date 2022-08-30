@@ -1,3 +1,5 @@
+// tests transforming macros that contain nested macros
+
 #include <stdio.h>
 
 #define ONE 1

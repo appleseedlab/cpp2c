@@ -1,3 +1,5 @@
+// tests transforming macros that expand to local variables (hygiene)
+
 #include <stdio.h>
 
 #define X x

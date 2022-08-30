@@ -1,3 +1,5 @@
+// tests transforming macros that have one parameter
+
 #include <stdio.h>
 
 #define ID(x) x

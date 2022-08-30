@@ -1,3 +1,5 @@
+// tests transforming macros in if else statements
+
 #include <stdio.h>
 
 #define ONE 1

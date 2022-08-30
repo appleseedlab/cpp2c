@@ -1,3 +1,5 @@
+// tests macros that expand to function arguments.
+
 #define ONE 1
 
 #define TWO 1 + 1

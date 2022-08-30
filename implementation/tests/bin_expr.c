@@ -1,3 +1,5 @@
+// tests macros that involve binary expressions
+
 #include <stdio.h>
 
 #define BIN_EXPR_PLUS 1 + 1

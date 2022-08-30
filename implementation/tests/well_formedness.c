@@ -1,3 +1,5 @@
+// tests transforming macros that are and are not syntactically wellformed
+
 #include <stdio.h>
 
 #define FOO 1 + 2 + 3

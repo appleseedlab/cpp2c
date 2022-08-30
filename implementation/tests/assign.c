@@ -1,3 +1,5 @@
+// tests transforming macros that are on the right hand side of assignments
+
 #include <stdio.h>
 
 #define ONE 1

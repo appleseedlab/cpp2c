@@ -1,3 +1,5 @@
+// tests transforming macros expanded in while loops
+
 #include <stdio.h>
 
 #define ZERO 0

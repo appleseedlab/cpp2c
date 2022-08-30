@@ -1,3 +1,5 @@
+// tests transforming macros expanded in parts of for loops
+
 #include <stdio.h>
 
 #define ONE 1

@@ -1,3 +1,5 @@
+// tests macros expanded in compound statements
+
 #include <stdio.h>
 
 #define ONE 1

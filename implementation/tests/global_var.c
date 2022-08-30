@@ -1,3 +1,6 @@
+// tests transforming macros that expand to global vars, even those
+// included in other files
+
 #include "global_var.h"
 
 #include <stdio.h>

@@ -1,3 +1,6 @@
+// tests transforming macros who are declared in a header #include'd at
+// an invalid location
+
 #include <stdio.h>
 
 struct S {

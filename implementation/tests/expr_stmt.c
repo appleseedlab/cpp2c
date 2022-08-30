@@ -1,3 +1,5 @@
+// tests transforming macros that are part of expression statements
+
 #include <stdio.h>
 
 int x = 0;

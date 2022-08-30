@@ -1,3 +1,5 @@
+// tests that cpp2c preserves comment locations in transformed code
+
 #include <stdio.h>
 
 #define ONE 1

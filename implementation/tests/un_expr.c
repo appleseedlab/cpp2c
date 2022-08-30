@@ -1,3 +1,5 @@
+// tests transforming macros that contain unary operators
+
 #include <stdio.h>
 
 #define UN_EXPR_PLUS +1

@@ -5,14 +5,14 @@
 enum
 {
     VAR =
-        // Should not transform
+        // Should transform
         ONE
 };
 
 struct MyStruct
 {
     int field :
-        // Should not transform
+        // Should transform
         ONE
     ;
 };
@@ -20,13 +20,13 @@ struct MyStruct
 union MyUnion
 {
     int field :
-        // Should not transform
+        // Should transform
         ONE
     ;
 };
 
 int g =
-    // Should not transform
+    // Should transform
     ONE
 ;
 
@@ -38,7 +38,7 @@ int main(int argc, char const *argv[])
     )
     {
     case
-        // Should not transform
+        // Should transform
         ONE
     :
         printf("%d\n",
@@ -52,7 +52,7 @@ int main(int argc, char const *argv[])
     }
 
     int a[
-        // Should not transform
+        // Should transform
         ONE
     ] = { 1 };
     printf("%d\n", a[0]);

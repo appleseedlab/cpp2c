@@ -1,3 +1,6 @@
+// tests transforming macros whose transformed signatures contain tag decls
+// (structs/unions/enums)
+
 #include <stdio.h>
 
 #define GET_X_STATIC(su) su.x

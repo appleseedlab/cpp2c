@@ -1,3 +1,5 @@
+// tests transforming macros that expand to integer limits
+
 #include <stdio.h>
 #include <limits.h>
 
