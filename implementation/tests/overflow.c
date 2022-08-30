@@ -1,4 +1,5 @@
-// tests transforming macros that expand to integer limits
+// tests that transforming macros that expand to integer limits does not
+// introduce integer overflow
 
 #include <stdio.h>
 #include <limits.h>

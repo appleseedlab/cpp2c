@@ -1,4 +1,4 @@
-// tests transforming macros that expand to numeric constants
+// tests transforming macros that expand to integer literals
 
 #include <stdio.h>
 
@@ -6,10 +6,6 @@
 
 int main()
 {
-    printf("%d\n",
-        // Should transform
-        ONE
-    );
     printf("%d\n",
         // Should transform
         ONE

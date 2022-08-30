@@ -18,6 +18,11 @@ enum E {
     A = EIGHT,
 };
 
+int sixteen() {
+    #include "sixteen.h"
+    return SIXTEEN;
+}
+
 int main(int argc, char **argv)
 {
     
@@ -35,4 +40,11 @@ int main(int argc, char **argv)
         // Should not transform
         EIGHT
     );
+
+    printf("%d\n",
+        // Should not transform
+        SIXTEEN
+    );
+
+    return 0;
 }

@@ -1,7 +1,7 @@
-// tests transforming and not transforming macros involving the & operator
+// tests transforming macros that involve the & operator but are still
+// l-value independent
 
 #define ID(x) x
-#define ADDR(x) (&(x))
 
 int x = 0;
 
@@ -12,13 +12,6 @@ int main(int argc, char **argv)
     ID(&x);
     // Should transform
     ID(&y);
-
-    // Should not transform
-    ADDR(x);
-    // Should not transform
-    ADDR(y);
-
-    
 
     return 0;
 }

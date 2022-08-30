@@ -1,0 +1,38 @@
+\hline
+Test                            &   Should Transform    &   \toolname Transforms    &   Result  \\
+\hline
+\hline
+anonymous\_types.c               &   No                  &   No                      &   \red{Fail}    \\
+array\_types.c                   &   Yes                 &   No                      &   \red{Fail}    \\
+bin\_expr.c                      &   Yes                 &   Yes                     &   \green{Pass}    \\
+comment\_locations.c             &   Yes                 &   Yes                     &   \red{Fail}\footnote{This test fails because \toolname does not preserve comment locations} \\
+compound\_statements.c           &   Yes                 &   Yes                     &   \green{Pass}    \\
+conditional\_evaluation\_safe.c   &   Yes                 &   No                      &   \red{Fail}    \\
+conditional\_evaluation\_unsafe.c &   No                  &   No                      &   \green{Pass}    \\
+const\_expr.c                    &   Yes                 &   No                      &   \red{Fail}    \\
+expr\_stmt.c                     &   Yes                 &   Yes                     &   \green{Pass}    \\
+float\_literals.c                &   Yes                 &   Yes                     &   \green{Pass}    \\
+for.c                           &   Yes                 &   Yes                     &   \green{Pass}    \\
+function\_arguments.c            &   Yes                 &   Yes                     &   \green{Pass}    \\
+function\_ptr\_types.c            &   Yes                 &   No                      &   \red{Fail}    \\
+function\_types.c                &   Yes                 &   No                      &   \red{Fail}    \\
+global\_vars.c                   &   Yes                 &   Yes                     &   \green{Pass}    \\
+if\_else.c                       &   Yes                 &   Yes                     &   \green{Pass}    \\
+int\_literals.c                  &   Yes                 &   Yes                     &   \green{Pass}    \\
+invalid\_includes.c              &   No                  &   No                      &   \green{Pass}    \\
+local\_var.c                     &   No                  &   Yes                     &   \red{Fail}    \\
+l\_value\_dependence.c            &   No                  &   No                      &   \green{Pass}    \\
+l\_value\_independence.c          &   Yes                 &   Yes                     &   \green{Pass}    \\
+nested\_macros.c                 &   Yes                 &   Yes                     &   \green{Pass}    \\
+overflow.c                      &   Yes                 &   Yes                     &   \green{Pass}    \\
+parameter\_side\_effects.c        &   No                  &   No                      &   \green{Pass}    \\
+paren\_expr.c                    &   Yes                 &   Yes                     &   \green{Pass}    \\
+safe\_assign.c                   &   Yes                 &   Yes                     &   \green{Pass}    \\
+string\_literals.c               &   Yes                 &   No                      &   \red{Fail}    \\
+tag\_decls.c                     &   Yes                 &   Yes                     &   \green{Pass}    \\
+un\_expr.c                       &   Yes                 &   Yes                     &   \green{Pass}    \\
+var.c                           &   Yes                 &   Yes                     &   \green{Pass}    \\
+void\_arg.c                      &   Yes                 &   Yes                     &   \green{Pass}    \\
+well\_formedness.c               &   Yes                 &   Yes                     &   \green{Pass}    \\
+while.c                         &   Yes                 &   Yes                     &   \green{Pass}    \\
+\hline
