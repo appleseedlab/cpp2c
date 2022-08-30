@@ -1,4 +1,4 @@
-// tests macros that involve binary expressions
+// tests transforming macros that involve binary expressions
 
 #include <stdio.h>
 
@@ -34,14 +34,6 @@ int main()
         "%d\n",
         // Should transform
         BIN_EXPR_DIV
-    );
-
-    printf(
-        "%d\n",
-        // Should not transform
-        M
-        // Should transform
-        N
     );
 
     return 0;
