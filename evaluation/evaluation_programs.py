@@ -121,7 +121,13 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # manual fixes: 0
+    # manual fixes: ?
+    # problem:  undefined reference to VIS_FACE in lib/readline/display.c
+    # fix:      define/undef VIS_FACE before and after first reference
+    #           1 SLOC.
+    # problem:  undefined reference to VIS_CHARS in lib/readline/display.c
+    # fix:      define/undef VIS_CHARS before and after first reference
+    #           1 SLOC.
     EvaluationProgram(
         r'bash-5.2-rc1',
         r'https://mirror.us-midwest-1.nexcess.net/gnu/bash/bash-5.2-rc1.tar.gz',
@@ -220,7 +226,7 @@ EVALUATION_PROGRAMS = [
         r'src',
         r'''
         cd src                                                  &&
-        sed -i 's/int yylineno/extern int yylineno/' holiday.c  &&
+        sed -i 's/\<int yylineno\>/extern int yylineno/' holiday.c  &&
         ./configure 4                                           &&
         make clean                                              &&
         intercept-build make linux64                            &&
@@ -278,7 +284,8 @@ EVALUATION_PROGRAMS = [
     # manual fixes: 18 SLOC.
     # problem:  in src/term.c, the there is a #include of "term.h" inside
     #           the initializer of the array term_tbl.
-    #           term.h contains some transformed declarations, so the resulting
+    #           term.h includes context.trm, which in turn includes pm3d.h,
+    #           which contains some transformed declarations, so the resulting
     #           code is syntactically invalid.
     #           this results in a syntax error.
     # fix:      comment out the transformed decls.
@@ -299,7 +306,11 @@ EVALUATION_PROGRAMS = [
     ),
 
     # requires X11 libraries (i think libx11-dev)
-    # manual fixes: 0
+    # manual fixes: 1
+    # problem:  undefined reference to is_valid_first_alias_char in
+    #           module_list.c.
+    # fix:      move macro definition of is_valid_first_alias_char above first
+    #           use.
     EvaluationProgram(
         r'fvwm-2.6.9',
         r'https://github.com/fvwmorg/fvwm/releases/download/2.6.9/fvwm-2.6.9.tar.gz',
@@ -359,25 +370,23 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # manual fixes: 11 SLOC.
+    # manual fixes: 8 SLOC.
     # problem:  in builtin.c, the macro INITIAL_OUT_SIZE was used in
     #           a transformed definition of GIVE_BACK_SIZE before
     #           INITIAL_OUT_SIZE was defined.
     # fix:      moved the transformed def of GIVE_BACK_SIZE after the
     #           definition of the macro INITIAL_OUT_SIZE.
     #           2 SLOC.
-    # problem:  in gawkapi.h, the macro definitions MPFR_RNDN, MPFR_RNDZ,
+    # problem:  in awk.h, the macro definitions MPFR_RNDN, MPFR_RNDZ,
     #           MPFR_RNDU, and MPFR_RNDD throw an error.
     # fix:      comment out these macro definitions.
     #           4 SLOC.
-    # problem:  the transformed definition of sym_update_scalar has a macro
-    #           named scalar_cookie.
+    # problem:  the transformed definition of sym_update_scalar in
+    #           extension/testext.c has an argument named scalar_cookie.
     #           this is the same name as a macro defined in gawkapi.h,
     #           so the transformed definition throws an error.
-    # fix:      added a preprocessor conditional to check if scalar_cookie
-    #           was defined, undefined it if so, then redefined it after
-    #           the function definition.
-    #           4 SLOC.
+    # fix:      renamed the transformed definition's argument to sc.
+    #           1 SLOC.
     # problem:  for some reason, in extension/intdiv.c, the definition of
     #           the macro MPFR_RNDZ throws an error.
     #           this only occurs in the transformed code.
@@ -419,17 +428,20 @@ EVALUATION_PROGRAMS = [
         '''
     ),
 
-    # 
-
     # requires gnutls libjpeg libgif/libungif libtiff gnutls
     # but these requirements can be circumvented with configuration options.
-    # manual fixes: 4 SLOC.
+    # manual fixes: 6 SLOC.
     # problem:  in src/editfns.c, the transformed definition of
     #           COMBINING_BOTH invoked the macros COMBINING_BEFORE and
     #           COMBINING_AFTER before they were defined.
     # fix:      moved the definitions of COMBINING_BEFORE and COMBINING_AFTER
     #           above the transformed def of COMBINING_BOTH.
     #           4 SLOC.
+    # problem:  transformed definition of IS_DIRECTORY_SEP in src/fileio.c
+    #           referenced transformed definition of DIRECTORY_SEP before
+    #           it was defined.
+    # fix:      move transformed def of DIRECTORY_SEP before IS_DIRECTORY_SEP.
+    #           2 SLOC.
     EvaluationProgram(
         r'emacs-28.1',
         r'https://ftp.snt.utwente.nl/pub/software/gnu/emacs/emacs-28.1.tar.gz',
@@ -457,11 +469,11 @@ EVALUATION_PROGRAMS = [
         f'''
         make clean                  &&
         make                        &&
-        if [[ -e {LUA_TESTS_DIR} ]]; then rm -fr {LUA_TESTS_DIR}; fi    &&
-        cd ../                      &&
-        tar -xvf ../{LUA_TESTS_ZIP} &&
-        cd {LUA_TESTS_DIR}          &&
-        ../lua-5.4.4/src/lua -e"_U=true" all.lua 1>/dev/null
+        if [[ -e lua-5.4.4-tests.tar.gz ]]; then rm -fr lua-5.4.4-tests.tar.gz; fi    &&
+        wget https://www.lua.org/tests/lua-5.4.4-tests.tar.gz   &&
+        tar -xvf lua-5.4.4-tests.tar.gz  &&
+        cd lua-5.4.4-tests          &&
+        ../src/lua -e"_U=true" all.lua 1>/dev/null
         '''
     ),
 
